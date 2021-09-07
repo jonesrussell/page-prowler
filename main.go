@@ -3,11 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-
 	"io/ioutil"
-
 	"log"
-
+	"os"
 	"strconv"
 
 	"github.com/gocolly/colly"
@@ -19,6 +17,11 @@ type Fact struct {
 }
 
 func main() {
+	url := os.Args[1]
+	fmt.Printf("URL : %s\n", url)
+
+	preview(url)
+
 	allFacts := make([]Fact, 0)
 
 	collector := colly.NewCollector(
@@ -50,15 +53,11 @@ func main() {
 }
 
 func writeJSON(data []Fact) {
-
 	file, err := json.MarshalIndent(data, "", " ")
 
 	if err != nil {
-
 		log.Println("Unable to create json file")
-
 		return
-
 	}
 
 	_ = ioutil.WriteFile("rhinofacts.json", file, 0644)
