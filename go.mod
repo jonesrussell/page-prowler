@@ -20,3 +20,5 @@ require (
 	golang.org/x/text v0.3.6 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 )
+
+require go.mongodb.org/mongo-driver v1.7.4 // indirect

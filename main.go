@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+//	"net"
+    "net/url"
 	"os"
-	"strconv"
+//	"strconv"
 
 	"github.com/gocolly/colly"
+	"go.mongodb.org/mongo-driver/mongo"
+    "go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Fact struct {
@@ -16,19 +20,45 @@ type Fact struct {
 	Description string `json:"description"`
 }
 
-func main() {
-	url := os.Args[1]
-	fmt.Printf("URL : %s\n", url)
+type Webpage struct {
+	Head	string	`json:"head"`
+	Body	string	`json:"body"`
+}
 
-	preview(url)
+var collection *mongo.Collection
+var ctx = context.TODO()
+
+func init() {
+    clientOptions := options.Client().ApplyURI("mongodb://localhost:27017/")
+    client, err := mongo.Connect(ctx, clientOptions)
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+
+func main() {
+	str := os.Args[1]
+	fmt.Printf("URL : %s\n", str)
+
+	u, err := url.Parse(str)
+    if err != nil {
+        panic(err)
+    }
+
+	fmt.Println(u.Host)
+    // host, port, _ := net.SplitHostPort(u.Host)
+    // fmt.Println(host)
+	
+	preview(str)
 
 	allFacts := make([]Fact, 0)
 
 	collector := colly.NewCollector(
-		colly.AllowedDomains("factretriever.com", "www.factretriever.com"),
+		// colly.AllowedDomains(host),
+		colly.AllowedDomains(u.Host),
 	)
 
-	collector.OnHTML(".factsList li", func(element *colly.HTMLElement) {
+	/*collector.OnHTML("article", func(element *colly.HTMLElement) {
 		factId, err := strconv.Atoi(element.Attr("id"))
 		if err != nil {
 			log.Println("Could not get id")
@@ -41,13 +71,17 @@ func main() {
 		}
 
 		allFacts = append(allFacts, fact)
+	})*/
+
+	collector.OnHTML("html", func(element *colly.HTMLElement) {
+		fmt.Println(element)
 	})
 
 	collector.OnRequest(func(request *colly.Request) {
 		fmt.Println("Visiting", request.URL.String())
 	})
 
-	collector.Visit("https://www.factretriever.com/rhino-facts")
+	collector.Visit(str)
 
 	writeJSON(allFacts)
 }
