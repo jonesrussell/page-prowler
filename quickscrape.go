@@ -8,10 +8,12 @@ import (
 
 func preview(url string) {
 	s, err := goscraper.Scrape(url, 5)
+	
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
 	fmt.Printf("Icon : %s\n", s.Preview.Icon)
 	fmt.Printf("Name : %s\n", s.Preview.Name)
 	fmt.Printf("Title : %s\n", s.Preview.Title)
