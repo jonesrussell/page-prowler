@@ -11,7 +11,7 @@ services:
         # Use -bullseye variants on local arm64/Apple Silicon.
         VARIANT: 14-buster
     volumes:
-      - ..:/workspace:cached
+      - .:/workspace:cached
 
       # Forwards the local Docker socket to the container.
       - /var/run/docker.sock:/var/run/docker.sock
@@ -34,8 +34,6 @@ services:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: fooBar123
       MONGO_INITDB_DATABASE: streetcode-crawler
-    ports:
-      - 27017:27017
     restart: unless-stopped
     volumes:
       - mongodb-data:/data/db

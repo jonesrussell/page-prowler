@@ -9,10 +9,12 @@ import (
     "net/url"
 	"os"
 //	"strconv"
-
+	// "golang.org/x/net/context"
+	"context"
 	"github.com/gocolly/colly"
 	"go.mongodb.org/mongo-driver/mongo"
-    "go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 type Fact struct {
@@ -25,15 +27,31 @@ type Webpage struct {
 	Body	string	`json:"body"`
 }
 
+// Connection URI
+const uri = "mongodb://db:27017/?maxPoolSize=20&w=majority"
+
 var collection *mongo.Collection
-var ctx = context.TODO()
 
 func init() {
-    clientOptions := options.Client().ApplyURI("mongodb://localhost:27017/")
-    client, err := mongo.Connect(ctx, clientOptions)
-    if err != nil {
-        log.Fatal(err)
-    }
+    // Create a new client and connect to the server
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
+
+	if err != nil {
+		panic(err)
+	}
+	
+	defer func() {
+		if err = client.Disconnect(context.TODO()); err != nil {
+			panic(err)
+		}
+	}()
+
+	// Ping the primary
+	if err := client.Ping(context.TODO(), readpref.Primary()); err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Successfully connected and pinged.")
 }
 
 func main() {
