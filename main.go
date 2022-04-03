@@ -1,117 +1,94 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-//	"net"
-    "net/url"
+	"time"
+
+	"net/url"
 	"os"
-//	"strconv"
-	// "golang.org/x/net/context"
+
 	"context"
+
+	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"github.com/segmentio/kafka-go"
 )
 
-type Fact struct {
-	ID          int    `json:"id"`
-	Description string `json:"description"`
+type Article struct {
+	Href  string
+	Title string
+	Image string
 }
 
-type Webpage struct {
-	Head	string	`json:"head"`
-	Body	string	`json:"body"`
-}
+const (
+	kafka_uri = "kafka:9092"
+	topic     = "streetcode"
+	partition = 0
+)
 
-// Connection URI
-const uri = "mongodb://db:27017/?maxPoolSize=20&w=majority"
+func main() {
+	webpage := os.Args[1]
 
-var collection *mongo.Collection
-
-func init() {
-    // Create a new client and connect to the server
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
-
+	u, err := url.Parse(webpage)
 	if err != nil {
 		panic(err)
 	}
-	
-	defer func() {
-		if err = client.Disconnect(context.TODO()); err != nil {
-			panic(err)
-		}
-	}()
 
-	// Ping the primary
-	if err := client.Ping(context.TODO(), readpref.Primary()); err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Successfully connected and pinged.")
-}
-
-func main() {
-	str := os.Args[1]
-	fmt.Printf("URL : %s\n", str)
-
-	u, err := url.Parse(str)
-    if err != nil {
-        panic(err)
-    }
-
-	fmt.Println(u.Host)
-    // host, port, _ := net.SplitHostPort(u.Host)
-    // fmt.Println(host)
-	
-	preview(str)
-
-	allFacts := make([]Fact, 0)
+	articles := make([]Article, 0)
 
 	collector := colly.NewCollector(
-		// colly.AllowedDomains(host),
 		colly.AllowedDomains(u.Host),
 	)
 
-	/*collector.OnHTML("article", func(element *colly.HTMLElement) {
-		factId, err := strconv.Atoi(element.Attr("id"))
-		if err != nil {
-			log.Println("Could not get id")
+	collector.OnHTML("a.section-item", func(element *colly.HTMLElement) {
+		href := element.Attr("href")
+		title := element.Text
+		element.DOM.Find("img").Each(func(i int, s *goquery.Selection) {
+			// For each item found, get the src
+			src, foo := s.Attr("src")
+			fmt.Printf("Review %d: %s -- %t\n", i, src, foo)
+		})
+
+		article := Article{
+			Title: title,
+			Href:  href,
+			// Image: image,
 		}
-		factDesc := element.Text
 
-		fact := Fact{
-			ID:          factId,
-			Description: factDesc,
-		}
-
-		allFacts = append(allFacts, fact)
-	})*/
-
-	collector.OnHTML("html", func(element *colly.HTMLElement) {
-		fmt.Println(element)
+		articles = append(articles, article)
 	})
 
 	collector.OnRequest(func(request *colly.Request) {
 		fmt.Println("Visiting", request.URL.String())
 	})
 
-	collector.Visit(str)
+	collector.Visit(webpage)
 
-	writeJSON(allFacts)
+	writeTopic(articles)
 }
 
-func writeJSON(data []Fact) {
-	file, err := json.MarshalIndent(data, "", " ")
-
+func writeTopic(data []Article) {
+	conn, err := kafka.DialLeader(context.Background(), "tcp", kafka_uri, topic, partition)
 	if err != nil {
-		log.Println("Unable to create json file")
-		return
+		log.Fatal("failed to dial leader:", err)
 	}
 
-	_ = ioutil.WriteFile("rhinofacts.json", file, 0644)
+	messages := make([]kafka.Message, 0)
+	for i := 0; i < len(data); i++ {
+		messages = append(messages, kafka.Message{
+			Key:   []byte(data[i].Href),
+			Value: []byte(data[i].Title),
+		})
+	}
 
+	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+	_, err = conn.WriteMessages(messages...)
+	if err != nil {
+		log.Fatal("failed to write messages:", err)
+	}
+
+	if err := conn.Close(); err != nil {
+		log.Fatal("failed to close writer:", err)
+	}
 }
