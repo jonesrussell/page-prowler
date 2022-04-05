@@ -33,25 +33,12 @@ services:
     command: sleep infinity
 
     # Runs app on the same network as the database container, allows "forwardPorts" in devcontainer.json function.
-    network_mode: service:db
+    network_mode: service:kafka
 
     # Uncomment the next line to use a non-root user for all processes.
     # user: vscode
 
     # Use "forwardPorts" in **devcontainer.json** to forward an app port locally. 
-    # (Adding the "ports" property to this file will not forward from a Codespace.)
-
-  db:
-    image: postgres:latest
-    restart: unless-stopped
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    env_file:
-      # Ensure that the variables in .env match the same variables in devcontainer.json
-      - .env
-
-
-    # Add "forwardPorts": ["5432"] to **devcontainer.json** to forward PostgreSQL locally.
     # (Adding the "ports" property to this file will not forward from a Codespace.)
     
   kafka:
@@ -65,14 +52,14 @@ services:
     environment:
       KAFKA_VERSION: '2.3.1'
       KAFKA_BROKER_ID: '1'
-      KAFKA_CREATE_TOPICS: 'test-writer-0:3:1,topic-A:3:1'
+      KAFKA_CREATE_TOPICS: 'streetcode:3:1,activity_creator_activities:3:1,aggregator_feeds:3:1'
       KAFKA_DELETE_TOPIC_ENABLE: 'true'
       KAFKA_ADVERTISED_HOST_NAME: 'kafka'
       KAFKA_ADVERTISED_PORT: '9092'
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
       KAFKA_MESSAGE_MAX_BYTES: '200000000'
-      KAFKA_LISTENERS: 'PLAINTEXT://:9092,SASL_PLAINTEXT://:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:9092,SASL_PLAINTEXT://kafka:9093'
       KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092,SASL_PLAINTEXT://kafka:9093'
       KAFKA_SASL_ENABLED_MECHANISMS: 'PLAIN,SCRAM-SHA-256,SCRAM-SHA-512'
       KAFKA_AUTHORIZER_CLASS_NAME: 'kafka.security.auth.SimpleAclAuthorizer'
