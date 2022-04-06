@@ -36,6 +36,7 @@ require (
 )
 
 require (
+	github.com/golang-module/carbon/v2 v2.0.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
 	github.com/segmentio/kafka-go v0.4.31 // indirect
 )
