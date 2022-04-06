@@ -12,13 +12,15 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
+	"github.com/golang-module/carbon/v2"
 	"github.com/segmentio/kafka-go"
 )
 
 type Article struct {
-	Href  string
-	Title string
-	Image string
+	Href  string `json:"href"`
+	Title string `json:"title"`
+	Image string `json:"image"`
+	Body  string `json:"body"`
 }
 
 const (
@@ -35,7 +37,7 @@ func main() {
 		panic(err)
 	}
 
-	articles := make([]Article, 0)
+	// articles := make([]Article, 0)
 
 	collector := colly.NewCollector(
 		colly.AllowedDomains(u.Host),
@@ -53,10 +55,10 @@ func main() {
 	collector.Limit(&colly.LimitRule{
 		DomainGlob:  "*sudbury.com",
 		Parallelism: 2,
-		Delay:       500 * time.Millisecond,
+		Delay:       1000 * time.Millisecond,
 	})
 
-	collector.OnHTML("a.section-item", func(element *colly.HTMLElement) {
+	/*collector.OnHTML("a.section-item", func(element *colly.HTMLElement) {
 		href := element.Attr("href")
 		title := element.Text
 		src := ""
@@ -77,16 +79,56 @@ func main() {
 		}
 
 		articles = append(articles, article)
-	})
+	})*/
 
 	collector.OnHTML(`a[href]`, func(e *colly.HTMLElement) {
 		foundURL := e.Request.AbsoluteURL(e.Attr("href"))
-		// foundURL := e.Attr("href")
 		collector.Visit(foundURL)
 	})
 
+	// Article page
+	collector.OnHTML(`section .details`, func(e *colly.HTMLElement) {
+		datetime, found := e.DOM.FindMatcher(goquery.Single("time")).Attr("datetime")
+		if !found {
+			panic(err)
+		}
+		today := carbon.Now()
+		articleDate := carbon.Parse(datetime)
+		diff := articleDate.DiffInMonths(today)
+
+		title := e.DOM.FindMatcher(goquery.Single("h1")).Text()
+
+		href, found := e.DOM.FindMatcher(goquery.Single(".details-share .nav")).Attr("data-url")
+		if !found {
+			panic(err)
+		}
+
+		src, found := e.DOM.FindMatcher(goquery.Single("img")).Attr("src")
+		if !found {
+			panic(err)
+		}
+
+		body, err := e.DOM.FindMatcher(goquery.Single("#details-body")).Html()
+		if err != nil {
+			panic(err)
+		}
+
+		article := Article{
+			Title: title,
+			Href:  href,
+			Image: src,
+			Body:  body,
+		}
+
+		if diff <= 1 {
+			// fmt.Println("Date:", articleDate)
+			writeTopic(article)
+		}
+
+	})
+
 	collector.OnRequest(func(request *colly.Request) {
-		fmt.Println("Visiting", request.URL.String())
+		// fmt.Println("Visiting", request.URL.String())
 	})
 
 	collector.OnScraped(func(r *colly.Response) {
@@ -98,25 +140,24 @@ func main() {
 	collector.Wait()
 }
 
-func writeTopic(articles []Article) {
+func writeTopic(article Article) {
 	conn, err := kafka.DialLeader(context.Background(), "tcp", kafka_uri, topic, partition)
 	if err != nil {
 		log.Fatal("failed to dial leader:", err)
 	}
 
 	messages := make([]kafka.Message, 0)
-	for i := 0; i < len(articles); i++ {
-		// Convert article struct to json
-		article, err := json.Marshal(articles[i])
-		if err != nil {
-			panic(err)
-		}
 
-		messages = append(messages, kafka.Message{
-			Key:   []byte(articles[i].Href),
-			Value: article,
-		})
+	// Convert article struct to json
+	articleJson, err := json.Marshal(article)
+	if err != nil {
+		panic(err)
 	}
+
+	messages = append(messages, kafka.Message{
+		Key:   []byte(article.Href),
+		Value: articleJson,
+	})
 
 	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 	fmt.Println("Write")
