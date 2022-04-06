@@ -36,6 +36,11 @@ require (
 )
 
 require (
+	github.com/Jeffail/gabs v1.4.0 // indirect
+	github.com/dyatlov/go-htmlinfo v0.0.0-20180517114536-d9417c75de65 // indirect
+	github.com/dyatlov/go-oembed v0.0.0-20191103150536-a57c85b3b37c // indirect
+	github.com/dyatlov/go-opengraph v0.0.0-20210112100619-dae8665a5b09 // indirect
+	github.com/dyatlov/go-readability v0.0.0-20150926130635-e7b2080f87f8 // indirect
 	github.com/golang-module/carbon/v2 v2.0.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
 	github.com/segmentio/kafka-go v0.4.31 // indirect
