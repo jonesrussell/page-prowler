@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/go-redis/redis/v8"
 	"github.com/gocolly/colly"
 	"github.com/golang-module/carbon/v2"
 	"github.com/segmentio/kafka-go"
@@ -24,19 +25,31 @@ type Article struct {
 }
 
 const (
-	kafka_uri = "kafka:9092"
-	topic     = "streetcode"
-	partition = 0
+	redis_uri  = "localhost"
+	redis_port = "6379"
 )
 
 func main() {
-	webpage := os.Args[1]
+	log.Println("Publisher started")
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: fmt.Sprintf("%s:%s", redis_uri, redis_port),
+	})
 
+	_, err := redisClient.Ping(redisClient.Context()).Result()
+	if err != nil {
+		log.Fatal("Unable to connect to Redis", err)
+	}
+
+	log.Println("Connected to Redis server")
+
+	os.Exit(0)
+
+	// Retrieve URL parameter
+	webpage := os.Args[1]
 	u, err := url.Parse(webpage)
 	if err != nil {
 		panic(err)
 	}
-
 	// articles := make([]Article, 0)
 
 	collector := colly.NewCollector(
