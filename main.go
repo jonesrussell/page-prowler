@@ -43,7 +43,7 @@ func main() {
 		colly.AllowedDomains(u.Host),
 		colly.Async(true),
 		colly.URLFilters(
-			regexp.MustCompile(`https://www.sudbury\.com(|/local-news.+)$`),
+			// regexp.MustCompile(`https://www.sudbury\.com(|/local-news.+)$`),
 			// regexp.MustCompile(`https://www.sudbury\.com/membership.+`),
 			regexp.MustCompile(`https://www.sudbury\.com/police.+`),
 			// regexp.MustCompile(`https://www.sudbury\.com/weather.+`),

@@ -3,12 +3,11 @@ module streetcode.tk/web-scraper
 go 1.17
 
 require (
-	github.com/PuerkitoBio/goquery v1.7.1 // indirect
+	github.com/PuerkitoBio/goquery v1.7.1
 	github.com/andybalholm/cascadia v1.2.0 // indirect
 	github.com/antchfx/htmlquery v1.2.3 // indirect
 	github.com/antchfx/xmlquery v1.3.6 // indirect
 	github.com/antchfx/xpath v1.1.10 // indirect
-	github.com/badoux/goscraper v0.0.0-20190827161153-36995ce6b19f
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gocolly/colly v1.2.0
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
@@ -21,27 +20,17 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 )
 
+require github.com/klauspost/compress v1.14.2 // indirect
+
 require (
-	github.com/go-stack/stack v1.8.0 // indirect
-	github.com/golang/snappy v0.0.1 // indirect
-	github.com/klauspost/compress v1.14.2 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
-	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
-	github.com/xdg-go/scram v1.0.2 // indirect
-	github.com/xdg-go/stringprep v1.0.2 // indirect
-	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
-	go.mongodb.org/mongo-driver v1.7.4
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
+	github.com/golang-module/carbon/v2 v2.0.1
+	github.com/segmentio/kafka-go v0.4.31
 )
 
 require (
-	github.com/Jeffail/gabs v1.4.0 // indirect
-	github.com/dyatlov/go-htmlinfo v0.0.0-20180517114536-d9417c75de65 // indirect
-	github.com/dyatlov/go-oembed v0.0.0-20191103150536-a57c85b3b37c // indirect
-	github.com/dyatlov/go-opengraph v0.0.0-20210112100619-dae8665a5b09 // indirect
-	github.com/dyatlov/go-readability v0.0.0-20150926130635-e7b2080f87f8 // indirect
-	github.com/golang-module/carbon/v2 v2.0.1 // indirect
+	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
-	github.com/segmentio/kafka-go v0.4.31 // indirect
 )
