@@ -7,18 +7,12 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gocolly/colly"
 )
-
-type Article struct {
-	Href  string `json:"href"`
-	Title string `json:"title"`
-	Image string `json:"image"`
-	Body  string `json:"body"`
-}
 
 const (
 	redis_uri    = "localhost"
@@ -53,6 +47,7 @@ func main() {
 		colly.AllowedDomains(u.Host),
 		colly.Async(true),
 		colly.URLFilters(
+			// regexp.MustCompile(`https://www.sudbury.com$`),
 			regexp.MustCompile(`https://www.sudbury.com(|/police.+)$`),
 			// regexp.MustCompile(`https://www.sudbury\.com/membership.+`),
 			// regexp.MustCompile(`https://www.sudbury.com/local-news.+`),
@@ -72,9 +67,11 @@ func main() {
 	collector.OnHTML("a.section-item", func(element *colly.HTMLElement) {
 		href := element.Attr("href")
 
-		err = publishHrefReceivedEvent(redisClient, href)
-		if err != nil {
-			log.Fatal(err)
+		if strings.Contains(href, "/police") {
+			err = publishHrefReceivedEvent(redisClient, href)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 
 	})
@@ -84,9 +81,9 @@ func main() {
 		collector.Visit(foundURL)
 	})
 
-	collector.OnRequest(func(request *colly.Request) {
+	/*collector.OnRequest(func(request *colly.Request) {
 		fmt.Println("Visiting", request.URL.String())
-	})
+	})*/
 
 	fmt.Println("Webpage:", webpage)
 	collector.Visit(webpage)
