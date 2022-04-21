@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -14,16 +16,27 @@ import (
 	"github.com/gocolly/colly"
 )
 
+type Response struct {
+	Data []Entity `json:"data"`
+}
+
+type Entity struct {
+	Type string `json:"type"`
+	Id   string `json:"id"`
+}
+
 const (
 	redis_uri    = "localhost"
 	redis_port   = "6379"
 	redis_stream = "streetcode"
+
+	streetcode_url = "https://www.streetcode.tk.ddev.site/api/post/photo?filter[field_post.value]="
 )
 
 var ctx = context.Background()
 
 func main() {
-	log.Println("Publisher started")
+	log.Println("crawler started")
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: fmt.Sprintf("%s:%s", redis_uri, redis_port),
@@ -31,13 +44,14 @@ func main() {
 
 	_, err := redisClient.Ping(ctx).Result()
 	if err != nil {
-		log.Fatal("Unable to connect to Redis", err)
+		log.Fatal("unable to connect to redis", err)
 	}
 
-	log.Println("Connected to Redis server")
+	log.Println("connected to redis")
 
 	// Retrieve URL parameter
 	webpage := os.Args[1]
+
 	u, err := url.Parse(webpage)
 	if err != nil {
 		panic(err)
@@ -46,13 +60,13 @@ func main() {
 	collector := colly.NewCollector(
 		colly.AllowedDomains(u.Host),
 		colly.Async(true),
-		colly.URLFilters(
+		/*colly.URLFilters(
 			// regexp.MustCompile(`https://www.sudbury.com$`),
-			regexp.MustCompile(`https://www.sudbury.com(|/police.+)$`),
+			regexp.MustCompile(`(|/police.+)$`),
 			// regexp.MustCompile(`https://www.sudbury\.com/membership.+`),
 			// regexp.MustCompile(`https://www.sudbury.com/local-news.+`),
 			// regexp.MustCompile(`https://www.sudbury\.com/weather.+`),
-		),
+		),*/
 		// colly.Debugger(&debug.LogDebugger{}),
 	)
 
@@ -64,21 +78,48 @@ func main() {
 		Delay:       1000 * time.Millisecond,
 	})
 
-	collector.OnHTML("a.section-item", func(element *colly.HTMLElement) {
-		href := element.Attr("href")
+	// Act on every link; <a href="foo">
+	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
+		foundUrl := e.Request.AbsoluteURL(e.Attr("href"))
+		// foundUrl := "https://www.sudbury.com/police/traffic-stop-nets-12k-in-drugs-three-arrested-5241679"
 
-		if strings.Contains(href, "/police") {
-			err = publishHrefReceivedEvent(redisClient, href)
+		// Determine if we will submit link to Streetcode
+		if !strings.Contains(foundUrl, "/police/") {
+			// log.Printf("INFO: %s not a candidate for Streetcode", foundUrl)
+		} else {
+			log.Printf("INFO: %s is a candidate for Streetcode", foundUrl)
+			// Check if link has already been submitted to Streetcode
+			// Assemble Streetcode API url that will search for link
+			urlTest := fmt.Sprintf("%s%s", streetcode_url, foundUrl)
+
+			// Call Streetcode
+			response, err := http.Get(urlTest)
+			if err != nil {
+				fmt.Print(err.Error())
+			}
+
+			// Process response from Streetcode or fail
+			responseData, err := ioutil.ReadAll(response.Body)
 			if err != nil {
 				log.Fatal(err)
 			}
+
+			// Process the JSON response data
+			data := Response{}
+			json.Unmarshal([]byte(responseData), &data)
+
+			// Finally, no data means we can publish to Streetcode
+			if len(data.Data) == 0 {
+				err = publishHrefReceivedEvent(redisClient, foundUrl)
+				if err != nil {
+					log.Fatal(err)
+				}
+			} else {
+				log.Printf("INFO: %s is already at Streetcode", foundUrl)
+			}
 		}
 
-	})
-
-	collector.OnHTML(`a[href]`, func(e *colly.HTMLElement) {
-		foundURL := e.Request.AbsoluteURL(e.Attr("href"))
-		collector.Visit(foundURL)
+		collector.Visit(foundUrl)
 	})
 
 	/*collector.OnRequest(func(request *colly.Request) {
