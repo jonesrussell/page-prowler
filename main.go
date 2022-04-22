@@ -14,21 +14,11 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type Response struct {
-	Data []Entity `json:"data"`
-}
-
-type Entity struct {
-	Type string `json:"type"`
-	Id   string `json:"id"`
-}
-
 var (
-	redis_uri      = ""
-	redis_port     = ""
-	redis_stream   = ""
-	streetcode_url = ""
-	ctx            = context.Background()
+	redis_uri    = ""
+	redis_port   = ""
+	redis_stream = ""
+	ctx          = context.Background()
 )
 
 func main() {
@@ -42,7 +32,6 @@ func main() {
 	redis_uri = os.Getenv("REDIS_HOST")
 	redis_port = os.Getenv("REDIS_PORT")
 	redis_stream = os.Getenv("REDIS_STREAM")
-	streetcode_url = os.Getenv("API_URL")
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: fmt.Sprintf("%s:%s", redis_uri, redis_port),
@@ -88,40 +77,14 @@ func main() {
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		foundUrl := e.Request.AbsoluteURL(e.Attr("href"))
 
-		// Determine if we will submit link to Streetcode
+		// Determine if we will submit link to Redis
 		if !strings.Contains(foundUrl, "/police/") {
 			// log.Printf("INFO: %s not a candidate for Streetcode", foundUrl)
 		} else {
-			// log.Printf("INFO: %s is a candidate for Streetcode", foundUrl)
-			// Check if link has already been submitted to Streetcode
-			// Assemble Streetcode API url that will search for link
-			// urlTest := fmt.Sprintf("%s%s", streetcode_url, foundUrl)
-
-			// Call Streetcode
-			/*response, err := http.Get(urlTest)
-			if err != nil {
-				fmt.Print(err.Error())
-			}*/
-
-			// Process response from Streetcode or fail
-			/*responseData, err := ioutil.ReadAll(response.Body)
-			if err != nil {
-				log.Fatal(err)
-			}*/
-
-			// Process the JSON response data
-			/*data := Response{}
-			json.Unmarshal([]byte(responseData), &data)*/
-
-			// Finally, no data means we can publish to Streetcode
-			// if len(data.Data) == 0 {
 			err = publishHrefReceivedEvent(redisClient, foundUrl)
 			if err != nil {
 				log.Fatal(err)
 			}
-			// } else {
-			// 	log.Printf("INFO: %s is already at Streetcode", foundUrl)
-			// }
 		}
 
 		collector.Visit(foundUrl)
