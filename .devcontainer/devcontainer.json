@@ -15,7 +15,8 @@
     // Add the IDs of extensions you want installed when the container is created.
     "extensions": [
         "eamodio.gitlens",
-        "golang.Go"
+        "golang.Go",
+        "mutantdino.resourcemonitor"
     ],
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
     "forwardPorts": [
