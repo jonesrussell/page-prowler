@@ -1,4 +1,4 @@
-module streetcode.tk/web-scraper
+module streetcode.tk/streetcode-crawler
 
 go 1.17
 
