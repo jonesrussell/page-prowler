@@ -2,11 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -14,6 +11,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gocolly/colly"
+	"github.com/joho/godotenv"
 )
 
 type Response struct {
@@ -25,24 +23,32 @@ type Entity struct {
 	Id   string `json:"id"`
 }
 
-const (
-	redis_uri    = "localhost"
-	redis_port   = "6379"
-	redis_stream = "streetcode"
-
-	streetcode_url = "https://www.streetcode.tk.ddev.site/api/post/photo?filter[field_post.value]="
+var (
+	redis_uri      = ""
+	redis_port     = ""
+	redis_stream   = ""
+	streetcode_url = ""
+	ctx            = context.Background()
 )
-
-var ctx = context.Background()
 
 func main() {
 	log.Println("crawler started")
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("error loading .env file")
+	}
+
+	redis_uri = os.Getenv("REDIS_HOST")
+	redis_port = os.Getenv("REDIS_PORT")
+	redis_stream = os.Getenv("REDIS_STREAM")
+	streetcode_url = os.Getenv("API_URL")
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: fmt.Sprintf("%s:%s", redis_uri, redis_port),
 	})
 
-	_, err := redisClient.Ping(ctx).Result()
+	_, err = redisClient.Ping(ctx).Result()
 	if err != nil {
 		log.Fatal("unable to connect to redis", err)
 	}
@@ -81,52 +87,46 @@ func main() {
 	// Act on every link; <a href="foo">
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		foundUrl := e.Request.AbsoluteURL(e.Attr("href"))
-		// foundUrl := "https://www.sudbury.com/police/traffic-stop-nets-12k-in-drugs-three-arrested-5241679"
 
 		// Determine if we will submit link to Streetcode
 		if !strings.Contains(foundUrl, "/police/") {
 			// log.Printf("INFO: %s not a candidate for Streetcode", foundUrl)
 		} else {
-			log.Printf("INFO: %s is a candidate for Streetcode", foundUrl)
+			// log.Printf("INFO: %s is a candidate for Streetcode", foundUrl)
 			// Check if link has already been submitted to Streetcode
 			// Assemble Streetcode API url that will search for link
-			urlTest := fmt.Sprintf("%s%s", streetcode_url, foundUrl)
+			// urlTest := fmt.Sprintf("%s%s", streetcode_url, foundUrl)
 
 			// Call Streetcode
-			response, err := http.Get(urlTest)
+			/*response, err := http.Get(urlTest)
 			if err != nil {
 				fmt.Print(err.Error())
-			}
+			}*/
 
 			// Process response from Streetcode or fail
-			responseData, err := ioutil.ReadAll(response.Body)
+			/*responseData, err := ioutil.ReadAll(response.Body)
+			if err != nil {
+				log.Fatal(err)
+			}*/
+
+			// Process the JSON response data
+			/*data := Response{}
+			json.Unmarshal([]byte(responseData), &data)*/
+
+			// Finally, no data means we can publish to Streetcode
+			// if len(data.Data) == 0 {
+			err = publishHrefReceivedEvent(redisClient, foundUrl)
 			if err != nil {
 				log.Fatal(err)
 			}
-
-			// Process the JSON response data
-			data := Response{}
-			json.Unmarshal([]byte(responseData), &data)
-
-			// Finally, no data means we can publish to Streetcode
-			if len(data.Data) == 0 {
-				err = publishHrefReceivedEvent(redisClient, foundUrl)
-				if err != nil {
-					log.Fatal(err)
-				}
-			} else {
-				log.Printf("INFO: %s is already at Streetcode", foundUrl)
-			}
+			// } else {
+			// 	log.Printf("INFO: %s is already at Streetcode", foundUrl)
+			// }
 		}
 
 		collector.Visit(foundUrl)
 	})
 
-	/*collector.OnRequest(func(request *colly.Request) {
-		fmt.Println("Visiting", request.URL.String())
-	})*/
-
-	fmt.Println("Webpage:", webpage)
 	collector.Visit(webpage)
 	collector.Wait()
 }
