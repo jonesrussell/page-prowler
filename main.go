@@ -6,19 +6,24 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gocolly/colly"
+	"github.com/gocolly/redisstorage"
 	"github.com/joho/godotenv"
 )
 
 var (
 	redis_uri    = ""
 	redis_port   = ""
+	redis_auth   = ""
 	redis_stream = ""
-	ctx          = context.Background()
+	redis_db     = 0
+
+	ctx = context.Background()
 )
 
 func main() {
@@ -32,6 +37,7 @@ func main() {
 	redis_uri = os.Getenv("REDIS_HOST")
 	redis_port = os.Getenv("REDIS_PORT")
 	redis_stream = os.Getenv("REDIS_STREAM")
+	redis_db, err = strconv.Atoi(os.Getenv("REDIS_DB"))
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: fmt.Sprintf("%s:%s", redis_uri, redis_port),
@@ -64,6 +70,27 @@ func main() {
 		),*/
 		// colly.Debugger(&debug.LogDebugger{}),
 	)
+
+	storage := &redisstorage.Storage{
+		Address:  fmt.Sprintf("%s:%s", redis_uri, redis_port),
+		Password: redis_auth,
+		DB:       redis_db,
+		Prefix:   redis_stream,
+	}
+
+	// add storage to the collector
+	err = collector.SetStorage(storage)
+	if err != nil {
+		panic(err)
+	}
+
+	// delete previous data from storage
+	if err := storage.Clear(); err != nil {
+		log.Fatal(err)
+	}
+
+	// close redis client
+	defer storage.Client.Close()
 
 	// Limit the number of threads started by colly to two
 	// when visiting links which domains' matches "*sudbury.com" glob
