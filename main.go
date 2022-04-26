@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
 	"log"
-	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -16,34 +17,22 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var (
-	redis_uri    = ""
-	redis_port   = ""
-	redis_auth   = ""
-	redis_stream = ""
-	redis_db     = 0
-
-	ctx = context.Background()
-)
+var ctx = context.Background()
 
 func main() {
 	log.Println("crawler started")
 
-	err := godotenv.Load(".env")
-	if err != nil {
+	if godotenv.Load(".env") != nil {
 		log.Fatal("error loading .env file")
 	}
 
-	redis_uri = os.Getenv("REDIS_HOST")
-	redis_port = os.Getenv("REDIS_PORT")
-	redis_stream = os.Getenv("REDIS_STREAM")
-	redis_db, err = strconv.Atoi(os.Getenv("REDIS_DB"))
+	redis_db, _ := strconv.Atoi(os.Getenv("REDIS_DB"))
 
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: fmt.Sprintf("%s:%s", redis_uri, redis_port),
+		Addr: fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
 	})
 
-	_, err = redisClient.Ping(ctx).Result()
+	_, err := redisClient.Ping(ctx).Result()
 	if err != nil {
 		log.Fatal("unable to connect to redis", err)
 	}
@@ -53,29 +42,29 @@ func main() {
 	// Retrieve URL parameter
 	webpage := os.Args[1]
 
-	u, err := url.Parse(webpage)
+	/* u, err := url.Parse(webpage)
 	if err != nil {
 		panic(err)
-	}
+	} */
 
 	collector := colly.NewCollector(
-		colly.AllowedDomains(u.Host),
+		// colly.AllowedDomains(u.Host),
 		colly.Async(true),
-		/*colly.URLFilters(
+		colly.URLFilters(
 			// regexp.MustCompile(`https://www.sudbury.com$`),
 			regexp.MustCompile(`(|/police.+)$`),
 			// regexp.MustCompile(`https://www.sudbury\.com/membership.+`),
 			// regexp.MustCompile(`https://www.sudbury.com/local-news.+`),
 			// regexp.MustCompile(`https://www.sudbury\.com/weather.+`),
-		),*/
+		),
 		// colly.Debugger(&debug.LogDebugger{}),
 	)
 
 	storage := &redisstorage.Storage{
-		Address:  fmt.Sprintf("%s:%s", redis_uri, redis_port),
-		Password: redis_auth,
+		Address:  fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
+		Password: os.Getenv("REDIS_AUTH"),
 		DB:       redis_db,
-		Prefix:   redis_stream,
+		Prefix:   os.Getenv("REDIS_STREAM"),
 	}
 
 	// add storage to the collector
@@ -95,37 +84,51 @@ func main() {
 	// Limit the number of threads started by colly to two
 	// when visiting links which domains' matches "*sudbury.com" glob
 	collector.Limit(&colly.LimitRule{
-		DomainGlob:  "*sudbury.com",
+		// DomainGlob: "*sudbury.com",
+		// DomainGlob:  fmt.Sprintf("*%s", os.Getenv("COLLY_ALLOWED_DOMAINS")),
 		Parallelism: 2,
 		Delay:       1000 * time.Millisecond,
 	})
 
 	// Act on every link; <a href="foo">
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
-		foundUrl := e.Request.AbsoluteURL(e.Attr("href"))
+		foundHref := e.Request.AbsoluteURL(e.Attr("href"))
 
 		// Determine if we will submit link to Redis
-		if !strings.Contains(foundUrl, "/police/") {
+		if !strings.Contains(foundHref, "/police/") {
 			// log.Printf("INFO: %s not a candidate for Streetcode", foundUrl)
 		} else {
-			err = publishHrefReceivedEvent(redisClient, foundUrl)
+			err = publishHrefReceivedEvent(redisClient, foundHref)
 			if err != nil {
 				log.Fatal(err)
 			}
+			writeHrefCsv(foundHref)
 		}
 
-		collector.Visit(foundUrl)
+		collector.Visit(foundHref)
 	})
 
 	collector.Visit(webpage)
 	collector.Wait()
 }
 
+func writeHrefCsv(href string) {
+	f, err := os.OpenFile("hrefs.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	w := csv.NewWriter(f)
+	w.Write([]string{href})
+	w.Flush()
+}
+
 func publishHrefReceivedEvent(client *redis.Client, href string) error {
 	log.Println("Publishing event to Redis")
 
 	err := client.XAdd(ctx, &redis.XAddArgs{
-		Stream:       redis_stream,
+		Stream:       os.Getenv("REDIS_STREAM"),
 		MaxLen:       0,
 		MaxLenApprox: 0,
 		ID:           "",
