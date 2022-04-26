@@ -22,6 +22,13 @@ var ctx = context.Background()
 func main() {
 	log.Println("crawler started")
 
+	// Retrieve URL parameter
+	if len(os.Args) < 2 {
+		log.Fatal("url not provided. eg) ./streetcode-crawler https://www.sudbury.com")
+	}
+
+	webpage := os.Args[1]
+
 	if godotenv.Load(".env") != nil {
 		log.Fatal("error loading .env file")
 	}
@@ -39,27 +46,15 @@ func main() {
 
 	log.Println("connected to redis")
 
-	// Retrieve URL parameter
-	webpage := os.Args[1]
-
-	/* u, err := url.Parse(webpage)
-	if err != nil {
-		panic(err)
-	} */
-
 	collector := colly.NewCollector(
-		// colly.AllowedDomains(u.Host),
 		colly.Async(true),
 		colly.URLFilters(
-			// regexp.MustCompile(`https://www.sudbury.com$`),
 			regexp.MustCompile(`(|/police.+)$`),
-			// regexp.MustCompile(`https://www.sudbury\.com/membership.+`),
-			// regexp.MustCompile(`https://www.sudbury.com/local-news.+`),
-			// regexp.MustCompile(`https://www.sudbury\.com/weather.+`),
 		),
 		// colly.Debugger(&debug.LogDebugger{}),
 	)
 
+	// Setup Redis as colly cookie storage
 	storage := &redisstorage.Storage{
 		Address:  fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
 		Password: os.Getenv("REDIS_AUTH"),
@@ -68,8 +63,7 @@ func main() {
 	}
 
 	// add storage to the collector
-	err = collector.SetStorage(storage)
-	if err != nil {
+	if err := collector.SetStorage(storage); err != nil {
 		panic(err)
 	}
 
@@ -84,8 +78,7 @@ func main() {
 	// Limit the number of threads started by colly to two
 	// when visiting links which domains' matches "*sudbury.com" glob
 	collector.Limit(&colly.LimitRule{
-		// DomainGlob: "*sudbury.com",
-		// DomainGlob:  fmt.Sprintf("*%s", os.Getenv("COLLY_ALLOWED_DOMAINS")),
+		DomainGlob:  "*sudbury.com",
 		Parallelism: 2,
 		Delay:       1000 * time.Millisecond,
 	})
