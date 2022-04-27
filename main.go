@@ -20,23 +20,20 @@ import (
 var ctx = context.Background()
 
 func main() {
-	log.Println("crawler started")
-
-	// Retrieve URL parameter
+	// Retrieve URL to crawl
 	if len(os.Args) < 2 {
 		log.Fatal("url not provided. eg) ./streetcode-crawler https://www.sudbury.com")
 	}
-
-	webpage := os.Args[1]
+	crawlUrl := os.Args[1]
 
 	if godotenv.Load(".env") != nil {
 		log.Fatal("error loading .env file")
 	}
 
-	redis_db, _ := strconv.Atoi(os.Getenv("REDIS_DB"))
-
+	// Connect to Redis
+	redisAddress := fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
+		Addr: redisAddress,
 	})
 
 	_, err := redisClient.Ping(ctx).Result()
@@ -44,7 +41,16 @@ func main() {
 		log.Fatal("unable to connect to redis", err)
 	}
 
-	log.Println("connected to redis")
+	// Setup Redis as colly cookie storage
+	redisDb, _ := strconv.Atoi(os.Getenv("REDIS_DB"))
+	storage := &redisstorage.Storage{
+		Address:  redisAddress,
+		Password: os.Getenv("REDIS_AUTH"),
+		DB:       redisDb,
+		Prefix:   os.Getenv("REDIS_STREAM"),
+	}
+
+	log.Println("crawler started")
 
 	collector := colly.NewCollector(
 		colly.Async(true),
@@ -54,14 +60,6 @@ func main() {
 		// colly.Debugger(&debug.LogDebugger{}),
 	)
 
-	// Setup Redis as colly cookie storage
-	storage := &redisstorage.Storage{
-		Address:  fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
-		Password: os.Getenv("REDIS_AUTH"),
-		DB:       redis_db,
-		Prefix:   os.Getenv("REDIS_STREAM"),
-	}
-
 	// add storage to the collector
 	if err := collector.SetStorage(storage); err != nil {
 		panic(err)
@@ -69,7 +67,7 @@ func main() {
 
 	// delete previous data from storage
 	if err := storage.Clear(); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// close redis client
@@ -80,7 +78,7 @@ func main() {
 	collector.Limit(&colly.LimitRule{
 		DomainGlob:  "*sudbury.com",
 		Parallelism: 2,
-		Delay:       1000 * time.Millisecond,
+		Delay:       3 * time.Second,
 	})
 
 	// Act on every link; <a href="foo">
@@ -88,28 +86,26 @@ func main() {
 		foundHref := e.Request.AbsoluteURL(e.Attr("href"))
 
 		// Determine if we will submit link to Redis
-		if !strings.Contains(foundHref, "/police/") {
-			// log.Printf("INFO: %s not a candidate for Streetcode", foundUrl)
-		} else {
-			err = publishHrefReceivedEvent(redisClient, foundHref)
-			if err != nil {
+		if strings.Contains(foundHref, "/police/") {
+			if err = publishHref(redisClient, foundHref); err != nil {
 				log.Fatal(err)
 			}
+			// TODO: put this behing a cli flag
 			writeHrefCsv(foundHref)
 		}
 
 		collector.Visit(foundHref)
 	})
 
-	collector.Visit(webpage)
+	collector.Visit(crawlUrl)
 	collector.Wait()
 }
 
 func writeHrefCsv(href string) {
-	f, err := os.OpenFile("hrefs.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	f, err := os.OpenFile(os.Getenv("CSV_FILENAME"), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
 
 	w := csv.NewWriter(f)
@@ -117,17 +113,15 @@ func writeHrefCsv(href string) {
 	w.Flush()
 }
 
-func publishHrefReceivedEvent(client *redis.Client, href string) error {
-	log.Println("Publishing event to Redis")
-
+func publishHref(client *redis.Client, href string) error {
 	err := client.XAdd(ctx, &redis.XAddArgs{
 		Stream:       os.Getenv("REDIS_STREAM"),
 		MaxLen:       0,
 		MaxLenApprox: 0,
 		ID:           "",
 		Values: map[string]interface{}{
-			"whatHappened": string("href received"),
-			"href":         href,
+			"eventName": string("href received"),
+			"href":      href,
 		},
 	}).Err()
 
