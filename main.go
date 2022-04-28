@@ -55,7 +55,7 @@ func main() {
 	collector.Limit(&colly.LimitRule{
 		DomainGlob:  "*sudbury.com",
 		Parallelism: 2,
-		Delay:       3 * time.Second,
+		Delay:       3000 * time.Millisecond,
 	})
 
 	// Act on every link; <a href="foo">
