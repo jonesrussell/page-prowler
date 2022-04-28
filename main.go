@@ -92,7 +92,7 @@ func main() {
 				log.Fatal(err)
 			}
 			// TODO: put this behing a cli flag or env var
-			writeHrefCsv(foundHref)
+			// writeHrefCsv(foundHref)
 		}
 
 		collector.Visit(foundHref)
