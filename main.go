@@ -22,7 +22,7 @@ var ctx = context.Background()
 func main() {
 	// Retrieve URL to crawl
 	if len(os.Args) < 2 {
-		log.Fatal("url not provided. eg) ./streetcode-crawler https://www.sudbury.com")
+		log.Fatalln("usage: ./streetcode-crawler https://www.sudbury.com")
 	}
 	crawlUrl := os.Args[1]
 
@@ -33,7 +33,8 @@ func main() {
 	// Connect to Redis
 	redisAddress := fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: redisAddress,
+		Addr:     redisAddress,
+		Password: os.Getenv("REDIS_AUTH"),
 	})
 
 	_, err := redisClient.Ping(ctx).Result()
@@ -90,7 +91,7 @@ func main() {
 			if err = publishHref(redisClient, foundHref); err != nil {
 				log.Fatal(err)
 			}
-			// TODO: put this behing a cli flag
+			// TODO: put this behing a cli flag or env var
 			writeHrefCsv(foundHref)
 		}
 
