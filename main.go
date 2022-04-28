@@ -7,13 +7,11 @@ import (
 	"log"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gocolly/colly"
-	"github.com/gocolly/redisstorage"
 	"github.com/joho/godotenv"
 )
 
@@ -42,15 +40,6 @@ func main() {
 		log.Fatal("unable to connect to redis", err)
 	}
 
-	// Setup Redis as colly cookie storage
-	redisDb, _ := strconv.Atoi(os.Getenv("REDIS_DB"))
-	storage := &redisstorage.Storage{
-		Address:  redisAddress,
-		Password: os.Getenv("REDIS_AUTH"),
-		DB:       redisDb,
-		Prefix:   os.Getenv("REDIS_STREAM"),
-	}
-
 	log.Println("crawler started")
 
 	collector := colly.NewCollector(
@@ -60,19 +49,6 @@ func main() {
 		),
 		// colly.Debugger(&debug.LogDebugger{}),
 	)
-
-	// add storage to the collector
-	if err := collector.SetStorage(storage); err != nil {
-		panic(err)
-	}
-
-	// delete previous data from storage
-	if err := storage.Clear(); err != nil {
-		panic(err)
-	}
-
-	// close redis client
-	defer storage.Client.Close()
 
 	// Limit the number of threads started by colly to two
 	// when visiting links which domains' matches "*sudbury.com" glob
