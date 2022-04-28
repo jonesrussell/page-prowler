@@ -45,7 +45,7 @@ func main() {
 	collector := colly.NewCollector(
 		colly.Async(true),
 		colly.URLFilters(
-			regexp.MustCompile(`(|/police.+)$`),
+			regexp.MustCompile("https://www.sudbury.com/police"),
 		),
 		// colly.Debugger(&debug.LogDebugger{}),
 	)
@@ -71,7 +71,12 @@ func main() {
 			// writeHrefCsv(foundHref)
 		}
 
+		// e.Request.Visit(foundHref)
 		collector.Visit(foundHref)
+	})
+
+	collector.OnRequest(func(r *colly.Request) {
+		fmt.Println("Visiting", r.URL)
 	})
 
 	collector.Visit(crawlUrl)
