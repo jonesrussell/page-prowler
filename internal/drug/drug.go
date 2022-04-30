@@ -59,26 +59,6 @@ func Related(href string) bool {
 	similarityMurder := strutil.Similarity("MURDER", title, swg)
 	similarityCocain := strutil.Similarity("COCAIN", title, swg)
 
-	/*records := [][]string{}
-	records = append(records, []string{
-		fmt.Sprintf("%.2f", similarityDrug),
-		fmt.Sprintf("%.2f", similaritySmokeJoint),
-		fmt.Sprintf("%.2f", similarityGrowop),
-		fmt.Sprintf("%.2f", similarityCannabi),
-		fmt.Sprintf("%.2f", similarityImpair),
-		fmt.Sprintf("%.2f", similarityShoot),
-		fmt.Sprintf("%.2f", similarityFirearm),
-		fmt.Sprintf("%.2f", similarityMurder),
-		fmt.Sprintf("%.2f", similarityCocain),
-		title,
-	})
-
-	for _, record := range records {
-		if err := w.Write(record); err != nil {
-			log.Fatalln("error writing record to file", err)
-		}
-	}*/
-
 	return similarityDrug == 1 ||
 		similaritySmokeJoint == 1 ||
 		similarityGrowop == 1 ||
