@@ -66,7 +66,6 @@ func main() {
 	// Act on every link; <a href="foo">
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		foundHref := e.Request.AbsoluteURL(e.Attr("href"))
-		fmt.Println(foundHref)
 
 		// Determine if we will submit link to Redis
 		matchedNewsMnm, _ := regexp.MatchString(`^https://www.midnorthmonitor.com/news/`, foundHref)
@@ -74,6 +73,7 @@ func main() {
 
 		if matchedPoliceSc || matchedNewsMnm {
 			if drug.Related(foundHref) {
+				fmt.Println(foundHref)
 				doSAdd(foundHref)
 			}
 
