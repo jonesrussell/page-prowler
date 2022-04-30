@@ -1,4 +1,4 @@
-module jonesrussell/streetcode-crawler
+module jonesrussell/crawler
 
 go 1.17
 
