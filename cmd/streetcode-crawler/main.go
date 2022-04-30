@@ -13,7 +13,7 @@ import (
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/debug"
 	"github.com/joho/godotenv"
-	"github.com/jonesrussell/streetcode-crawler/internal/drug"
+	"github.com/jonesrussell/crawler/internal/drug"
 )
 
 var ctx = context.Background()
