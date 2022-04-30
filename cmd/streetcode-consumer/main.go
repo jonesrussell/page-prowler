@@ -3,10 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -14,7 +12,6 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/joho/godotenv"
-	"github.com/jonesrussell/crawler/internal/drug"
 )
 
 type Response struct {
@@ -35,10 +32,6 @@ func main() {
 
 	log.Println("consumer started")
 
-	// processCsvEntries()
-
-	// os.Exit(0)
-
 	// Connect to Redis
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
@@ -54,7 +47,12 @@ func main() {
 	}
 
 	// Connect to Redis Stream
-	err = redisClient.XGroupCreate(ctx, os.Getenv("REDIS_STREAM"), os.Getenv("REDIS_GROUP"), "0").Err()
+	err = redisClient.XGroupCreate(
+		ctx,
+		os.Getenv("REDIS_STREAM"),
+		os.Getenv("REDIS_GROUP"),
+		"0",
+	).Err()
 	if err != nil {
 		log.Println(err)
 	}
@@ -77,75 +75,23 @@ func main() {
 	}
 }
 
-func processCsvEntries() {
-	// Open results from streetcode-crawler
-	f, err := os.Open("hrefs.csv")
-	if err != nil {
-		log.Fatal(err)
-	}
-	r := csv.NewReader(f)
-
-	// Create new data.csv file
-	dataFile, err := os.Create("data.csv")
-	if err != nil {
-		log.Fatalln(" failed to open csv file ", err)
-	}
-	defer dataFile.Close()
-
-	w := csv.NewWriter(dataFile)
-	defer w.Flush()
-
-	// Headings for new CSV
-	if err := w.Write([]string{
-		"DRUG",
-		"GUN",
-		"JOINT",
-		"GROW OP",
-		"CANNABI",
-		"IMPAIR",
-		"SHOOT",
-		"FIREARM",
-		"MURDER",
-		"COCAIN",
-		"TITLE",
-	}); err != nil {
-		log.Fatalln(" error writing headings to csv ", err)
-	}
-
-	// Loop over each row
-	for {
-		record, err := r.Read()
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		for value := range record {
-			drug.Related(record[value])
-		}
-	}
-}
-
 func processEntries(entries []redis.XStream, redisClient *redis.Client) {
 	for i := 0; i < len(entries[0].Messages); i++ {
-		messageID := entries[0].Messages[i].ID
 		values := entries[0].Messages[i].Values
-		eventDescription := fmt.Sprintf("%v", values["eventName"])
+		eventName := fmt.Sprintf("%v", values["eventName"])
 		href := fmt.Sprintf("%v", values["href"])
 
-		isDrugRelated := drug.Related(href)
-
-		if eventDescription == "href received" && isDrugRelated {
-			// if eventDescription == "href received" {
-			err := handleNewHref(href)
-			if err != nil {
+		if eventName == "href received" {
+			if err := handleNewHref(href); err != nil {
 				log.Fatal(err)
 			}
 
-			redisClient.XAck(ctx, os.Getenv("REDIS_STREAM"), os.Getenv("REDIS_GROUP"), messageID)
+			redisClient.XAck(
+				ctx,
+				os.Getenv("REDIS_STREAM"),
+				os.Getenv("REDIS_GROUP"),
+				entries[0].Messages[i].ID,
+			)
 		}
 	}
 }
