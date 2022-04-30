@@ -1,4 +1,4 @@
-module jonesrussell/crawler
+module github.com/jonesrussell/crawler
 
 go 1.17
 
