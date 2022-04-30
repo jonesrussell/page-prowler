@@ -23,32 +23,32 @@ type Entity struct {
 	Id   string `json:"id"`
 }
 
-var (
-	ctx         = context.Background()
-	redisClient = (*redis.Client)(nil)
-)
+var ctx = context.Background()
 
 func main() {
 	if godotenv.Load(".env") != nil {
 		log.Fatal("error loading .env file")
 	}
 
-	redisConnect()
+	redisClient := redisConnect()
 
 	log.Println("consumer started")
 
 	for {
-		entries, err := getEntries()
+		entries, err := getEntries(redisClient)
+
 		if err != nil {
+			log.Println("error")
 			log.Fatal(err)
 		}
 
-		processEntries(entries)
+		log.Println(" about to processEntries() ")
+		processEntries(redisClient, entries)
 	}
 }
 
-func getEntries() ([]redis.XStream, error) {
-	return redisClient.XReadGroup(ctx, &redis.XReadGroupArgs{
+func getEntries(redisClient *redis.Client) ([]redis.XStream, error) {
+	entries, err := redisClient.XReadGroup(ctx, &redis.XReadGroupArgs{
 		Group:    os.Getenv("REDIS_GROUP"),
 		Consumer: "*",
 		Streams:  []string{os.Getenv("REDIS_STREAM"), ">"},
@@ -56,11 +56,13 @@ func getEntries() ([]redis.XStream, error) {
 		Block:    0,
 		NoAck:    false,
 	}).Result()
+
+	return entries, err
 }
 
-func redisConnect() {
+func redisConnect() *redis.Client {
 	// Connect to Redis
-	redisClient = redis.NewClient(&redis.Options{
+	redisClient := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
 		Password: os.Getenv("REDIS_AUTH"),
 	})
@@ -84,9 +86,11 @@ func redisConnect() {
 	if err != nil {
 		log.Println(err)
 	}
+
+	return redisClient
 }
 
-func processEntries(entries []redis.XStream) {
+func processEntries(redisClient *redis.Client, entries []redis.XStream) {
 	messages := entries[0].Messages
 
 	for i := 0; i < len(messages); i++ {
@@ -99,12 +103,12 @@ func processEntries(entries []redis.XStream) {
 				log.Fatal(err)
 			}
 
-			ackEntry(messages[i].ID)
+			ackEntry(redisClient, messages[i].ID)
 		}
 	}
 }
 
-func ackEntry(id string) {
+func ackEntry(redisClient *redis.Client, id string) {
 	redisClient.XAck(
 		ctx,
 		os.Getenv("REDIS_STREAM"),
