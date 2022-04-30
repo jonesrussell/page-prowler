@@ -1,4 +1,4 @@
-module streetcode.tk/streetcode-crawler
+module jonesrussell/streetcode-crawler
 
 go 1.17
 
@@ -29,7 +29,6 @@ require (
 )
 
 require (
-	github.com/adrg/strutil v0.3.0 // indirect
 	github.com/bbalet/stopwords v1.0.0 // indirect
 	github.com/caneroj1/stemmer v0.0.0-20170128035808-c9f2ce1504d5 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
