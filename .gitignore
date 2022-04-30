@@ -20,5 +20,4 @@ go.work
 # Misc
 .env
 __debug_bin
-streetcode-crawler
 *.csv
