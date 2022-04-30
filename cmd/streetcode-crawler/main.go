@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gocolly/colly"
-	"github.com/gocolly/colly/debug"
 	"github.com/joho/godotenv"
 	"github.com/jonesrussell/crawler/internal/drug"
 )
@@ -53,7 +52,7 @@ func main() {
 			regexp.MustCompile("https://www.midnorthmonitor.com/news"),
 			regexp.MustCompile("https://www.midnorthmonitor.com/category/news/local-news"),
 		),
-		colly.Debugger(&debug.LogDebugger{}),
+		// colly.Debugger(&debug.LogDebugger{}),
 	)
 
 	// Limit the number of threads started by colly to two
