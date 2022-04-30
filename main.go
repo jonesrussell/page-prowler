@@ -7,15 +7,18 @@ import (
 	"log"
 	"os"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gocolly/colly"
+	"github.com/gocolly/colly/debug"
 	"github.com/joho/godotenv"
+	"github.com/jonesrussell/streetcode-crawler/internal/drug"
 )
 
 var ctx = context.Background()
+
+var redisClient = (*redis.Client)(nil)
 
 func main() {
 	// Retrieve URL to crawl
@@ -25,12 +28,12 @@ func main() {
 	crawlUrl := os.Args[1]
 
 	if godotenv.Load(".env") != nil {
-		log.Fatal("error loading .env file")
+		log.Println("error loading .env file")
 	}
 
 	// Connect to Redis
 	redisAddress := fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
-	redisClient := redis.NewClient(&redis.Options{
+	redisClient = redis.NewClient(&redis.Options{
 		Addr:     redisAddress,
 		Password: os.Getenv("REDIS_AUTH"),
 	})
@@ -46,14 +49,17 @@ func main() {
 		colly.Async(true),
 		colly.URLFilters(
 			regexp.MustCompile("https://www.sudbury.com/police"),
+			regexp.MustCompile("https://www.midnorthmonitor.com/category/news"),
+			regexp.MustCompile("https://www.midnorthmonitor.com/news"),
+			regexp.MustCompile("https://www.midnorthmonitor.com/category/news/local-news"),
 		),
-		// colly.Debugger(&debug.LogDebugger{}),
+		colly.Debugger(&debug.LogDebugger{}),
 	)
 
 	// Limit the number of threads started by colly to two
 	// when visiting links which domains' matches "*sudbury.com" glob
 	collector.Limit(&colly.LimitRule{
-		DomainGlob:  "*sudbury.com",
+		DomainGlob:  "*",
 		Parallelism: 2,
 		Delay:       3000 * time.Millisecond,
 	})
@@ -61,22 +67,38 @@ func main() {
 	// Act on every link; <a href="foo">
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		foundHref := e.Request.AbsoluteURL(e.Attr("href"))
+		fmt.Println(foundHref)
 
 		// Determine if we will submit link to Redis
-		if strings.Contains(foundHref, "/police/") {
-			if err = publishHref(redisClient, foundHref); err != nil {
+		matchedNewsMnm, _ := regexp.MatchString(`^https://www.midnorthmonitor.com/news/`, foundHref)
+		matchedPoliceSc, _ := regexp.MatchString(`^https://www.sudbury.com/police/`, foundHref)
+
+		if matchedPoliceSc || matchedNewsMnm {
+			if drug.Related(foundHref) {
+				doSAdd(foundHref)
+			}
+
+			/*if err = publishHref(redisClient, foundHref); err != nil {
 				log.Fatal(err)
 			}
-			// TODO: put this behing a cli flag or env var
-			// writeHrefCsv(foundHref)
+
+			if os.Getenv("CSV_WRITE") == "true" {
+				writeHrefCsv(foundHref)
+			}*/
 		}
 
-		// e.Request.Visit(foundHref)
-		collector.Visit(foundHref)
+		if os.Getenv("CRAWL_MODE") != "single" {
+			collector.Visit(foundHref)
+		}
 	})
 
 	collector.OnRequest(func(r *colly.Request) {
 		fmt.Println("Visiting", r.URL)
+	})
+
+	// Set error handler
+	collector.OnError(func(r *colly.Response, err error) {
+		fmt.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
 	})
 
 	collector.Visit(crawlUrl)
@@ -87,7 +109,6 @@ func writeHrefCsv(href string) {
 	f, err := os.OpenFile(os.Getenv("CSV_FILENAME"), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
 	}
 
 	w := csv.NewWriter(f)
@@ -108,4 +129,13 @@ func publishHref(client *redis.Client, href string) error {
 	}).Err()
 
 	return err
+}
+
+func doSAdd(href string) (delta time.Duration) {
+	key := "schref"
+	t0 := time.Now()
+	redisClient.SAdd(ctx, key, href)
+	delta = time.Since(t0)
+	redisClient.FlushDB(ctx)
+	return
 }
