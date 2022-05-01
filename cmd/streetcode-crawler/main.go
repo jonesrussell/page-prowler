@@ -1,23 +1,17 @@
 package main
 
 import (
-	"context"
-	"encoding/csv"
 	"fmt"
 	"log"
 	"os"
 	"regexp"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/gocolly/colly"
 	"github.com/joho/godotenv"
 	"github.com/jonesrussell/crawler/internal/drug"
+	"github.com/jonesrussell/crawler/internal/myredis"
 )
-
-var ctx = context.Background()
-
-var redisClient = (*redis.Client)(nil)
 
 func main() {
 	// Retrieve URL to crawl
@@ -30,17 +24,7 @@ func main() {
 		log.Println("error loading .env file")
 	}
 
-	// Connect to Redis
-	redisAddress := fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
-	redisClient = redis.NewClient(&redis.Options{
-		Addr:     redisAddress,
-		Password: os.Getenv("REDIS_AUTH"),
-	})
-
-	_, err := redisClient.Ping(ctx).Result()
-	if err != nil {
-		log.Fatal("unable to connect to redis", err)
-	}
+	redisClient := myredis.Connect()
 
 	log.Println("crawler started")
 
@@ -74,15 +58,15 @@ func main() {
 		if matchedPoliceSc || matchedNewsMnm {
 			if drug.Related(foundHref) {
 				fmt.Println(foundHref)
-				doSAdd(foundHref)
+				myredis.SAdd(redisClient, foundHref)
 			}
 
-			/*if err = publishHref(redisClient, foundHref); err != nil {
+			/*if err = myredis.PublishHref(redisClient, foundHref); err != nil {
 				log.Fatal(err)
 			}
 
 			if os.Getenv("CSV_WRITE") == "true" {
-				writeHrefCsv(foundHref)
+				mycsv.WriteHrefCsv(foundHref)
 			}*/
 		}
 
@@ -102,39 +86,4 @@ func main() {
 
 	collector.Visit(crawlUrl)
 	collector.Wait()
-}
-
-func writeHrefCsv(href string) {
-	f, err := os.OpenFile(os.Getenv("CSV_FILENAME"), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	w := csv.NewWriter(f)
-	w.Write([]string{href})
-	w.Flush()
-}
-
-func publishHref(client *redis.Client, href string) error {
-	err := client.XAdd(ctx, &redis.XAddArgs{
-		Stream:       os.Getenv("REDIS_STREAM"),
-		MaxLen:       0,
-		MaxLenApprox: 0,
-		ID:           "",
-		Values: map[string]interface{}{
-			"eventName": string("href received"),
-			"href":      href,
-		},
-	}).Err()
-
-	return err
-}
-
-func doSAdd(href string) (delta time.Duration) {
-	key := "schref"
-	t0 := time.Now()
-	redisClient.SAdd(ctx, key, href)
-	delta = time.Since(t0)
-	redisClient.FlushDB(ctx)
-	return
 }

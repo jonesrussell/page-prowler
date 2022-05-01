@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/joho/godotenv"
+	"github.com/jonesrussell/crawler/internal/myredis"
 )
 
 type Response struct {
@@ -30,7 +31,12 @@ func main() {
 		log.Fatal("error loading .env file")
 	}
 
-	redisClient := redisConnect()
+	// Connect to Redis
+	redisClient := myredis.Connect()
+	defer redisClient.Close()
+
+	// Connect to Redis Stream
+	stream(redisClient)
 
 	log.Println("consumer started")
 
@@ -42,13 +48,12 @@ func main() {
 			log.Fatal(err)
 		}
 
-		log.Println(" about to processEntries() ")
 		processEntries(redisClient, entries)
 	}
 }
 
 func getEntries(redisClient *redis.Client) ([]redis.XStream, error) {
-	entries, err := redisClient.XReadGroup(ctx, &redis.XReadGroupArgs{
+	return redisClient.XReadGroup(ctx, &redis.XReadGroupArgs{
 		Group:    os.Getenv("REDIS_GROUP"),
 		Consumer: "*",
 		Streams:  []string{os.Getenv("REDIS_STREAM"), ">"},
@@ -56,38 +61,6 @@ func getEntries(redisClient *redis.Client) ([]redis.XStream, error) {
 		Block:    0,
 		NoAck:    false,
 	}).Result()
-
-	return entries, err
-}
-
-func redisConnect() *redis.Client {
-	// Connect to Redis
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
-		Password: os.Getenv("REDIS_AUTH"),
-	})
-
-	defer redisClient.Close()
-
-	// Confirm Redis connection
-	_, err := redisClient.Ping(ctx).Result()
-	if err != nil {
-		log.Fatal(" unbale to connect to Redis ", err)
-	}
-
-	// Connect to Redis Stream
-	err = redisClient.XGroupCreate(
-		ctx,
-		os.Getenv("REDIS_STREAM"),
-		os.Getenv("REDIS_GROUP"),
-		"0",
-	).Err()
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	return redisClient
 }
 
 func processEntries(redisClient *redis.Client, entries []redis.XStream) {
@@ -118,8 +91,6 @@ func ackEntry(redisClient *redis.Client, id string) {
 }
 
 func handleNewHref(href string) error {
-	// log.Println("checking url", href)
-
 	// Check if link has already been submitted to Streetcode
 	// Assemble Streetcode API url that will search for link
 	urlTest := fmt.Sprintf("%s%s", os.Getenv("API_FILTER_URL"), href)
@@ -127,20 +98,26 @@ func handleNewHref(href string) error {
 	log.Println("checking url", urlTest)
 
 	// Call Streetcode
-	response, err := http.Get(urlTest)
+	res, err := http.Get(urlTest)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Fatal(err)
 	}
 
-	// Process response from Streetcode or fail
-	responseData, err := ioutil.ReadAll(response.Body)
+	// Http call succeeded, check response code
+	if res.StatusCode != 200 {
+		b, _ := ioutil.ReadAll(res.Body)
+		log.Fatal(string(b))
+	}
+
+	// Process good response from Streetcode
+	resData, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Println(" response.Body ", err)
 	}
 
 	// Process the JSON response data
 	data := Response{}
-	json.Unmarshal([]byte(responseData), &data)
+	json.Unmarshal([]byte(resData), &data)
 
 	// Finally, no data means we can publish to Streetcode
 	if len(data.Data) == 0 {
@@ -163,4 +140,17 @@ func handleNewHref(href string) error {
 		log.Printf("INFO: [exists] %s", href)
 	}
 	return nil
+}
+
+func stream(redisClient *redis.Client) {
+	err := redisClient.XGroupCreate(
+		ctx,
+		os.Getenv("REDIS_STREAM"),
+		os.Getenv("REDIS_GROUP"),
+		"0",
+	).Err()
+
+	if err != nil {
+		log.Println(err)
+	}
 }
