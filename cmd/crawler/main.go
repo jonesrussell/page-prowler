@@ -10,6 +10,7 @@ import (
 	"github.com/gocolly/colly"
 	"github.com/joho/godotenv"
 	"github.com/jonesrussell/crawler/internal/drug"
+	"github.com/jonesrussell/crawler/internal/mycsv"
 	"github.com/jonesrussell/crawler/internal/myredis"
 )
 
@@ -24,7 +25,7 @@ func main() {
 		log.Println("error loading .env file")
 	}
 
-	redisClient := myredis.Connect()
+	_ = myredis.Connect()
 
 	log.Println("crawler started")
 
@@ -49,29 +50,41 @@ func main() {
 
 	// Act on every link; <a href="foo">
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
-		foundHref := e.Request.AbsoluteURL(e.Attr("href"))
+		href := e.Request.AbsoluteURL(e.Attr("href"))
 
 		// Determine if we will submit link to Redis
-		matchedNewsMnm, _ := regexp.MatchString(`^https://www.midnorthmonitor.com/news/`, foundHref)
-		matchedPoliceSc, _ := regexp.MatchString(`^https://www.sudbury.com/police/`, foundHref)
+		matchedNewsMnm, _ := regexp.MatchString(`^https://www.midnorthmonitor.com/news/`, href)
+		matchedPoliceSc, _ := regexp.MatchString(`^https://www.sudbury.com/police/`, href)
 
 		if matchedPoliceSc || matchedNewsMnm {
-			if drug.Related(foundHref) {
-				fmt.Println(foundHref)
-				myredis.SAdd(redisClient, foundHref)
-			}
+			if drug.Related(href) {
+				fmt.Println(href)
 
-			/*if err = myredis.PublishHref(redisClient, foundHref); err != nil {
-				log.Fatal(err)
+				_, err := myredis.SAdd(href)
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
-
-			if os.Getenv("CSV_WRITE") == "true" {
-				mycsv.WriteHrefCsv(foundHref)
-			}*/
 		}
 
 		if os.Getenv("CRAWL_MODE") != "single" {
-			collector.Visit(foundHref)
+			collector.Visit(href)
+		}
+	})
+
+	collector.OnScraped(func(r *colly.Response) {
+		href, err := myredis.SPop()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = myredis.PublishHref(href)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if os.Getenv("CSV_WRITE") == "true" {
+			mycsv.WriteHrefCsv(href)
 		}
 	})
 
