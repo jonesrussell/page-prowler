@@ -55,7 +55,7 @@ Start the crawler
 ## Usage/Examples
 
 ```bash
-./streetcode-crawler https://www.sudbury.com
+./crawler https://www.sudbury.com
 ```
 
 
