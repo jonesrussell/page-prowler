@@ -22,3 +22,4 @@ go.work
 __debug_bin
 *.csv
 bin/
+.gopath/
