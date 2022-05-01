@@ -26,7 +26,8 @@ func main() {
 		log.Println("error loading .env file")
 	}
 
-	_ = myredis.Connect()
+	redisClient := myredis.Connect()
+	defer redisClient.Close()
 
 	log.Println("crawler started")
 

@@ -49,10 +49,39 @@ func PublishHref(href string) error {
 		MaxLenApprox: 0,
 		ID:           "",
 		Values: map[string]interface{}{
-			"eventName": string("href received"),
+			"eventName": "receivedUrl",
 			"href":      href,
 		},
 	}).Err()
 
 	return err
+}
+
+func Stream() error {
+	return client.XGroupCreate(
+		ctx,
+		os.Getenv("REDIS_STREAM"),
+		os.Getenv("REDIS_GROUP"),
+		"0",
+	).Err()
+}
+
+func GetEntries() ([]redis.XStream, error) {
+	return client.XReadGroup(ctx, &redis.XReadGroupArgs{
+		Group:    os.Getenv("REDIS_GROUP"),
+		Consumer: "*",
+		Streams:  []string{os.Getenv("REDIS_STREAM"), ">"},
+		Count:    1,
+		Block:    0,
+		NoAck:    false,
+	}).Result()
+}
+
+func AckEntry(id string) {
+	client.XAck(
+		ctx,
+		os.Getenv("REDIS_STREAM"),
+		os.Getenv("REDIS_GROUP"),
+		id,
+	)
 }
