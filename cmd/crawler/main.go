@@ -16,7 +16,7 @@ import (
 func main() {
 	// Retrieve URL to crawl
 	if len(os.Args) < 2 {
-		log.Fatalln("usage: ./streetcode-crawler https://www.sudbury.com")
+		log.Fatalln("usage: ./crawler https://www.sudbury.com")
 	}
 	crawlUrl := os.Args[1]
 
