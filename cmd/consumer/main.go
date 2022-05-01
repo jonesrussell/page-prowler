@@ -63,7 +63,7 @@ func processEntry(values map[string]interface{}, id string) {
 	href := fmt.Sprintf("%v", values["href"])
 
 	if eventName == "receivedUrl" {
-		err := handleNewHref(href)
+		err := processHref(href)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -72,29 +72,14 @@ func processEntry(values map[string]interface{}, id string) {
 	}
 }
 
-func handleNewHref(href string) error {
-	// Check if link has already been submitted to Streetcode
+func processHref(href string) error {
+	log.Println("checking href", href)
+
 	// Assemble Streetcode API url that will search for link
 	urlTest := fmt.Sprintf("%s%s", os.Getenv("API_FILTER_URL"), href)
-
-	log.Println("checking url", urlTest)
-
-	// Call Streetcode
-	res, err := http.Get(urlTest)
+	resData, err := checkHref(urlTest)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	// Http call succeeded, check response code
-	if res.StatusCode != 200 {
-		b, _ := ioutil.ReadAll(res.Body)
-		log.Fatal(string(b))
-	}
-
-	// Process good response from Streetcode
-	resData, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		log.Println(" response.Body ", err)
 	}
 
 	// Process the JSON response data
@@ -122,4 +107,26 @@ func handleNewHref(href string) error {
 		log.Printf("INFO: [exists] %s", href)
 	}
 	return nil
+}
+
+func checkHref(href string) ([]byte, error) {
+	// Call Streetcode
+	res, err := http.Get(href)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Http call succeeded, check response code
+	if res.StatusCode != 200 {
+		b, _ := ioutil.ReadAll(res.Body)
+		log.Fatal(string(b))
+	}
+
+	// Process good response from Streetcode
+	resData, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Println(" response.Body ", err)
+	}
+
+	return resData, err
 }
