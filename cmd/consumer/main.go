@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -24,8 +23,6 @@ type Entity struct {
 	Id   string `json:"id"`
 }
 
-var ctx = context.Background()
-
 func main() {
 	if godotenv.Load(".env") != nil {
 		log.Fatal("error loading .env file")
@@ -36,58 +33,43 @@ func main() {
 	defer redisClient.Close()
 
 	// Connect to Redis Stream
-	stream(redisClient)
+	err := myredis.Stream()
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	log.Println("consumer started")
 
 	for {
-		entries, err := getEntries(redisClient)
-
+		entries, err := myredis.GetEntries()
 		if err != nil {
-			log.Println("error")
 			log.Fatal(err)
 		}
 
-		processEntries(redisClient, entries)
+		processEntries(entries)
 	}
 }
 
-func getEntries(redisClient *redis.Client) ([]redis.XStream, error) {
-	return redisClient.XReadGroup(ctx, &redis.XReadGroupArgs{
-		Group:    os.Getenv("REDIS_GROUP"),
-		Consumer: "*",
-		Streams:  []string{os.Getenv("REDIS_STREAM"), ">"},
-		Count:    1,
-		Block:    0,
-		NoAck:    false,
-	}).Result()
-}
-
-func processEntries(redisClient *redis.Client, entries []redis.XStream) {
+func processEntries(entries []redis.XStream) {
 	messages := entries[0].Messages
 
 	for i := 0; i < len(messages); i++ {
-		values := messages[i].Values
-		eventName := fmt.Sprintf("%v", values["eventName"])
-		href := fmt.Sprintf("%v", values["href"])
-
-		if eventName == "href received" {
-			if err := handleNewHref(href); err != nil {
-				log.Fatal(err)
-			}
-
-			ackEntry(redisClient, messages[i].ID)
-		}
+		processEntry(messages[i].Values, messages[i].ID)
 	}
 }
 
-func ackEntry(redisClient *redis.Client, id string) {
-	redisClient.XAck(
-		ctx,
-		os.Getenv("REDIS_STREAM"),
-		os.Getenv("REDIS_GROUP"),
-		id,
-	)
+func processEntry(values map[string]interface{}, id string) {
+	eventName := fmt.Sprintf("%v", values["eventName"])
+	href := fmt.Sprintf("%v", values["href"])
+
+	if eventName == "receivedUrl" {
+		err := handleNewHref(href)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		myredis.AckEntry(id)
+	}
 }
 
 func handleNewHref(href string) error {
@@ -140,17 +122,4 @@ func handleNewHref(href string) error {
 		log.Printf("INFO: [exists] %s", href)
 	}
 	return nil
-}
-
-func stream(redisClient *redis.Client) {
-	err := redisClient.XGroupCreate(
-		ctx,
-		os.Getenv("REDIS_STREAM"),
-		os.Getenv("REDIS_GROUP"),
-		"0",
-	).Err()
-
-	if err != nil {
-		log.Println(err)
-	}
 }
