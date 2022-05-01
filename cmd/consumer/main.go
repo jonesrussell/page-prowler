@@ -35,7 +35,7 @@ func main() {
 	// Connect to Redis Stream
 	err := myredis.Stream()
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
 	}
 
 	log.Println("consumer started")
