@@ -43,7 +43,7 @@ func SPop() (string, error) {
 }
 
 func PublishHref(href string) error {
-	err := client.XAdd(ctx, &redis.XAddArgs{
+	return client.XAdd(ctx, &redis.XAddArgs{
 		Stream:       os.Getenv("REDIS_STREAM"),
 		MaxLen:       0,
 		MaxLenApprox: 0,
@@ -53,8 +53,6 @@ func PublishHref(href string) error {
 			"href":      href,
 		},
 	}).Err()
-
-	return err
 }
 
 func Stream() error {
