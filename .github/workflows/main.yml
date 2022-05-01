@@ -1,0 +1,14 @@
+name: A workflow for Streetcode Crawler / Consumer
+on: push
+
+jobs:
+  build:
+    name: Streetcode action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.17'
+          check-latest: true
+      - run: go run cmd/crawler/main.go
