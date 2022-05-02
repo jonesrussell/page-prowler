@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/joho/godotenv"
 	"github.com/jonesrussell/crawler/internal/myredis"
 	"github.com/jonesrussell/crawler/internal/post"
@@ -28,33 +26,24 @@ func main() {
 	log.Println("consumer started")
 
 	for {
-		entries, err := myredis.GetEntries()
+		entries, err := myredis.Entries()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		processEntries(entries)
+		messages := myredis.Messages(entries)
+
+		urls := myredis.Process(messages)
+
+		consume(urls)
 	}
 }
 
-func processEntries(entries []redis.XStream) {
-	messages := entries[0].Messages
-
-	for i := 0; i < len(messages); i++ {
-		processEntry(messages[i].Values, messages[i].ID)
-	}
-}
-
-func processEntry(values map[string]interface{}, id string) {
-	eventName := fmt.Sprintf("%v", values["eventName"])
-	href := fmt.Sprintf("%v", values["href"])
-
-	if eventName == "receivedUrl" {
-		err := post.ProcessHref(href)
+func consume(urls []string) {
+	for i := 0; i < len(urls); i++ {
+		err := post.ProcessHref(urls[i])
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		myredis.AckEntry(id)
 	}
 }
