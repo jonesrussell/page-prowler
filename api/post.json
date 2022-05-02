@@ -3,7 +3,7 @@
         "type": "post--photo",
         "attributes": {
             "field_post": {
-                "value": "%s",
+                "value": "URL",
                 "format": "basic_html"
             },
             "field_visibility": "1"
@@ -12,7 +12,7 @@
             "field_recipient_group": {
                 "data": {
                     "type": "group--public_group",
-                    "id": "b55fe232-0fbf-4fa8-b697-ff7bb863ae6a"
+                    "id": "uuid-of-city"
                 }
             }
         }
