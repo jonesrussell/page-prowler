@@ -64,7 +64,7 @@ func Stream() error {
 	).Err()
 }
 
-func GetEntries() ([]redis.XStream, error) {
+func Entries() ([]redis.XStream, error) {
 	return client.XReadGroup(ctx, &redis.XReadGroupArgs{
 		Group:    os.Getenv("REDIS_GROUP"),
 		Consumer: "*",
@@ -75,7 +75,33 @@ func GetEntries() ([]redis.XStream, error) {
 	}).Result()
 }
 
-func AckEntry(id string) {
+func Messages(entries []redis.XStream) []redis.XMessage {
+	return entries[0].Messages
+}
+
+func Process(messages []redis.XMessage) []string {
+	var urls []string
+
+	for i := 0; i < len(messages); i++ {
+		eventName, href := processEntry(messages[i].Values)
+
+		if eventName == "receivedUrl" {
+			urls = append(urls, href)
+			ackEntry(messages[i].ID)
+		}
+	}
+
+	return urls
+}
+
+func processEntry(values map[string]interface{}) (string, string) {
+	eventName := fmt.Sprintf("%v", values["eventName"])
+	href := fmt.Sprintf("%v", values["href"])
+
+	return eventName, href
+}
+
+func ackEntry(id string) {
 	client.XAck(
 		ctx,
 		os.Getenv("REDIS_STREAM"),
