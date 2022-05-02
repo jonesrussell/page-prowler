@@ -52,14 +52,14 @@ type RData struct {
 	Id   string `json:"id"`
 }
 
-const (
-	GroupSudbury       = "b55fe232-0fbf-4fa8-b697-ff7bb863ae6a"
-	GroupEspanola      = "85c9a7c9-bb3a-42d2-b2a0-a4dead6e9d77"
-	GroupElliotLake    = "01123a12-3837-4883-9d4a-6642ff690fae"
-	GroupNorthBay      = "e1bb6e47-76be-4781-85b7-1c541a108da1"
-	GroupSturgeonFalls = "b4462f3b-d305-43c6-bf9f-98ed121fcd74"
+const Template = "api/post.json"
 
-	postTemplate = "api/post.json"
+var (
+	GroupSudbury       = os.Getenv("GROUP_SUDBURY")
+	GroupEspanola      = os.Getenv("GROUP_ESPANOLA")
+	GroupElliotLake    = os.Getenv("GROUP_ELLIOTLAKE")
+	GroupNorthBay      = os.Getenv("GROUP_NORTHBAY")
+	GroupSturgeonFalls = os.Getenv("GROUP_STURGEONFALLS")
 )
 
 func ProcessHref(href string) error {
@@ -92,7 +92,7 @@ func ProcessHref(href string) error {
 
 func prepare(href string) ([]byte, error) {
 	// Open our jsonFile
-	jsonFile, err := os.Open(postTemplate)
+	jsonFile, err := os.Open(Template)
 	if err != nil {
 		log.Fatalln(err)
 	}
