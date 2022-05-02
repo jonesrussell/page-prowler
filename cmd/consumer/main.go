@@ -57,7 +57,11 @@ type RData struct {
 }
 
 const (
-	GroupSudbury = "b55fe232-0fbf-4fa8-b697-ff7bb863ae6a"
+	GroupSudbury       = "b55fe232-0fbf-4fa8-b697-ff7bb863ae6a"
+	GroupEspanola      = "85c9a7c9-bb3a-42d2-b2a0-a4dead6e9d77"
+	GroupElliotLake    = "01123a12-3837-4883-9d4a-6642ff690fae"
+	GroupNorthBay      = "e1bb6e47-76be-4781-85b7-1c541a108da1"
+	GroupSturgeonFalls = "b4462f3b-d305-43c6-bf9f-98ed121fcd74"
 )
 
 func main() {
