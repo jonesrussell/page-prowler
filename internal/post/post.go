@@ -83,6 +83,8 @@ func ProcessHref(href string) error {
 		defer response.Body.Close()
 
 		log.Printf("INFO: [response] %s\n", response.Status)
+		foo, _ := ioutil.ReadAll(response.Body)
+		log.Printf("INFO: [response] %s\n", foo)
 	} else {
 		log.Printf("INFO: [exists] %s", href)
 	}
@@ -109,7 +111,7 @@ func prepare(href string) ([]byte, error) {
 	json.Unmarshal(byteValue, &postData)
 
 	postData.Data.Attributes.FieldPost.Value = href
-	postData.Data.Relationships.FieldRecipientGroup.Data.Id = GroupSudbury
+	// postData.Data.Relationships.FieldRecipientGroup.Data.Id = GroupSudbury
 
 	return json.Marshal(postData)
 }
