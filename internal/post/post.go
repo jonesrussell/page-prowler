@@ -74,28 +74,7 @@ func ProcessHref(href string) error {
 		return err
 	}
 
-	pass := string(resData[:])
-	log.Println(pass)
-	// os.Exit(0)
-
-	// Process the JSON response data
-	/*data := Response{}
-	json.Unmarshal(resData, &data)*/
-
-	// postPhoto := PostPhoto{}
-	op := jsonapi.OnePayload{}
-	log.Println(op)
-
-	err = jsonapi.UnmarshalPayload(bytes.NewBuffer(resData), &op)
-	if err != nil {
-		log.Println("ProcessHref() UnmarshalPayload")
-		// http.Error(w, err.Error(), http.StatusInternalServerError)
-		return err
-	}
-	log.Println(op)
-	log.Print("POST to Streetcode? ")
-	// Finally, no data means we can publish to Streetcode
-	if len(resData) == 0 {
+	if !resData {
 		log.Println("Yes")
 		response := create(href)
 		defer response.Body.Close()
@@ -142,21 +121,20 @@ func prepare(href string) []byte {
 	return w.Body.Bytes()
 }
 
-func checkHref(href string) ([]byte, error) {
-	// log.Println("checkHref()")
+func checkHref(href string) (bool, error) {
 	c := http.Client{Timeout: time.Duration(3) * time.Second}
 
 	req, err := http.NewRequest("GET", href, nil)
 	if err != nil {
 		log.Printf("error %s", err)
-		return []byte{}, err
+		panic(err)
 	}
 
 	req.Header.Add("Accept", `application/json`)
 	resp, err := c.Do(req)
 	if err != nil {
 		log.Printf("error %s", err)
-		return []byte{}, err
+		panic(err)
 	}
 
 	defer resp.Body.Close()
@@ -166,67 +144,14 @@ func checkHref(href string) ([]byte, error) {
 		log.Println(err)
 	}
 
-	pass := string(respBody[:])
-	log.Println(pass)
+	data := Response{}
+	json.Unmarshal([]byte(respBody), &data)
 
-	var decoded []interface{}
-	err = json.Unmarshal(respBody, &decoded)
-	if err != nil {
-		log.Println(err)
+	if len(data.Data) == 0 {
+		return false, nil
 	}
 
-	log.Println(decoded)
-
-	os.Exit(1)
-
-	/*op := jsonapi.OnePayload{}
-	err = jsonapi.UnmarshalPayload(bytes.NewBuffer(respBody), &op.Data)
-	if err != nil {
-		log.Print("checkHref() UnmarshalPayload ")
-		log.Print(err)
-		// http.Error(w, err.Error(), http.StatusInternalServerError)
-		os.Exit(0)
-	}*/
-
-	return respBody, err
-
-	// return ioutil.ReadAll(resp.Body)
-
-	/*	if err != nil {
-		fmt.Printf("error %s", err)
-		return []byte{}, err
-	}*/
-
-	/*
-		postPhoto := new(PostPhoto)
-
-		if err := jsonapi.UnmarshalPayload(r.Body, postPhoto); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		// ...save your blog...
-
-		w.Header().Set("Content-Type", jsonapi.MediaType)
-		w.WriteHeader(http.StatusCreated)
-
-		if err := jsonapi.MarshalPayload(w, postPhoto); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-
-		// Call Streetcode
-		res, err := http.Get(href)
-		if err != nil {
-			log.Fatal(err)
-		}
-	*/
-	// Http call succeeded, check response code
-	/*if resp.StatusCode != 200 {
-		b, _ := ioutil.ReadAll(resp.Body)
-		log.Fatal(string(b))
-	}
-
-	return body, err*/
+	return true, nil
 }
 
 func create(href string) *http.Response {
