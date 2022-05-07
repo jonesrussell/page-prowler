@@ -2,6 +2,7 @@ package post
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -163,7 +164,7 @@ func create(href string) *http.Response {
 	)
 	request.Header.Set("Content-Type", "application/vnd.api+json")
 	request.Header.Set("Accept", "application/vnd.api+json")
-	request.SetBasicAuth(os.Getenv("USERNAME"), os.Getenv("PASSWORD"))
+	request.Header.Add("Authorization", "Basic "+basicAuth(os.Getenv("USERNAME"), os.Getenv("PASSWORD")))
 
 	client := &http.Client{}
 	response, error := client.Do(request)
@@ -172,4 +173,9 @@ func create(href string) *http.Response {
 	}
 
 	return response
+}
+
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
