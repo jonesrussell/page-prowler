@@ -16,17 +16,17 @@ import (
 )
 
 type Response struct {
-	Data []Entity `jsonapi:"attr,data"`
+	Data []Entity `json:"data"`
 }
 
 type Entity struct {
-	Id   string `jsonapi:"id"`
-	Type string `jsonapi:"attr,type"`
+	Id   string `json:"id"`
+	Type string `json:"type"`
 }
 
 type PostPhoto struct {
 	FieldPost           FieldPost           `jsonapi:"attr,field_post"`
-	FieldVisibility     int                 `jsonapi:"attr,field_visibility"`
+	FieldVisibility     string              `jsonapi:"attr,field_visibility"`
 	FieldRecipientGroup FieldRecipientGroup `jsonapi:"relation,field_recipient_group"`
 }
 
@@ -75,7 +75,6 @@ func ProcessHref(href string) error {
 	}
 
 	if !resData {
-		log.Println("Yes")
 		response := create(href)
 		defer response.Body.Close()
 
@@ -99,16 +98,22 @@ func prepare(href string) []byte {
 
 	defer jsonFile.Close()
 
+	b, _ := ioutil.ReadAll(jsonFile)
+	fmt.Println(string(b))
+
 	w := httptest.NewRecorder()
 	w.Header().Set("Content-Type", jsonapi.MediaType)
 	w.WriteHeader(http.StatusOK)
 
-	// we initialize our PostPhoto array
-	postData := new(PostPhoto)
+	// we initialize our PostPhoto struct
+	postData := &PostPhoto{}
+	fmt.Printf("%+v\n", postData)
 
-	if err := jsonapi.UnmarshalPayload(jsonFile, postData); err != nil {
+	err = jsonapi.UnmarshalPayload(jsonFile, &postData)
+	if err != nil {
 		log.Println("prepare() UnmarshalPayload")
-		http.Error(w, err.Error(), 500)
+		log.Println(err)
+		// http.Error(w, err.Error(), 500)
 	}
 
 	postData.FieldPost.Value = href
