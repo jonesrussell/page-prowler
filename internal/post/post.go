@@ -7,60 +7,60 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	"os"
+	"time"
+
+	"github.com/google/jsonapi"
+	"github.com/joho/godotenv"
 )
 
 type Response struct {
-	Data []Entity `json:"data"`
+	Data []Entity `jsonapi:"attr,data"`
 }
 
 type Entity struct {
-	Type string `json:"type"`
-	Id   string `json:"id"`
+	Id   string `jsonapi:"id"`
+	Type string `jsonapi:"attr,type"`
 }
 
 type PostPhoto struct {
-	Data Data `json:"data"`
-}
-
-type Data struct {
-	Type          string        `json:"type"`
-	Attributes    Attributes    `json:"attributes"`
-	Relationships Relationships `json:"relationships"`
-}
-
-type Attributes struct {
-	FieldPost       FieldPost `json:"field_post"`
-	FieldVisibility string    `json:"field_visibility"`
-}
-
-type Relationships struct {
-	FieldRecipientGroup FieldRecipientGroup `json:"field_recipient_group"`
+	FieldPost           FieldPost           `jsonapi:"attr,field_post"`
+	FieldVisibility     int                 `jsonapi:"attr,field_visibility"`
+	FieldRecipientGroup FieldRecipientGroup `jsonapi:"relation,field_recipient_group"`
 }
 
 type FieldPost struct {
-	Value  string `json:"value"`
-	Format string `json:"format"`
+	Value  string `jsonapi:"attr,value"`
+	Format string `jsonapi:"attr,format"`
 }
 
 type FieldRecipientGroup struct {
-	Data RData `json:"data"`
-}
-
-type RData struct {
-	Type string `json:"type"`
-	Id   string `json:"id"`
+	ID   string `jsonapi:"primary,id"`
+	Type string `jsonapi:"attr,type"`
 }
 
 const Template = "api/post.json"
 
 var (
-	GroupSudbury       = os.Getenv("GROUP_SUDBURY")
-	GroupEspanola      = os.Getenv("GROUP_ESPANOLA")
-	GroupElliotLake    = os.Getenv("GROUP_ELLIOTLAKE")
-	GroupNorthBay      = os.Getenv("GROUP_NORTHBAY")
-	GroupSturgeonFalls = os.Getenv("GROUP_STURGEONFALLS")
+	GroupSudbury       = ""
+	GroupEspanola      = ""
+	GroupElliotLake    = ""
+	GroupNorthBay      = ""
+	GroupSturgeonFalls = ""
 )
+
+func init() {
+	if godotenv.Load(".env") != nil {
+		log.Fatal("error loading .env file")
+	}
+
+	GroupSudbury = os.Getenv("GROUP_SUDBURY")
+	GroupEspanola = os.Getenv("GROUP_ESPANOLA")
+	GroupElliotLake = os.Getenv("GROUP_ELLIOTLAKE")
+	GroupNorthBay = os.Getenv("GROUP_NORTHBAY")
+	GroupSturgeonFalls = os.Getenv("GROUP_STURGEONFALLS")
+}
 
 func ProcessHref(href string) error {
 	log.Println("checking href", href)
@@ -70,15 +70,33 @@ func ProcessHref(href string) error {
 
 	resData, err := checkHref(urlTest)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
-	// Process the JSON response data
-	data := Response{}
-	json.Unmarshal([]byte(resData), &data)
+	pass := string(resData[:])
+	log.Println(pass)
+	// os.Exit(0)
 
+	// Process the JSON response data
+	/*data := Response{}
+	json.Unmarshal(resData, &data)*/
+
+	// postPhoto := PostPhoto{}
+	op := jsonapi.OnePayload{}
+	log.Println(op)
+
+	err = jsonapi.UnmarshalPayload(bytes.NewBuffer(resData), &op)
+	if err != nil {
+		log.Println("ProcessHref() UnmarshalPayload")
+		// http.Error(w, err.Error(), http.StatusInternalServerError)
+		return err
+	}
+	log.Println(op)
+	log.Print("POST to Streetcode? ")
 	// Finally, no data means we can publish to Streetcode
-	if len(data.Data) == 0 {
+	if len(resData) == 0 {
+		log.Println("Yes")
 		response := create(href)
 		defer response.Body.Close()
 
@@ -86,70 +104,145 @@ func ProcessHref(href string) error {
 		foo, _ := ioutil.ReadAll(response.Body)
 		log.Printf("INFO: [response] %s\n", foo)
 	} else {
+		log.Println("No")
 		log.Printf("INFO: [exists] %s", href)
 	}
 
 	return nil
 }
 
-func prepare(href string) ([]byte, error) {
-	// Open our jsonFile
+func prepare(href string) []byte {
+	// Open our JSON template
 	jsonFile, err := os.Open(Template)
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 	defer jsonFile.Close()
 
-	// read our opened jsonFile as a byte array.
-	byteValue, _ := ioutil.ReadAll(jsonFile)
+	w := httptest.NewRecorder()
+	w.Header().Set("Content-Type", jsonapi.MediaType)
+	w.WriteHeader(http.StatusOK)
 
 	// we initialize our PostPhoto array
-	postData := PostPhoto{}
+	postData := new(PostPhoto)
 
-	// we unmarshal our byteArray which contains our
-	// jsonFile's content into 'postData' which we defined above
-	json.Unmarshal(byteValue, &postData)
+	if err := jsonapi.UnmarshalPayload(jsonFile, postData); err != nil {
+		log.Println("prepare() UnmarshalPayload")
+		http.Error(w, err.Error(), 500)
+	}
 
-	postData.Data.Attributes.FieldPost.Value = href
-	// postData.Data.Relationships.FieldRecipientGroup.Data.Id = GroupSudbury
+	postData.FieldPost.Value = href
+	postData.FieldRecipientGroup.ID = GroupSudbury
 
-	return json.Marshal(postData)
+	if err := jsonapi.MarshalPayload(w, postData); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	return w.Body.Bytes()
 }
 
 func checkHref(href string) ([]byte, error) {
-	// Call Streetcode
-	res, err := http.Get(href)
+	// log.Println("checkHref()")
+	c := http.Client{Timeout: time.Duration(3) * time.Second}
+
+	req, err := http.NewRequest("GET", href, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("error %s", err)
+		return []byte{}, err
 	}
 
+	req.Header.Add("Accept", `application/json`)
+	resp, err := c.Do(req)
+	if err != nil {
+		log.Printf("error %s", err)
+		return []byte{}, err
+	}
+
+	defer resp.Body.Close()
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println(err)
+	}
+
+	pass := string(respBody[:])
+	log.Println(pass)
+
+	var decoded []interface{}
+	err = json.Unmarshal(respBody, &decoded)
+	if err != nil {
+		log.Println(err)
+	}
+
+	log.Println(decoded)
+
+	os.Exit(1)
+
+	/*op := jsonapi.OnePayload{}
+	err = jsonapi.UnmarshalPayload(bytes.NewBuffer(respBody), &op.Data)
+	if err != nil {
+		log.Print("checkHref() UnmarshalPayload ")
+		log.Print(err)
+		// http.Error(w, err.Error(), http.StatusInternalServerError)
+		os.Exit(0)
+	}*/
+
+	return respBody, err
+
+	// return ioutil.ReadAll(resp.Body)
+
+	/*	if err != nil {
+		fmt.Printf("error %s", err)
+		return []byte{}, err
+	}*/
+
+	/*
+		postPhoto := new(PostPhoto)
+
+		if err := jsonapi.UnmarshalPayload(r.Body, postPhoto); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// ...save your blog...
+
+		w.Header().Set("Content-Type", jsonapi.MediaType)
+		w.WriteHeader(http.StatusCreated)
+
+		if err := jsonapi.MarshalPayload(w, postPhoto); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
+		// Call Streetcode
+		res, err := http.Get(href)
+		if err != nil {
+			log.Fatal(err)
+		}
+	*/
 	// Http call succeeded, check response code
-	if res.StatusCode != 200 {
-		b, _ := ioutil.ReadAll(res.Body)
+	/*if resp.StatusCode != 200 {
+		b, _ := ioutil.ReadAll(resp.Body)
 		log.Fatal(string(b))
 	}
 
-	// Process good response from Streetcode
-	resData, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		log.Println(" response.Body ", err)
-	}
-
-	return resData, err
+	return body, err*/
 }
 
 func create(href string) *http.Response {
-	jsonData, err := prepare(href)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	jsonData := prepare(href)
 
 	// POST to Streetcode
-	request, _ := http.NewRequest(
+	request, err := http.NewRequest(
 		"POST",
 		os.Getenv("API_URL"),
-		bytes.NewBuffer([]byte(jsonData)),
+		bytes.NewBuffer(jsonData),
 	)
+	if err != nil {
+		log.Printf("%s", err)
+		// return
+	}
+
 	request.Header.Set("Content-Type", "application/vnd.api+json")
 	request.Header.Set("Accept", "application/vnd.api+json")
 	request.SetBasicAuth(os.Getenv("USERNAME"), os.Getenv("PASSWORD"))
