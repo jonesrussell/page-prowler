@@ -42,7 +42,8 @@ type Relationships struct {
 }
 
 type FieldPost struct {
-	Value string `json:"value"`
+	Value  string `json:"value"`
+	Format string `json:"format"`
 }
 
 type FieldRecipientGroup struct {
