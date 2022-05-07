@@ -7,12 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httptest"
 	"os"
-	"time"
-
-	"github.com/google/jsonapi"
-	"github.com/joho/godotenv"
 )
 
 type Response struct {
@@ -20,47 +15,52 @@ type Response struct {
 }
 
 type Entity struct {
-	Id   string `json:"id"`
 	Type string `json:"type"`
+	Id   string `json:"id"`
 }
 
 type PostPhoto struct {
-	FieldPost           FieldPost           `jsonapi:"attr,field_post"`
-	FieldVisibility     string              `jsonapi:"attr,field_visibility"`
-	FieldRecipientGroup FieldRecipientGroup `jsonapi:"relation,field_recipient_group"`
+	Data Data `json:"data"`
+}
+
+type Data struct {
+	Type          string        `json:"type"`
+	Attributes    Attributes    `json:"attributes"`
+	Relationships Relationships `json:"relationships"`
+}
+
+type Attributes struct {
+	FieldPost       FieldPost `json:"field_post"`
+	FieldVisibility string    `json:"field_visibility"`
+}
+
+type Relationships struct {
+	FieldRecipientGroup FieldRecipientGroup `json:"field_recipient_group"`
 }
 
 type FieldPost struct {
-	Value  string `jsonapi:"attr,value"`
-	Format string `jsonapi:"attr,format"`
+	Value  string `json:"value"`
+	Format string `json:"format"`
 }
 
 type FieldRecipientGroup struct {
-	ID   string `jsonapi:"primary,id"`
-	Type string `jsonapi:"attr,type"`
+	Data RData `json:"data"`
+}
+
+type RData struct {
+	Type string `json:"type"`
+	Id   string `json:"id"`
 }
 
 const Template = "api/post.json"
 
 var (
-	GroupSudbury       = ""
-	GroupEspanola      = ""
-	GroupElliotLake    = ""
-	GroupNorthBay      = ""
-	GroupSturgeonFalls = ""
-)
-
-func init() {
-	if godotenv.Load(".env") != nil {
-		log.Fatal("error loading .env file")
-	}
-
-	GroupSudbury = os.Getenv("GROUP_SUDBURY")
-	GroupEspanola = os.Getenv("GROUP_ESPANOLA")
-	GroupElliotLake = os.Getenv("GROUP_ELLIOTLAKE")
-	GroupNorthBay = os.Getenv("GROUP_NORTHBAY")
+	GroupSudbury       = os.Getenv("GROUP_SUDBURY")
+	GroupEspanola      = os.Getenv("GROUP_ESPANOLA")
+	GroupElliotLake    = os.Getenv("GROUP_ELLIOTLAKE")
+	GroupNorthBay      = os.Getenv("GROUP_NORTHBAY")
 	GroupSturgeonFalls = os.Getenv("GROUP_STURGEONFALLS")
-}
+)
 
 func ProcessHref(href string) error {
 	log.Println("checking href", href)
@@ -70,109 +70,84 @@ func ProcessHref(href string) error {
 
 	resData, err := checkHref(urlTest)
 	if err != nil {
-		log.Println(err)
 		return err
 	}
 
-	if !resData {
+	// Process the JSON response data
+	data := Response{}
+	json.Unmarshal([]byte(resData), &data)
+
+	// Finally, no data means we can publish to Streetcode
+	if len(data.Data) == 0 {
 		response := create(href)
 		defer response.Body.Close()
 
 		log.Printf("INFO: [response] %s\n", response.Status)
-		foo, _ := ioutil.ReadAll(response.Body)
-		log.Printf("INFO: [response] %s\n", foo)
 	} else {
-		log.Println("No")
 		log.Printf("INFO: [exists] %s", href)
 	}
 
 	return nil
 }
 
-func prepare(href string) []byte {
-	// Open our JSON template
+func prepare(href string) ([]byte, error) {
+	// Open our jsonFile
 	jsonFile, err := os.Open(Template)
 	if err != nil {
 		log.Fatalln(err)
 	}
-
 	defer jsonFile.Close()
 
-	b, _ := ioutil.ReadAll(jsonFile)
-	fmt.Println(string(b))
+	// read our opened jsonFile as a byte array.
+	byteValue, _ := ioutil.ReadAll(jsonFile)
 
-	w := httptest.NewRecorder()
-	w.Header().Set("Content-Type", jsonapi.MediaType)
-	w.WriteHeader(http.StatusOK)
+	// we initialize our PostPhoto array
+	postData := PostPhoto{}
 
-	// we initialize our PostPhoto struct
-	postData := &PostPhoto{}
-	fmt.Printf("%+v\n", postData)
+	// we unmarshal our byteArray which contains our
+	// jsonFile's content into 'postData' which we defined above
+	json.Unmarshal(byteValue, &postData)
 
-	err = jsonapi.UnmarshalPayload(jsonFile, &postData)
-	if err != nil {
-		log.Println("prepare() UnmarshalPayload")
-		log.Println(err)
-		// http.Error(w, err.Error(), 500)
-	}
+	postData.Data.Attributes.FieldPost.Value = href
+	postData.Data.Relationships.FieldRecipientGroup.Data.Id = GroupSudbury
 
-	postData.FieldPost.Value = href
-	postData.FieldRecipientGroup.ID = GroupSudbury
-
-	if err := jsonapi.MarshalPayload(w, postData); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	return w.Body.Bytes()
+	return json.Marshal(postData)
 }
 
-func checkHref(href string) (bool, error) {
-	c := http.Client{Timeout: time.Duration(3) * time.Second}
-
-	req, err := http.NewRequest("GET", href, nil)
+func checkHref(href string) ([]byte, error) {
+	// Call Streetcode
+	res, err := http.Get(href)
 	if err != nil {
-		log.Printf("error %s", err)
-		panic(err)
+		log.Fatal(err)
 	}
 
-	req.Header.Add("Accept", `application/json`)
-	resp, err := c.Do(req)
+	// Http call succeeded, check response code
+	if res.StatusCode != 200 {
+		b, _ := ioutil.ReadAll(res.Body)
+		log.Fatal(string(b))
+	}
+
+	// Process good response from Streetcode
+	resData, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Printf("error %s", err)
-		panic(err)
+		log.Println(" response.Body ", err)
 	}
 
-	defer resp.Body.Close()
-
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Println(err)
-	}
-
-	data := Response{}
-	json.Unmarshal([]byte(respBody), &data)
-
-	if len(data.Data) == 0 {
-		return false, nil
-	}
-
-	return true, nil
+	return resData, err
 }
 
 func create(href string) *http.Response {
-	jsonData := prepare(href)
-
-	// POST to Streetcode
-	request, err := http.NewRequest(
-		"POST",
-		os.Getenv("API_URL"),
-		bytes.NewBuffer(jsonData),
-	)
+	jsonData, err := prepare(href)
 	if err != nil {
-		log.Printf("%s", err)
-		// return
+		log.Fatalln(err)
 	}
 
+	// POST to Streetcode
+	request, _ := http.NewRequest(
+		"POST",
+		os.Getenv("API_URL"),
+		bytes.NewBuffer([]byte(jsonData)),
+	)
 	request.Header.Set("Content-Type", "application/vnd.api+json")
 	request.Header.Set("Accept", "application/vnd.api+json")
 	request.SetBasicAuth(os.Getenv("USERNAME"), os.Getenv("PASSWORD"))
