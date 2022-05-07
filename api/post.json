@@ -3,7 +3,8 @@
       "type": "post--photo",
       "attributes": {
         "field_post": {
-          "value": "URL"
+          "value": "URL",
+          "format": "basic_html"
         },
         "field_visibility": "1"
       },
