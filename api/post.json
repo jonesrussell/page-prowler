@@ -1,20 +1,23 @@
 {
     "data": {
-        "type": "post--photo",
-        "attributes": {
-            "field_post": {
-                "value": "URL",
-                "format": "basic_html"
-            },
-            "field_visibility": "1"
+      "type": "post--photo",
+      "attributes": {
+        "field_post": {
+          "value": "URL",
+          "format": "basic_html"
         },
-        "relationships": {
-            "field_recipient_group": {
-                "data": {
-                    "type": "group--public_group",
-                    "id": "UUID-OF-GROUP"
-                }
-            }
+        "field_visibility": "1"
+      },
+      "relationships": {
+        "field_post_image": {
+          "data": []
+        },
+        "field_recipient_group": {
+          "data": {
+            "type": "group--public_group",
+            "id": "UUID-OF-GROUP"
+          }
         }
+      }
     }
-}
+  }
