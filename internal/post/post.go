@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Response struct {
@@ -35,12 +37,17 @@ type Attributes struct {
 }
 
 type Relationships struct {
+	FieldPostImage      FieldPostImage      `json:"field_post_image"`
 	FieldRecipientGroup FieldRecipientGroup `json:"field_recipient_group"`
 }
 
 type FieldPost struct {
 	Value  string `json:"value"`
 	Format string `json:"format"`
+}
+
+type FieldPostImage struct {
+	Data []string `json:"data"`
 }
 
 type FieldRecipientGroup struct {
@@ -55,12 +62,24 @@ type RData struct {
 const Template = "api/post.json"
 
 var (
-	GroupSudbury       = os.Getenv("GROUP_SUDBURY")
-	GroupEspanola      = os.Getenv("GROUP_ESPANOLA")
-	GroupElliotLake    = os.Getenv("GROUP_ELLIOTLAKE")
-	GroupNorthBay      = os.Getenv("GROUP_NORTHBAY")
-	GroupSturgeonFalls = os.Getenv("GROUP_STURGEONFALLS")
+	GroupSudbury       = ""
+	GroupEspanola      = ""
+	GroupElliotLake    = ""
+	GroupNorthBay      = ""
+	GroupSturgeonFalls = ""
 )
+
+func init() {
+	if godotenv.Load(".env") != nil {
+		log.Fatal("error loading .env file")
+	}
+
+	GroupSudbury = os.Getenv("GROUP_SUDBURY")
+	GroupEspanola = os.Getenv("GROUP_ESPANOLA")
+	GroupElliotLake = os.Getenv("GROUP_ELLIOTLAKE")
+	GroupNorthBay = os.Getenv("GROUP_NORTHBAY")
+	GroupSturgeonFalls = os.Getenv("GROUP_STURGEONFALLS")
+}
 
 func ProcessHref(href string) error {
 	log.Println("checking href", href)
@@ -142,11 +161,12 @@ func create(href string) *http.Response {
 		log.Fatalln(err)
 	}
 
+	log.Println(string(jsonData))
 	// POST to Streetcode
 	request, _ := http.NewRequest(
 		"POST",
 		os.Getenv("API_URL"),
-		bytes.NewBuffer([]byte(jsonData)),
+		bytes.NewBuffer(jsonData),
 	)
 	request.Header.Set("Content-Type", "application/vnd.api+json")
 	request.Header.Set("Accept", "application/vnd.api+json")
