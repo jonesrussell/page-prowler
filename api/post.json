@@ -3,15 +3,11 @@
       "type": "post--photo",
       "attributes": {
         "field_post": {
-          "value": "URL",
-          "format": "basic_html"
+          "value": "URL"
         },
         "field_visibility": "1"
       },
       "relationships": {
-        "field_post_image": {
-          "data": []
-        },
         "field_recipient_group": {
           "data": {
             "type": "group--public_group",

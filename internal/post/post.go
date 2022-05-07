@@ -37,17 +37,11 @@ type Attributes struct {
 }
 
 type Relationships struct {
-	FieldPostImage      FieldPostImage      `json:"field_post_image"`
 	FieldRecipientGroup FieldRecipientGroup `json:"field_recipient_group"`
 }
 
 type FieldPost struct {
-	Value  string `json:"value"`
-	Format string `json:"format"`
-}
-
-type FieldPostImage struct {
-	Data []string `json:"data"`
+	Value string `json:"value"`
 }
 
 type FieldRecipientGroup struct {
@@ -161,7 +155,6 @@ func create(href string) *http.Response {
 		log.Fatalln(err)
 	}
 
-	log.Println(string(jsonData))
 	// POST to Streetcode
 	request, _ := http.NewRequest(
 		"POST",
