@@ -62,6 +62,9 @@ var (
 	GroupElliotLake    = ""
 	GroupNorthBay      = ""
 	GroupSturgeonFalls = ""
+
+	username = ""
+	password = ""
 )
 
 func init() {
@@ -74,6 +77,9 @@ func init() {
 	GroupElliotLake = os.Getenv("GROUP_ELLIOTLAKE")
 	GroupNorthBay = os.Getenv("GROUP_NORTHBAY")
 	GroupSturgeonFalls = os.Getenv("GROUP_STURGEONFALLS")
+
+	username = os.Getenv("USERNAME")
+	password = os.Getenv("PASSWORD")
 }
 
 func ProcessHref(href string) error {
@@ -164,7 +170,7 @@ func create(href string) *http.Response {
 	)
 	request.Header.Set("Content-Type", "application/vnd.api+json")
 	request.Header.Set("Accept", "application/vnd.api+json")
-	request.Header.Add("Authorization", "Basic "+basicAuth(os.Getenv("USERNAME"), os.Getenv("PASSWORD")))
+	request.Header.Add("Authorization", "Basic "+basicAuth(username, password))
 
 	client := &http.Client{}
 	response, error := client.Do(request)
