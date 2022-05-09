@@ -58,6 +58,7 @@ func Related(href string) bool {
 	similarityFirearm := strutil.Similarity("FIREARM", title, swg)
 	similarityMurder := strutil.Similarity("MURDER", title, swg)
 	similarityCocain := strutil.Similarity("COCAIN", title, swg)
+	similarityPossess := strutil.Similarity("POSSESS", title, swg)
 
 	return similarityDrug == 1 ||
 		similaritySmokeJoint == 1 ||
@@ -67,5 +68,6 @@ func Related(href string) bool {
 		similarityShoot == 1 ||
 		similarityFirearm == 1 ||
 		similarityMurder == 1 ||
-		similarityCocain == 1
+		similarityCocain == 1 ||
+		similarityPossess == 1
 }
