@@ -12,7 +12,8 @@
             "cwd": "${workspaceRoot}",
             "program": "cmd/crawler/main.go",
             "args": [
-                "https://www.sudbury.com/police"
+                "https://www.sudbury.com/police",
+                "b55fe232-0fbf-4fa8-b697-ff7bb863ae6a"
             ]
         },
         {
@@ -23,7 +24,8 @@
             "cwd": "${workspaceRoot}",
             "program": "cmd/crawler/main.go",
             "args": [
-                "https://www.elliotlakestandard.ca/category/news"
+                "https://www.elliotlakestandard.ca",
+                "01123a12-3837-4883-9d4a-6642ff690fae"
             ]
         },
         {

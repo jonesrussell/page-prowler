@@ -9,12 +9,17 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
+type MsgPost struct {
+	Href  string `json:"href"`
+	Group string `json:"group"`
+}
+
 var (
 	ctx    = context.Background()
 	client = (*redis.Client)(nil)
 )
 
-const key = "hrefs"
+const keySet = "hrefs"
 
 func Connect() *redis.Client {
 	client = redis.NewClient(&redis.Options{
@@ -35,14 +40,18 @@ func Connect() *redis.Client {
 }
 
 func SAdd(href string) (int64, error) {
-	return client.SAdd(ctx, key, href).Result()
+	return client.SAdd(ctx, keySet, href).Result()
 }
 
-func SPop() (string, error) {
-	return client.SPop(ctx, key).Result()
+func SMembers() ([]string, error) {
+	return client.SMembers(ctx, keySet).Result()
 }
 
-func PublishHref(href string) error {
+func Del() (int64, error) {
+	return client.Del(ctx, keySet).Result()
+}
+
+func PublishHref(href string, group string) error {
 	return client.XAdd(ctx, &redis.XAddArgs{
 		Stream:       os.Getenv("REDIS_STREAM"),
 		MaxLen:       0,
@@ -51,6 +60,7 @@ func PublishHref(href string) error {
 		Values: map[string]interface{}{
 			"eventName": "receivedUrl",
 			"href":      href,
+			"group":     group,
 		},
 	}).Err()
 }
@@ -79,14 +89,19 @@ func Messages(entries []redis.XStream) []redis.XMessage {
 	return entries[0].Messages
 }
 
-func Process(messages []redis.XMessage) []string {
-	var urls []string
+func Process(messages []redis.XMessage) []MsgPost {
+	var urls []MsgPost
 
 	for i := 0; i < len(messages); i++ {
-		eventName, href := processEntry(messages[i].Values)
+		eventName, href, group := processEntry(messages[i].Values)
 
 		if eventName == "receivedUrl" {
-			urls = append(urls, href)
+			msgPost := MsgPost{
+				Href:  href,
+				Group: group,
+			}
+
+			urls = append(urls, msgPost)
 			ackEntry(messages[i].ID)
 		}
 	}
@@ -94,11 +109,12 @@ func Process(messages []redis.XMessage) []string {
 	return urls
 }
 
-func processEntry(values map[string]interface{}) (string, string) {
+func processEntry(values map[string]interface{}) (string, string, string) {
 	eventName := fmt.Sprintf("%v", values["eventName"])
 	href := fmt.Sprintf("%v", values["href"])
+	group := fmt.Sprintf("%v", values["group"])
 
-	return eventName, href
+	return eventName, href, group
 }
 
 func ackEntry(id string) {
