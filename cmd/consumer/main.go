@@ -33,14 +33,21 @@ func main() {
 	log.Println("consumer started")
 
 	for {
-		entries, err := myredis.Entries()
+		entries, err := myredis.Entries(
+			os.Getenv("REDIS_GROUP"),
+			os.Getenv("REDIS_STREAM"),
+		)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		messages := myredis.Messages(entries)
 
-		urls := myredis.Process(messages)
+		urls := myredis.Process(
+			messages,
+			os.Getenv("REDIS_STREAM"),
+			os.Getenv("REDIS_GROUP"),
+		)
 
 		consume(urls)
 	}
