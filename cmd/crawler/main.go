@@ -48,7 +48,6 @@ func main() {
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		// Extract the full url
 		href := e.Request.AbsoluteURL(e.Attr("href"))
-		fmt.Println(href)
 
 		// Determine if we will submit link to Redis
 		if drug.Related(href) {
