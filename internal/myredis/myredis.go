@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -70,11 +69,11 @@ func Stream(stream string, group string) error {
 	).Err()
 }
 
-func Entries() ([]redis.XStream, error) {
+func Entries(group string, stream string) ([]redis.XStream, error) {
 	return client.XReadGroup(ctx, &redis.XReadGroupArgs{
-		Group:    os.Getenv("REDIS_GROUP"),
+		Group:    group,
 		Consumer: "*",
-		Streams:  []string{os.Getenv("REDIS_STREAM"), ">"},
+		Streams:  []string{stream, ">"},
 		Count:    1,
 		Block:    0,
 		NoAck:    false,
@@ -85,7 +84,7 @@ func Messages(entries []redis.XStream) []redis.XMessage {
 	return entries[0].Messages
 }
 
-func Process(messages []redis.XMessage) []MsgPost {
+func Process(messages []redis.XMessage, stream string, group string) []MsgPost {
 	var urls []MsgPost
 
 	for i := 0; i < len(messages); i++ {
@@ -98,7 +97,7 @@ func Process(messages []redis.XMessage) []MsgPost {
 			}
 
 			urls = append(urls, msgPost)
-			ackEntry(messages[i].ID)
+			ackEntry(stream, group, messages[i].ID)
 		}
 	}
 
@@ -113,11 +112,11 @@ func processEntry(values map[string]interface{}) (string, string, string) {
 	return eventName, href, group
 }
 
-func ackEntry(id string) {
+func ackEntry(stream string, group string, id string) {
 	client.XAck(
 		ctx,
-		os.Getenv("REDIS_STREAM"),
-		os.Getenv("REDIS_GROUP"),
+		stream,
+		group,
 		id,
 	)
 }
