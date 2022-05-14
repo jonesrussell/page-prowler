@@ -21,14 +21,10 @@ var (
 
 const keySet = "hrefs"
 
-func Connect() *redis.Client {
+func Connect(addr string, password string) *redis.Client {
 	client = redis.NewClient(&redis.Options{
-		Addr: fmt.Sprintf(
-			"%s:%s",
-			os.Getenv("REDIS_HOST"),
-			os.Getenv("REDIS_PORT"),
-		),
-		Password: os.Getenv("REDIS_AUTH"),
+		Addr:     addr,
+		Password: password,
 	})
 
 	_, err := client.Ping(ctx).Result()
@@ -51,9 +47,9 @@ func Del() (int64, error) {
 	return client.Del(ctx, keySet).Result()
 }
 
-func PublishHref(href string, group string) error {
+func PublishHref(stream string, href string, group string) error {
 	return client.XAdd(ctx, &redis.XAddArgs{
-		Stream:       os.Getenv("REDIS_STREAM"),
+		Stream:       stream,
 		MaxLen:       0,
 		MaxLenApprox: 0,
 		ID:           "",
@@ -65,11 +61,11 @@ func PublishHref(href string, group string) error {
 	}).Err()
 }
 
-func Stream() error {
+func Stream(stream string, group string) error {
 	return client.XGroupCreate(
 		ctx,
-		os.Getenv("REDIS_STREAM"),
-		os.Getenv("REDIS_GROUP"),
+		stream,
+		group,
 		"0",
 	).Err()
 }

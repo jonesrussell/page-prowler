@@ -28,7 +28,12 @@ func main() {
 	}
 
 	// Setup the Redis connection
-	redisClient := myredis.Connect()
+	addr := fmt.Sprintf(
+		"%s:%s",
+		os.Getenv("REDIS_HOST"),
+		os.Getenv("REDIS_PORT"),
+	)
+	redisClient := myredis.Connect(addr, os.Getenv("REDIS_AUTH"))
 	defer redisClient.Close()
 
 	// Create a new crawler
@@ -80,7 +85,7 @@ func main() {
 			href := hrefs[i]
 
 			// Send url to Redis stream
-			err = myredis.PublishHref(href, group)
+			err = myredis.PublishHref(os.Getenv("REDIS_STREAM"), href, group)
 			if err != nil {
 				log.Fatal(err)
 			}
