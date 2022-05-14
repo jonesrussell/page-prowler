@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/jonesrussell/crawler/internal/myredis"
 )
 
@@ -63,20 +62,19 @@ var (
 	password = ""
 )
 
-func init() {
-	if godotenv.Load(".env") != nil {
-		log.Fatal("error loading .env file")
-	}
-
-	username = os.Getenv("USERNAME")
-	password = os.Getenv("PASSWORD")
+func SetUsername(user string) {
+	username = user
 }
 
-func ProcessHref(msg myredis.MsgPost) error {
+func SetPassword(pass string) {
+	password = pass
+}
+
+func ProcessHref(msg myredis.MsgPost, url string) error {
 	log.Println("checking href", msg.Href)
 
 	// Assemble Streetcode API url that will search for link
-	urlTest := fmt.Sprintf("%s%s", os.Getenv("API_FILTER_URL"), msg.Href)
+	urlTest := fmt.Sprintf("%s%s", url, msg.Href)
 
 	resData, err := checkHref(urlTest)
 	if err != nil {
@@ -89,7 +87,7 @@ func ProcessHref(msg myredis.MsgPost) error {
 
 	// Finally, no data means we can publish to Streetcode
 	if len(data.Data) == 0 {
-		response := create(msg)
+		response := create(msg, url)
 		defer response.Body.Close()
 
 		log.Printf("INFO: [response] %s\n", response.Status)
@@ -146,7 +144,7 @@ func checkHref(href string) ([]byte, error) {
 	return resData, err
 }
 
-func create(msg myredis.MsgPost) *http.Response {
+func create(msg myredis.MsgPost, url string) *http.Response {
 	jsonData, err := prepare(msg)
 	if err != nil {
 		log.Fatalln(err)
@@ -155,7 +153,7 @@ func create(msg myredis.MsgPost) *http.Response {
 	// POST to Streetcode
 	request, _ := http.NewRequest(
 		"POST",
-		os.Getenv("API_URL"),
+		url,
 		bytes.NewBuffer(jsonData),
 	)
 	request.Header.Set("Content-Type", "application/vnd.api+json")

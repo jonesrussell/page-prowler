@@ -96,7 +96,7 @@ func main() {
 			}
 
 			if os.Getenv("CSV_WRITE") == "true" {
-				mycsv.WriteHrefCsv(href)
+				mycsv.WriteHrefCsv(href, os.Getenv("CSV_FILENAME"))
 			}
 		}
 	})
