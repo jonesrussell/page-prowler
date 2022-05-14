@@ -39,9 +39,10 @@ func main() {
 	}
 }
 
-func consume(urls []string) {
+func consume(urls []myredis.MsgPost) {
 	for i := 0; i < len(urls); i++ {
-		err := post.ProcessHref(urls[i])
+		msg := urls[i]
+		err := post.ProcessHref(msg)
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/jonesrussell/crawler/internal/myredis"
 )
 
 type Response struct {
@@ -58,12 +59,6 @@ type RData struct {
 const Template = "api/post.json"
 
 var (
-	GroupSudbury       = ""
-	GroupEspanola      = ""
-	GroupElliotLake    = ""
-	GroupNorthBay      = ""
-	GroupSturgeonFalls = ""
-
 	username = ""
 	password = ""
 )
@@ -73,21 +68,15 @@ func init() {
 		log.Fatal("error loading .env file")
 	}
 
-	GroupSudbury = os.Getenv("GROUP_SUDBURY")
-	GroupEspanola = os.Getenv("GROUP_ESPANOLA")
-	GroupElliotLake = os.Getenv("GROUP_ELLIOTLAKE")
-	GroupNorthBay = os.Getenv("GROUP_NORTHBAY")
-	GroupSturgeonFalls = os.Getenv("GROUP_STURGEONFALLS")
-
 	username = os.Getenv("USERNAME")
 	password = os.Getenv("PASSWORD")
 }
 
-func ProcessHref(href string) error {
-	log.Println("checking href", href)
+func ProcessHref(msg myredis.MsgPost) error {
+	log.Println("checking href", msg.Href)
 
 	// Assemble Streetcode API url that will search for link
-	urlTest := fmt.Sprintf("%s%s", os.Getenv("API_FILTER_URL"), href)
+	urlTest := fmt.Sprintf("%s%s", os.Getenv("API_FILTER_URL"), msg.Href)
 
 	resData, err := checkHref(urlTest)
 	if err != nil {
@@ -100,18 +89,18 @@ func ProcessHref(href string) error {
 
 	// Finally, no data means we can publish to Streetcode
 	if len(data.Data) == 0 {
-		response := create(href)
+		response := create(msg)
 		defer response.Body.Close()
 
 		log.Printf("INFO: [response] %s\n", response.Status)
 	} else {
-		log.Printf("INFO: [exists] %s", href)
+		log.Printf("INFO: [exists] %s", msg.Href)
 	}
 
 	return nil
 }
 
-func prepare(href string) ([]byte, error) {
+func prepare(msg myredis.MsgPost) ([]byte, error) {
 	// Open our jsonFile
 	jsonFile, err := os.Open(Template)
 	if err != nil {
@@ -129,8 +118,8 @@ func prepare(href string) ([]byte, error) {
 	// jsonFile's content into 'postData' which we defined above
 	json.Unmarshal(byteValue, &postData)
 
-	postData.Data.Attributes.FieldPost.Value = href
-	postData.Data.Relationships.FieldRecipientGroup.Data.Id = GroupSudbury
+	postData.Data.Attributes.FieldPost.Value = msg.Href
+	postData.Data.Relationships.FieldRecipientGroup.Data.Id = msg.Group
 
 	return json.Marshal(postData)
 }
@@ -157,8 +146,8 @@ func checkHref(href string) ([]byte, error) {
 	return resData, err
 }
 
-func create(href string) *http.Response {
-	jsonData, err := prepare(href)
+func create(msg myredis.MsgPost) *http.Response {
+	jsonData, err := prepare(msg)
 	if err != nil {
 		log.Fatalln(err)
 	}
