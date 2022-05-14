@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
 
 	"github.com/joho/godotenv"
 	"github.com/jonesrussell/crawler/internal/myredis"
@@ -13,12 +15,17 @@ func main() {
 		log.Fatal("error loading .env file")
 	}
 
-	// Connect to Redis
-	redisClient := myredis.Connect()
+	// Setup the Redis connection
+	addr := fmt.Sprintf(
+		"%s:%s",
+		os.Getenv("REDIS_HOST"),
+		os.Getenv("REDIS_PORT"),
+	)
+	redisClient := myredis.Connect(addr, os.Getenv("REDIS_AUTH"))
 	defer redisClient.Close()
 
 	// Connect to Redis Stream
-	err := myredis.Stream()
+	err := myredis.Stream(os.Getenv("REDIS_STREAM"), os.Getenv("REDIS_GROUP"))
 	if err != nil {
 		log.Println(err)
 	}

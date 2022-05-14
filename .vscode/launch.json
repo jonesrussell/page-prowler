@@ -5,6 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch Crawler Mid North Monitor",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "cwd": "${workspaceRoot}",
+            "program": "cmd/crawler/main.go",
+            "args": [
+                "https://www.midnorthmonitor.com/category/news/local-news/",
+                "b55fe232-0fbf-4fa8-b697-ff7bb863ae6a"
+            ]
+        },
+        {
             "name": "Launch Crawler Sudbury",
             "type": "go",
             "request": "launch",
