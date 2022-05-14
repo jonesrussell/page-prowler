@@ -14,6 +14,14 @@ func Related(href string) bool {
 	sliced := strings.Split(href, "/")
 	title := sliced[len(sliced)-1]
 
+	// TODO clean this up
+	if title == "" {
+		if len(sliced)-2 < 0 {
+			return false
+		}
+		title = sliced[len(sliced)-2]
+	}
+
 	// Remove -'s from title
 	sliced = strings.Split(title, "-")
 	title = strings.Join(sliced, " ")
@@ -41,6 +49,10 @@ func Related(href string) bool {
 	// Convert slice back to string
 	title = strings.Join(sliced, " ")
 
+	if title == "" {
+		return false
+	}
+
 	swg := metrics.NewSmithWatermanGotoh()
 	swg.CaseSensitive = false
 	swg.GapPenalty = -0.1
@@ -59,6 +71,7 @@ func Related(href string) bool {
 	similarityMurder := strutil.Similarity("MURDER", title, swg)
 	similarityCocain := strutil.Similarity("COCAIN", title, swg)
 	similarityPossess := strutil.Similarity("POSSESS", title, swg)
+	similarityBreakEnter := strutil.Similarity("BREAK ENTER", title, swg)
 
 	return similarityDrug == 1 ||
 		similaritySmokeJoint == 1 ||
@@ -69,5 +82,6 @@ func Related(href string) bool {
 		similarityFirearm == 1 ||
 		similarityMurder == 1 ||
 		similarityCocain == 1 ||
-		similarityPossess == 1
+		similarityPossess == 1 ||
+		similarityBreakEnter == 1
 }

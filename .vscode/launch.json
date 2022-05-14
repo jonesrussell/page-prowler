@@ -29,6 +29,18 @@
             ]
         },
         {
+            "name": "Launch Crawler Around and About",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "cwd": "${workspaceRoot}",
+            "program": "cmd/crawler/main.go",
+            "args": [
+                "https://www.aroundandabout.ca/category/local/police-reports/",
+                "01123a12-3837-4883-9d4a-6642ff690fae"
+            ]
+        },
+        {
             "name": "Launch Consumer",
             "type": "go",
             "request": "launch",

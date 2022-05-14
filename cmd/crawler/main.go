@@ -48,14 +48,9 @@ func main() {
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		// Extract the full url
 		href := e.Request.AbsoluteURL(e.Attr("href"))
+		fmt.Println(href)
 
 		// Determine if we will submit link to Redis
-		/*matchedNewsMnm, _ := regexp.MatchString(`^https://www.midnorthmonitor.com/news/`, href)
-		matchedPoliceSc, _ := regexp.MatchString(`^https://www.sudbury.com/police/`, href)
-		matchedNewsEls, _ := regexp.MatchString(`^https://www.elliotlakestandard.ca/category/news/`, href)
-
-		if matchedPoliceSc || matchedNewsMnm || matchedNewsEls {*/
-		// Determine if url is drug related
 		if drug.Related(href) {
 			// Announce the drug related url
 			fmt.Println(href)
