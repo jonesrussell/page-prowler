@@ -6,8 +6,8 @@ import (
 	"os"
 )
 
-func WriteHrefCsv(href string) {
-	f, err := os.OpenFile(os.Getenv("CSV_FILENAME"), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+func WriteHrefCsv(href string, filename string) {
+	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Println(err)
 	}
