@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Crawler",
+            "name": "Launch Crawler Sudbury",
             "type": "go",
             "request": "launch",
             "mode": "auto",
@@ -13,6 +13,17 @@
             "program": "cmd/crawler/main.go",
             "args": [
                 "https://www.sudbury.com/police"
+            ]
+        },
+        {
+            "name": "Launch Crawler Elliot Lake",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "cwd": "${workspaceRoot}",
+            "program": "cmd/crawler/main.go",
+            "args": [
+                "https://www.elliotlakestandard.ca/category/news"
             ]
         },
         {
