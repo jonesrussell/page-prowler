@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"regexp"
 	"time"
 
 	"github.com/gocolly/colly"
@@ -33,17 +32,10 @@ func main() {
 
 	collector := colly.NewCollector(
 		colly.Async(true),
-		colly.URLFilters(
-			regexp.MustCompile("https://www.sudbury.com/police"),
-			regexp.MustCompile("https://www.midnorthmonitor.com/category/news"),
-			regexp.MustCompile("https://www.midnorthmonitor.com/news"),
-			regexp.MustCompile("https://www.midnorthmonitor.com/category/news/local-news"),
-		),
 		// colly.Debugger(&debug.LogDebugger{}),
 	)
 
 	// Limit the number of threads started by colly to two
-	// when visiting links which domains' matches "*sudbury.com" glob
 	collector.Limit(&colly.LimitRule{
 		DomainGlob:  "*",
 		Parallelism: 2,
@@ -55,19 +47,20 @@ func main() {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 
 		// Determine if we will submit link to Redis
-		matchedNewsMnm, _ := regexp.MatchString(`^https://www.midnorthmonitor.com/news/`, href)
+		/*matchedNewsMnm, _ := regexp.MatchString(`^https://www.midnorthmonitor.com/news/`, href)
 		matchedPoliceSc, _ := regexp.MatchString(`^https://www.sudbury.com/police/`, href)
+		matchedNewsEls, _ := regexp.MatchString(`^https://www.elliotlakestandard.ca/category/news/`, href)
 
-		if matchedPoliceSc || matchedNewsMnm {
-			if drug.Related(href) {
-				fmt.Println(href)
+		if matchedPoliceSc || matchedNewsMnm || matchedNewsEls {*/
+		if drug.Related(href) {
+			fmt.Println(href)
 
-				_, err := myredis.SAdd(href)
-				if err != nil {
-					log.Fatal(err)
-				}
+			_, err := myredis.SAdd(href)
+			if err != nil {
+				log.Fatal(err)
 			}
 		}
+		//}
 
 		if os.Getenv("CRAWL_MODE") != "single" {
 			collector.Visit(href)
