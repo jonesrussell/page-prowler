@@ -62,17 +62,6 @@ var (
 	password = ""
 )
 
-func init() {
-	if username == "" {
-		log.Fatal("username is not set")
-	}
-
-	if password == "" {
-		log.Fatal("username is not set")
-	}
-
-}
-
 func SetUsername(user string) {
 	username = user
 }
