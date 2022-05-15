@@ -62,6 +62,17 @@ var (
 	password = ""
 )
 
+func init() {
+	if username == "" {
+		log.Fatal("username is not set")
+	}
+
+	if password == "" {
+		log.Fatal("username is not set")
+	}
+
+}
+
 func SetUsername(user string) {
 	username = user
 }
@@ -70,7 +81,7 @@ func SetPassword(pass string) {
 	password = pass
 }
 
-func ProcessHref(msg myredis.MsgPost, url string) error {
+func Process(msg myredis.MsgPost, url string) error {
 	log.Println("checking href", msg.Href)
 
 	// Assemble Streetcode API url that will search for link

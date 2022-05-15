@@ -55,10 +55,10 @@ func main() {
 
 func consume(urls []myredis.MsgPost) {
 	for i := 0; i < len(urls); i++ {
-		msg := urls[i]
+		href := urls[i]
 		post.SetUsername(os.Getenv("USERNAME"))
 		post.SetPassword(os.Getenv("PASSWORD"))
-		err := post.ProcessHref(msg, os.Getenv("API_FILTER_URL"))
+		err := post.Process(href, os.Getenv("API_FILTER_URL"))
 		if err != nil {
 			log.Fatal(err)
 		}
