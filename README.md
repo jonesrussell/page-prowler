@@ -30,25 +30,31 @@ To run this project, you will need to add the following environment variables to
 Clone the project
 
 ```bash
-  git clone https://github.com/jonesrussell/streetcode-crawler.git
+git clone https://github.com/jonesrussell/streetcode-crawler.git
 ```
 
 Go to the project directory
 
 ```bash
-  cd streetcode-crawler
+cd streetcode-crawler
+```
+
+### crawler
+
+```bash
+cd cmd/crawler
 ```
 
 Install dependencies
 
 ```bash
-  go install
+go install
 ```
 
 Start the crawler
 
 ```bash
-  go run main.go https://www.sudbury.com
+go run main.go https://www.sudbury.com
 ```
 
 
