@@ -9,7 +9,6 @@ import (
 	"github.com/gocolly/colly"
 	"github.com/joho/godotenv"
 	"github.com/jonesrussell/crawler/internal/drug"
-	"github.com/jonesrussell/crawler/internal/mycsv"
 	"github.com/jonesrussell/crawler/internal/myredis"
 )
 
@@ -95,9 +94,6 @@ func main() {
 				log.Fatal(err)
 			}
 
-			if os.Getenv("CSV_WRITE") == "true" {
-				mycsv.WriteHrefCsv(href, os.Getenv("CSV_FILENAME"))
-			}
 		}
 	})
 
