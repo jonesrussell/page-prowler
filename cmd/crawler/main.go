@@ -10,12 +10,17 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/jonesrussell/crawler/internal/drug"
 	"github.com/jonesrussell/crawler/internal/myredis"
+	"go.uber.org/zap"
 )
 
 func main() {
+	// Create a logger
+	logger := createLogger()
+	defer logger.Sync() // Flush the logger before exiting
+
 	// Retrieve URL to crawl from arguments
 	if len(os.Args) < 3 {
-		log.Println("usage: ./crawler https://www.sudbury.com c45fe232-0fbd-4fj8-b097-ff7bb863ae6b")
+		logger.Info("Usage: ./crawler https://www.sudbury.com c45fe232-0fbd-4fj8-b097-ff7bb863ae6b")
 		os.Exit(0)
 	}
 	crawlUrl := os.Args[1]
@@ -23,7 +28,7 @@ func main() {
 
 	// Load the environment variables
 	if godotenv.Load(".env") != nil {
-		log.Println("error loading .env file")
+		logger.Warn("Error loading .env file")
 	}
 
 	// Setup the Redis connection
@@ -53,18 +58,17 @@ func main() {
 		// Extract the full url
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 
-		// Determine if we will submit link to Redis
+		// Determine if we will submit the link to Redis
 		if drug.Related(href) {
-			// Announce the drug related url
-			fmt.Println(href)
+			// Announce the drug related urlLog
+			logger.Info(href)
 
 			// Add url to publishing queue
 			_, err := myredis.SAdd(href)
 			if err != nil {
-				log.Fatal(err)
+				logger.Errorw("Error adding URL to Redis set", "error", err)
 			}
 		}
-		//}
 
 		if os.Getenv("CRAWL_MODE") != "single" {
 			collector.Visit(href)
@@ -105,11 +109,24 @@ func main() {
 
 	// Set error handler
 	collector.OnError(func(r *colly.Response, err error) {
-		fmt.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
+		logger.Errorw("Request URL failed",
+			"request_url", r.Request.URL,
+			"response", r,
+			"error", err,
+		)
 	})
 
 	// Everything is setup, time to crawl
-	log.Println("Crawler started...")
+	logger.Info("Crawler started...")
 	collector.Visit(crawlUrl)
 	collector.Wait()
+}
+
+func createLogger() *zap.SugaredLogger {
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatalf("Failed to initialize Zap logger: %v", err)
+	}
+	sugar := logger.Sugar()
+	return sugar
 }
