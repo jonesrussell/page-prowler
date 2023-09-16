@@ -38,4 +38,6 @@ require (
 	github.com/go-redis/redismock/v9 v9.0.3 // indirect
 	github.com/redis/go-redis/v9 v9.0.3 // indirect
 	github.com/yuin/gopher-lua v1.1.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
+	go.uber.org/zap v1.26.0 // indirect
 )
