@@ -11,7 +11,7 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gocolly/colly v1.2.0
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
-	github.com/golang/protobuf v1.3.1 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/kennygrant/sanitize v1.2.4 // indirect
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/temoto/robotstxt v1.1.2 // indirect
@@ -25,19 +25,15 @@ require (
 	github.com/bbalet/stopwords v1.0.0
 	github.com/caneroj1/stemmer v0.0.0-20170128035808-c9f2ce1504d5
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/google/jsonapi v1.0.0
 	github.com/joho/godotenv v1.4.0
+	go.uber.org/zap v1.26.0
 )
 
 require (
-	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
-	github.com/alicebob/miniredis/v2 v2.30.5 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/go-redis/redismock/v9 v9.0.3 // indirect
-	github.com/redis/go-redis/v9 v9.0.3 // indirect
-	github.com/yuin/gopher-lua v1.1.0 // indirect
+	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/onsi/gomega v1.25.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.26.0 // indirect
+	google.golang.org/protobuf v1.28.0 // indirect
 )
