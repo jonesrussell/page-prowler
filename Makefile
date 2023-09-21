@@ -6,30 +6,41 @@ PROJECTNAME := $(shell basename "$(PWD)")
 USERNAME := $(shell whoami)
 
 # Go related variables.
-PKG    = github.com/jonesrussell/crawler
-PREFIX := /home/$(USERNAME)/.local
+PKG = github.com/jonesrussell/crawler
+PREFIX = /home/$(USERNAME)/.local
 
 # Add the -extldflags "-static" and -tags "netgo" flags to enable static linking.
-GO            := GOPATH=$(CURDIR)/.gopath GOBIN=$(CURDIR)/bin CGO_ENABLED=0 go
-GO_BUILDFLAGS := -tags "netgo"
-GO_LDFLAGS    := -s -w -extldflags "-static"
+GO = CGO_ENABLED=0 go
+GO_BUILDFLAGS = -tags "netgo"
+GO_LDFLAGS = -s -w -extldflags "-static"
 
-bin/crawler: FORCE
-	$(GO) install $(GO_BUILDFLAGS) -ldflags '$(GO_LDFLAGS)' '$(PKG)/cmd/crawler'
+# Build targets.
+BINARY_NAMES = crawler consumer
+BINARY_DIR = bin
+BINARY_FILES = $(addprefix $(BINARY_DIR)/,$(BINARY_NAMES))
 
-bin/consumer: FORCE
-	$(GO) install $(GO_BUILDFLAGS) -ldflags '$(GO_LDFLAGS)' '$(PKG)/cmd/consumer'
+.PHONY: all build install clean update-dependencies clean-binaries clean-vendor
 
-install: FORCE all
-	install -D -m 0755 bin/crawler "$(DESTDIR)$(PREFIX)/bin/crawler"
-	install -D -m 0755 bin/consumer "$(DESTDIR)$(PREFIX)/bin/consumer"
+all: build
 
-clean: FORCE
-	rm -f -- bin/crawler
-	rm -f -- bin/consumer
+build: $(BINARY_FILES)
 
-vendor: FORCE
+$(BINARY_DIR)/%: FORCE
+	$(GO) build -o $@ -ldflags '$(GO_LDFLAGS)' '$(PKG)/cmd/$*'
+
+install: build
+	install -D -m 0755 $(BINARY_FILES) $(DESTDIR)$(PREFIX)/bin/
+
+clean: clean-binaries clean-vendor
+
+clean-binaries:
+	rm -f $(BINARY_FILES)
+
+clean-vendor:
+	rm -rf vendor
+
+update-dependencies:
 	$(GO) mod tidy
 	$(GO) mod vendor
 
-.PHONY: FORCE
+FORCE:
