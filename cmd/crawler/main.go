@@ -39,7 +39,7 @@ func main() {
 	// Create a new crawler
 	collector := colly.NewCollector(
 		colly.Async(true),
-		//colly.Debugger(&debug.LogDebugger{}),
+		colly.MaxDepth(3),
 	)
 
 	// Set reasonable limits for responsible crawling
@@ -49,17 +49,17 @@ func main() {
 		Delay:       3000 * time.Millisecond,
 	})
 
-	// When a url is found
+	// When a link is found
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
-		// Extract the full url
+		// Extract the full URL
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 
 		// Determine if we will submit the link to Redis
 		if drug.Related(href) {
-			// Announce the drug related urlLog
+			// Announce the drug-related URL
 			logger.Info(href)
 
-			// Add url to publishing queue
+			// Add URL to the publishing queue
 			_, err := rediswrapper.SAdd(href)
 			if err != nil {
 				logger.Errorw("Error adding URL to Redis set", "error", err)
@@ -67,7 +67,10 @@ func main() {
 		}
 
 		if os.Getenv("CRAWL_MODE") != "single" {
-			collector.Visit(href)
+			// Check the depth before visiting the link
+			if e.Request.Depth < 1 {
+				collector.Visit(href)
+			}
 		}
 	})
 
