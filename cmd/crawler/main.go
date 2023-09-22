@@ -6,10 +6,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/gocolly/colly"
 	"github.com/joho/godotenv"
 	"github.com/jonesrussell/crawler/internal/drug"
-	"github.com/jonesrussell/crawler/internal/myredis"
+	"github.com/jonesrussell/crawler/internal/rediswrapper"
 	"go.uber.org/zap"
 )
 
@@ -31,13 +32,8 @@ func main() {
 		logger.Warn("Error loading .env file")
 	}
 
-	// Setup the Redis connection
-	addr := fmt.Sprintf(
-		"%s:%s",
-		os.Getenv("REDIS_HOST"),
-		os.Getenv("REDIS_PORT"),
-	)
-	redisClient := myredis.Connect(addr, os.Getenv("REDIS_AUTH"))
+	// Create the Redis client and connection
+	redisClient := createRedisClient()
 	defer redisClient.Close()
 
 	// Create a new crawler
@@ -64,7 +60,7 @@ func main() {
 			logger.Info(href)
 
 			// Add url to publishing queue
-			_, err := myredis.SAdd(href)
+			_, err := rediswrapper.SAdd(href)
 			if err != nil {
 				logger.Errorw("Error adding URL to Redis set", "error", err)
 			}
@@ -78,7 +74,7 @@ func main() {
 	// When a url has finished being crawled
 	collector.OnScraped(func(r *colly.Response) {
 		// Retrieve the urls to be published
-		hrefs, err := myredis.SMembers()
+		hrefs, err := rediswrapper.SMembers()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -88,12 +84,12 @@ func main() {
 			href := hrefs[i]
 
 			// Send url to Redis stream
-			err = myredis.PublishHref(os.Getenv("REDIS_STREAM"), href, group)
+			err = rediswrapper.PublishHref(os.Getenv("REDIS_STREAM"), href, group)
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			_, err = myredis.Del()
+			_, err = rediswrapper.Del()
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -129,4 +125,15 @@ func createLogger() *zap.SugaredLogger {
 	}
 	sugar := logger.Sugar()
 	return sugar
+}
+
+func createRedisClient() *redis.Client {
+	// Setup the Redis connection
+	addr := fmt.Sprintf(
+		"%s:%s",
+		os.Getenv("REDIS_HOST"),
+		os.Getenv("REDIS_PORT"),
+	)
+	redisClient := rediswrapper.Connect(addr, os.Getenv("REDIS_AUTH"))
+	return redisClient
 }

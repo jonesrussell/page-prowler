@@ -1,4 +1,4 @@
-package myredis
+package rediswrapper
 
 import (
 	"context"
