@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/jonesrussell/crawler/internal/myredis"
 	"github.com/jonesrussell/crawler/internal/post"
+	"github.com/jonesrussell/crawler/internal/rediswrapper"
 )
 
 func main() {
@@ -21,11 +21,11 @@ func main() {
 		os.Getenv("REDIS_HOST"),
 		os.Getenv("REDIS_PORT"),
 	)
-	redisClient := myredis.Connect(addr, os.Getenv("REDIS_AUTH"))
+	redisClient := rediswrapper.Connect(addr, os.Getenv("REDIS_AUTH"))
 	defer redisClient.Close()
 
 	// Connect to Redis Stream
-	err := myredis.Stream(os.Getenv("REDIS_STREAM"), os.Getenv("REDIS_GROUP"))
+	err := rediswrapper.Stream(os.Getenv("REDIS_STREAM"), os.Getenv("REDIS_GROUP"))
 	if err != nil {
 		log.Println(err)
 	}
@@ -33,7 +33,7 @@ func main() {
 	log.Println("consumer started")
 
 	for {
-		entries, err := myredis.Entries(
+		entries, err := rediswrapper.Entries(
 			os.Getenv("REDIS_GROUP"),
 			os.Getenv("REDIS_STREAM"),
 		)
@@ -41,9 +41,9 @@ func main() {
 			log.Fatal(err)
 		}
 
-		messages := myredis.Messages(entries)
+		messages := rediswrapper.Messages(entries)
 
-		urls := myredis.Process(
+		urls := rediswrapper.Process(
 			messages,
 			os.Getenv("REDIS_STREAM"),
 			os.Getenv("REDIS_GROUP"),
@@ -53,7 +53,7 @@ func main() {
 	}
 }
 
-func consume(urls []myredis.MsgPost) {
+func consume(urls []rediswrapper.MsgPost) {
 	for i := 0; i < len(urls); i++ {
 		href := urls[i]
 		post.SetUsername(os.Getenv("USERNAME"))

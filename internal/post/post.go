@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/jonesrussell/crawler/internal/myredis"
+	"github.com/jonesrussell/crawler/internal/rediswrapper"
 )
 
 type Response struct {
@@ -70,7 +70,7 @@ func SetPassword(pass string) {
 	password = pass
 }
 
-func Process(msg myredis.MsgPost, url string) error {
+func Process(msg rediswrapper.MsgPost, url string) error {
 	log.Println("checking href", msg.Href)
 
 	// Assemble Streetcode API url that will search for link
@@ -98,7 +98,7 @@ func Process(msg myredis.MsgPost, url string) error {
 	return nil
 }
 
-func prepare(msg myredis.MsgPost) ([]byte, error) {
+func prepare(msg rediswrapper.MsgPost) ([]byte, error) {
 	// Open our jsonFile
 	jsonFile, err := os.Open(Template)
 	if err != nil {
@@ -144,7 +144,7 @@ func checkHref(href string) ([]byte, error) {
 	return resData, err
 }
 
-func create(msg myredis.MsgPost, url string) *http.Response {
+func create(msg rediswrapper.MsgPost, url string) *http.Response {
 	jsonData, err := prepare(msg)
 	if err != nil {
 		log.Fatalln(err)
