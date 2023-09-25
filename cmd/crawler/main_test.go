@@ -53,3 +53,18 @@ func TestCreateRedisClient(t *testing.T) {
 	assert.NotNil(t, redisClient, "Expected redisClient not to be nil")
 	// You can add more assertions based on your requirements
 }
+
+func TestConfigureCollector(t *testing.T) {
+	collector := configureCollector()
+
+	// Assertions
+	assert.NotNil(t, collector, "Expected collector not to be nil")
+	assert.True(t, collector.Async, "Expected collector to be asynchronous")
+	assert.Equal(t, 3, collector.MaxDepth, "Expected MaxDepth to be 3")
+	// You can add more assertions based on your requirements
+}
+
+func TestMain(m *testing.M) {
+	// Run tests and exit with the result
+	os.Exit(m.Run())
+}
