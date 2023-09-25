@@ -3,6 +3,7 @@
 package main
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,4 +39,17 @@ func TestCreateLogger(t *testing.T) {
 	logger.Info("Test log message")
 
 	// No need to check for a return value from logger.Info
+}
+
+func TestCreateRedisClient(t *testing.T) {
+	// Set up environment variables for testing
+	os.Setenv("REDIS_HOST", "localhost")
+	os.Setenv("REDIS_PORT", "6379")
+	os.Setenv("REDIS_AUTH", "")
+
+	redisClient := createRedisClient()
+
+	// Assertions
+	assert.NotNil(t, redisClient, "Expected redisClient not to be nil")
+	// You can add more assertions based on your requirements
 }
