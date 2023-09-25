@@ -20,105 +20,38 @@ func main() {
 	defer logger.Sync() // Flush the logger before exiting
 
 	// Retrieve URL to crawl from arguments
-	if len(os.Args) < 3 {
-		logger.Info("Usage: ./crawler https://www.sudbury.com c45fe232-0fbd-4fj8-b097-ff7bb863ae6b")
-		os.Exit(0)
-	}
-	crawlUrl := os.Args[1]
-	group := os.Args[2]
+	crawlURL, group := parseCommandLineArguments()
 
-	// Load the environment variables
-	if godotenv.Load(".env") != nil {
-		logger.Warn("Error loading .env file")
-	}
+	// Load environment variables
+	loadEnvironmentVariables(logger)
 
-	// Create the Redis client and connection
+	// Create and configure dependencies
 	redisClient := createRedisClient()
 	defer redisClient.Close()
 
-	// Create a new crawler
-	collector := colly.NewCollector(
-		colly.Async(true),
-		colly.MaxDepth(3),
-	)
+	collector := configureCollector()
 
-	// Set reasonable limits for responsible crawling
-	collector.Limit(&colly.LimitRule{
-		DomainGlob:  "*",
-		Parallelism: 2,
-		Delay:       3000 * time.Millisecond,
-	})
+	// Set up the crawling logic
+	setupCrawlingLogic(collector, logger, group)
 
-	// When a link is found
-	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
-		// Extract the full URL
-		href := e.Request.AbsoluteURL(e.Attr("href"))
-
-		// Determine if we will submit the link to Redis
-		if drug.Related(href) {
-			// Announce the drug-related URL
-			logger.Info(href)
-
-			// Add URL to the publishing queue
-			_, err := rediswrapper.SAdd(href)
-			if err != nil {
-				logger.Errorw("Error adding URL to Redis set", "error", err)
-			}
-		}
-
-		if os.Getenv("CRAWL_MODE") != "single" {
-			// Check the depth before visiting the link
-			if e.Request.Depth < 1 {
-				collector.Visit(href)
-			}
-		}
-	})
-
-	// When a url has finished being crawled
-	collector.OnScraped(func(r *colly.Response) {
-		// Retrieve the urls to be published
-		hrefs, err := rediswrapper.SMembers()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// Loop over urls
-		for i := range hrefs {
-			href := hrefs[i]
-
-			// Send url to Redis stream
-			err = rediswrapper.PublishHref(os.Getenv("REDIS_STREAM"), href, group)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			_, err = rediswrapper.Del()
-			if err != nil {
-				log.Fatal(err)
-			}
-
-		}
-	})
-
-	// When crawling a url
-	collector.OnRequest(func(r *colly.Request) {
-		// Announce the url
-		fmt.Println("Visiting", r.URL)
-	})
-
-	// Set error handler
-	collector.OnError(func(r *colly.Response, err error) {
-		logger.Errorw("Request URL failed",
-			"request_url", r.Request.URL,
-			"response", r,
-			"error", err,
-		)
-	})
-
-	// Everything is setup, time to crawl
+	// Start crawling
 	logger.Info("Crawler started...")
-	collector.Visit(crawlUrl)
+	collector.Visit(crawlURL)
 	collector.Wait()
+}
+
+func parseCommandLineArguments() (string, string) {
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: ./crawler https://www.sudbury.com c45fe232-0fbd-4fj8-b097-ff7bb863ae6b")
+		os.Exit(0)
+	}
+	return os.Args[1], os.Args[2]
+}
+
+func loadEnvironmentVariables(logger *zap.SugaredLogger) {
+	if godotenv.Load(".env") != nil {
+		logger.Warn("Error loading .env file")
+	}
 }
 
 func createLogger() *zap.SugaredLogger {
@@ -131,7 +64,6 @@ func createLogger() *zap.SugaredLogger {
 }
 
 func createRedisClient() *redis.Client {
-	// Setup the Redis connection
 	addr := fmt.Sprintf(
 		"%s:%s",
 		os.Getenv("REDIS_HOST"),
@@ -139,4 +71,73 @@ func createRedisClient() *redis.Client {
 	)
 	redisClient := rediswrapper.Connect(addr, os.Getenv("REDIS_AUTH"))
 	return redisClient
+}
+
+func configureCollector() *colly.Collector {
+	collector := colly.NewCollector(
+		colly.Async(true),
+		colly.MaxDepth(3),
+	)
+
+	collector.Limit(&colly.LimitRule{
+		DomainGlob:  "*",
+		Parallelism: 2,
+		Delay:       3000 * time.Millisecond,
+	})
+
+	return collector
+}
+
+func setupCrawlingLogic(collector *colly.Collector, logger *zap.SugaredLogger, group string) {
+	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
+		href := e.Request.AbsoluteURL(e.Attr("href"))
+
+		if drug.Related(href) {
+			logger.Info(href)
+
+			_, err := rediswrapper.SAdd(href)
+			if err != nil {
+				logger.Errorw("Error adding URL to Redis set", "error", err)
+			}
+		}
+
+		if os.Getenv("CRAWL_MODE") != "single" {
+			if e.Request.Depth < 1 {
+				collector.Visit(href)
+			}
+		}
+	})
+
+	collector.OnScraped(func(r *colly.Response) {
+		hrefs, err := rediswrapper.SMembers()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for i := range hrefs {
+			href := hrefs[i]
+
+			err = rediswrapper.PublishHref(os.Getenv("REDIS_STREAM"), href, group)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			_, err = rediswrapper.Del()
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	})
+
+	collector.OnRequest(func(r *colly.Request) {
+		fmt.Println("Visiting", r.URL)
+	})
+
+	collector.OnError(func(r *colly.Response, err error) {
+		logger.Errorw("Request URL failed",
+			"request_url", r.Request.URL,
+			"response", r,
+			"error", err,
+		)
+	})
 }
