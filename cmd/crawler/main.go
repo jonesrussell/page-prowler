@@ -15,12 +15,20 @@ import (
 )
 
 func main() {
+	fmt.Println("Main function started...")
+
 	// Create a logger
 	logger := createLogger()
 	defer logger.Sync() // Flush the logger before exiting
 
 	// Retrieve URL to crawl from arguments
-	crawlURL, group := parseCommandLineArguments()
+	crawlURL, group, err := parseCommandLineArguments(os.Args)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return // Return to exit the function gracefully
+	}
+
+	fmt.Println("Crawling URL:", crawlURL)
 
 	// Load environment variables
 	loadEnvironmentVariables(logger)
@@ -38,14 +46,15 @@ func main() {
 	logger.Info("Crawler started...")
 	collector.Visit(crawlURL)
 	collector.Wait()
+
+	fmt.Println("Main function completed.")
 }
 
-func parseCommandLineArguments() (string, string) {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: ./crawler https://www.sudbury.com c45fe232-0fbd-4fj8-b097-ff7bb863ae6b")
-		os.Exit(0)
+func parseCommandLineArguments(args []string) (string, string, error) {
+	if len(args) < 3 {
+		return "", "", fmt.Errorf("Usage: ./crawler https://www.sudbury.com c45fe232-0fbd-4fj8-b097-ff7bb863ae6b")
 	}
-	return os.Args[1], os.Args[2]
+	return args[1], args[2], nil
 }
 
 func loadEnvironmentVariables(logger *zap.SugaredLogger) {

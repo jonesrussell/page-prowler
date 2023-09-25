@@ -1,47 +1,29 @@
+// main_test.go
+
 package main
 
 import (
-	"bytes"
-	"log"
-	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-// TestMain is a basic test for your main function.
-func TestMain(t *testing.T) {
-	// Replace these test values with appropriate test data
-	testURL := "https://www.example.com"
-	testGroup := "test-group"
+func TestParseCommandLineArguments(t *testing.T) {
+	args := []string{"./crawler", "https://www.example.com", "test-group"}
+	crawlURL, group, err := parseCommandLineArguments(args)
 
-	// Capture the output of the main function
-	// You may want to modify the logger to write to a buffer for testing
-	output := captureMainOutput(testURL, testGroup)
-
-	// Perform assertions on the output, e.g., check for expected log messages
-	// You can use testing.T methods like t.Errorf() to report test failures
-	if len(output) == 0 {
-		t.Errorf("Expected some output, but got nothing.")
-	}
+	// Assertions
+	assert.Equal(t, "https://www.example.com", crawlURL, "Expected crawlURL to match")
+	assert.Equal(t, "test-group", group, "Expected group to match")
+	assert.NoError(t, err, "Expected no error")
 }
 
-// captureMainOutput captures the output of the main function for testing purposes.
-func captureMainOutput(testURL, testGroup string) string {
-	// Save the original command line arguments
-	originalArgs := os.Args
-	defer func() {
-		os.Args = originalArgs // Restore the original command line arguments
-	}()
+func TestParseCommandLineArgumentsInvalid(t *testing.T) {
+	args := []string{"./crawler"}
+	crawlURL, group, err := parseCommandLineArguments(args)
 
-	// Redirect standard output to a buffer for capturing
-	outputBuffer := &bytes.Buffer{}
-	log.SetOutput(outputBuffer)
-
-	// Set test command line arguments
-	os.Args = []string{"main", testURL, testGroup}
-
-	// Call the main function
-	main()
-
-	// Return the captured output as a string
-	return outputBuffer.String()
+	// Assertions
+	assert.Equal(t, "", crawlURL, "Expected crawlURL to be empty")
+	assert.Equal(t, "", group, "Expected group to be empty")
+	assert.Error(t, err, "Expected an error")
 }
