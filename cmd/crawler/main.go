@@ -9,8 +9,8 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/gocolly/colly"
 	"github.com/joho/godotenv"
-	"github.com/jonesrussell/crawler/internal/drug"
 	"github.com/jonesrussell/crawler/internal/rediswrapper"
+	termmatcher "github.com/jonesrussell/crawler/internal/termmatcher"
 	"go.uber.org/zap"
 )
 
@@ -39,8 +39,23 @@ func main() {
 
 	collector := configureCollector()
 
+	// Define your search terms
+	searchTerms := []string{
+		"DRUG",
+		"SMOKE JOINT",
+		"GROW OP",
+		"CANNABI",
+		"IMPAIR",
+		"SHOOT",
+		"FIREARM",
+		"MURDER",
+		"COCAIN",
+		"POSSESS",
+		"BREAK ENTER",
+	}
+
 	// Set up the crawling logic
-	setupCrawlingLogic(collector, logger, group)
+	setupCrawlingLogic(collector, logger, group, searchTerms)
 
 	// Start crawling
 	logger.Info("Crawler started...")
@@ -97,11 +112,11 @@ func configureCollector() *colly.Collector {
 	return collector
 }
 
-func setupCrawlingLogic(collector *colly.Collector, logger *zap.SugaredLogger, group string) {
+func setupCrawlingLogic(collector *colly.Collector, logger *zap.SugaredLogger, group string, searchTerms []string) {
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 
-		if drug.Related(href) {
+		if termmatcher.Related(href, searchTerms) {
 			logger.Info(href)
 
 			_, err := rediswrapper.SAdd(href)

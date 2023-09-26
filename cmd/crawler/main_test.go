@@ -12,12 +12,12 @@ import (
 	"go.uber.org/zap"
 )
 
-// MockDrug is a mocked object for drug.Related
+// MockDrug is a mocked object for termmatcher.Related
 type MockDrug struct {
 	mock.Mock
 }
 
-// Related is a mocked implementation for drug.Related
+// Related is a mocked implementation for termmatcher.Related
 func (m *MockDrug) Related(href string) bool {
 	args := m.Called(href)
 	return args.Bool(0)
@@ -142,8 +142,23 @@ func TestSetupCrawlingLogic(t *testing.T) {
 	// Create a mock logger
 	logger := &zap.SugaredLogger{}
 
-	// Inject the mocked instances into your setupCrawlingLogic function
-	setupCrawlingLogic(collector, logger, "test-group")
+	// Define search terms for testing
+	searchTerms := []string{
+		"DRUG",
+		"SMOKE JOINT",
+		"GROW OP",
+		"CANNABI",
+		"IMPAIR",
+		"SHOOT",
+		"FIREARM",
+		"MURDER",
+		"COCAIN",
+		"POSSESS",
+		"BREAK ENTER",
+	}
+
+	// Inject the mocked instances and search terms into your setupCrawlingLogic function
+	setupCrawlingLogic(collector, logger, "test-group", searchTerms)
 
 	// Your test assertions here
 	// ...TestSetupCrawlingLogic
