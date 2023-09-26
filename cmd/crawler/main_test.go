@@ -47,13 +47,33 @@ func (m *MockRedisWrapper) Del() error {
 }
 
 func TestParseCommandLineArguments(t *testing.T) {
-	args := []string{"./crawler", "https://www.example.com", "test-group"}
-	crawlURL, group, err := parseCommandLineArguments(args)
+	// Test case 1: All required arguments provided
+	args1 := []string{"./crawler", "https://www.example.com", "test-group"}
+	crawlURL1, group1, err1 := parseCommandLineArguments(args1)
+	assert.Equal(t, "https://www.example.com", crawlURL1, "Expected crawlURL to match")
+	assert.Equal(t, "test-group", group1, "Expected group to match")
+	assert.NoError(t, err1, "Expected no error")
 
-	// Assertions
-	assert.Equal(t, "https://www.example.com", crawlURL, "Expected crawlURL to match")
-	assert.Equal(t, "test-group", group, "Expected group to match")
-	assert.NoError(t, err, "Expected no error")
+	// Test case 2: Missing URL
+	args2 := []string{"./crawler", "test-group"}
+	crawlURL2, group2, err2 := parseCommandLineArguments(args2)
+	assert.Equal(t, "", crawlURL2, "Expected crawlURL to be empty")
+	assert.Equal(t, "", group2, "Expected group to be empty")
+	assert.Error(t, err2, "Expected an error for missing URL")
+
+	// Test case 3: Missing group
+	args3 := []string{"./crawler", "https://www.example.com"}
+	crawlURL3, group3, err3 := parseCommandLineArguments(args3)
+	assert.Equal(t, "", crawlURL3, "Expected crawlURL to be empty")
+	assert.Equal(t, "", group3, "Expected group to be empty")
+	assert.Error(t, err3, "Expected an error for missing group")
+
+	// Test case 4: Extra arguments
+	args4 := []string{"./crawler", "https://www.example.com", "test-group", "extra-arg"}
+	crawlURL4, group4, err4 := parseCommandLineArguments(args4)
+	assert.Equal(t, "https://www.example.com", crawlURL4, "Expected crawlURL to match")
+	assert.Equal(t, "test-group", group4, "Expected group to match")
+	assert.NoError(t, err4, "Expected no error")
 }
 
 func TestParseCommandLineArgumentsInvalid(t *testing.T) {
@@ -84,11 +104,25 @@ func TestCreateRedisClient(t *testing.T) {
 	os.Setenv("REDIS_PORT", "6379")
 	os.Setenv("REDIS_AUTH", "")
 
+	// Clean up environment variables after the test
+	defer func() {
+		os.Unsetenv("REDIS_HOST")
+		os.Unsetenv("REDIS_PORT")
+		os.Unsetenv("REDIS_AUTH")
+	}()
+
+	// Create the Redis client
 	redisClient := createRedisClient()
 
 	// Assertions
 	assert.NotNil(t, redisClient, "Expected redisClient not to be nil")
-	// You can add more assertions based on your requirements
+	defer redisClient.Close()
+
+	// Additional assertions based on your Redis client configuration
+	// For example, you can check if the client's options match your expectations
+	assert.Equal(t, "localhost:6379", redisClient.Options().Addr, "Expected Redis address to match")
+	assert.Equal(t, "", redisClient.Options().Password, "Expected empty Redis password")
+	// Add more assertions as needed
 }
 
 func TestConfigureCollector(t *testing.T) {
@@ -112,7 +146,7 @@ func TestSetupCrawlingLogic(t *testing.T) {
 	setupCrawlingLogic(collector, logger, "test-group")
 
 	// Your test assertions here
-	// ...
+	// ...TestSetupCrawlingLogic
 
 	// Assert that the expectations of your mocks are met
 	// ...
