@@ -6,8 +6,45 @@ import (
 	"os"
 	"testing"
 
+	"github.com/gocolly/colly"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
 )
+
+// MockDrug is a mocked object for drug.Related
+type MockDrug struct {
+	mock.Mock
+}
+
+// Related is a mocked implementation for drug.Related
+func (m *MockDrug) Related(href string) bool {
+	args := m.Called(href)
+	return args.Bool(0)
+}
+
+// MockRedisWrapper is a mocked object for rediswrapper functions
+type MockRedisWrapper struct {
+	mock.Mock
+}
+
+// SAdd is a mocked implementation for rediswrapper.SAdd
+func (m *MockRedisWrapper) SAdd(href string) error {
+	args := m.Called(href)
+	return args.Error(0)
+}
+
+// PublishHref is a mocked implementation for rediswrapper.PublishHref
+func (m *MockRedisWrapper) PublishHref(stream, href, group string) error {
+	args := m.Called(stream, href, group)
+	return args.Error(0)
+}
+
+// Del is a mocked implementation for rediswrapper.Del
+func (m *MockRedisWrapper) Del() error {
+	args := m.Called()
+	return args.Error(0)
+}
 
 func TestParseCommandLineArguments(t *testing.T) {
 	args := []string{"./crawler", "https://www.example.com", "test-group"}
@@ -62,6 +99,26 @@ func TestConfigureCollector(t *testing.T) {
 	assert.True(t, collector.Async, "Expected collector to be asynchronous")
 	assert.Equal(t, 3, collector.MaxDepth, "Expected MaxDepth to be 3")
 	// You can add more assertions based on your requirements
+}
+
+func TestSetupCrawlingLogic(t *testing.T) {
+	// Create a new collector
+	collector := colly.NewCollector()
+
+	// Create a mock logger
+	logger := &zap.SugaredLogger{}
+
+	// Inject the mocked instances into your setupCrawlingLogic function
+	setupCrawlingLogic(collector, logger, "test-group")
+
+	// Your test assertions here
+	// ...
+
+	// Assert that the expectations of your mocks are met
+	// ...
+
+	// Clean up any resources
+	// ...
 }
 
 func TestMain(m *testing.M) {
