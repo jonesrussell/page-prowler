@@ -16,6 +16,11 @@ import (
 	"go.uber.org/zap"
 )
 
+type Config struct {
+	URL         string
+	SearchTerms string
+}
+
 func main() {
 	// Create a logger
 	logger := createLogger()
@@ -25,11 +30,14 @@ func main() {
 	logger.Info("Main function started...")
 
 	// Retrieve URL to crawl and search terms from command line arguments
-	crawlURL, searchTerms, err := parseCommandLineArguments()
+	config, err := parseCommandLineArguments()
 	if err != nil {
 		logger.Error("Error:", err)
 		return // Return to exit the function gracefully
 	}
+
+	crawlURL := config.URL
+	searchTerms := strings.Split(config.SearchTerms, ",")
 
 	// Log the URL being crawled
 	logger.Info("Crawling URL:", crawlURL)
@@ -55,28 +63,18 @@ func main() {
 	logger.Info("Main function completed.")
 }
 
-func parseCommandLineArguments() (string, []string, error) {
-	// Define flags for URL and search terms
-	var crawlURL string
-	var searchTerm string
+func parseCommandLineArguments() (Config, error) {
+	var config Config
 
-	// Parse the command-line flags
-	flag.StringVar(&crawlURL, "url", "", "URL to crawl")
-	flag.StringVar(&searchTerm, "search", "", "Search terms (comma-separated)")
+	flag.StringVar(&config.URL, "url", "", "URL to crawl")
+	flag.StringVar(&config.SearchTerms, "search", "", "Search terms (comma-separated)")
 	flag.Parse()
 
-	// Check if the URL flag is empty
-	if crawlURL == "" {
-		return "", nil, fmt.Errorf("URL is required")
+	if config.URL == "" {
+		return Config{}, fmt.Errorf("URL is required")
 	}
 
-	// Split search terms if provided
-	var searchTerms []string
-	if searchTerm != "" {
-		searchTerms = strings.Split(searchTerm, ",")
-	}
-
-	return crawlURL, searchTerms, nil
+	return config, nil
 }
 
 func loadEnvironmentVariables(logger *zap.SugaredLogger) {
