@@ -1,9 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -15,20 +17,22 @@ import (
 )
 
 func main() {
-	fmt.Println("Main function started...")
-
 	// Create a logger
 	logger := createLogger()
 	defer logger.Sync() // Flush the logger before exiting
 
-	// Retrieve URL to crawl from arguments
-	crawlURL, group, err := parseCommandLineArguments(os.Args)
+	// Log the start of the main function
+	logger.Info("Main function started...")
+
+	// Retrieve URL to crawl and search terms from command line arguments
+	crawlURL, searchTerms, err := parseCommandLineArguments()
 	if err != nil {
-		fmt.Println("Error:", err)
+		logger.Error("Error:", err)
 		return // Return to exit the function gracefully
 	}
 
-	fmt.Println("Crawling URL:", crawlURL)
+	// Log the URL being crawled
+	logger.Info("Crawling URL:", crawlURL)
 
 	// Load environment variables
 	loadEnvironmentVariables(logger)
@@ -39,37 +43,40 @@ func main() {
 
 	collector := configureCollector()
 
-	// Define your search terms
-	searchTerms := []string{
-		"DRUG",
-		"SMOKE JOINT",
-		"GROW OP",
-		"CANNABI",
-		"IMPAIR",
-		"SHOOT",
-		"FIREARM",
-		"MURDER",
-		"COCAIN",
-		"POSSESS",
-		"BREAK ENTER",
-	}
-
 	// Set up the crawling logic
-	setupCrawlingLogic(collector, logger, group, searchTerms)
+	setupCrawlingLogic(collector, logger, searchTerms)
 
 	// Start crawling
 	logger.Info("Crawler started...")
 	collector.Visit(crawlURL)
 	collector.Wait()
 
-	fmt.Println("Main function completed.")
+	// Log the completion of the main function
+	logger.Info("Main function completed.")
 }
 
-func parseCommandLineArguments(args []string) (string, string, error) {
-	if len(args) < 3 {
-		return "", "", fmt.Errorf("Usage: ./crawler https://www.sudbury.com c45fe232-0fbd-4fj8-b097-ff7bb863ae6b")
+func parseCommandLineArguments() (string, []string, error) {
+	// Define flags for URL and search terms
+	var crawlURL string
+	var searchTerm string
+
+	// Parse the command-line flags
+	flag.StringVar(&crawlURL, "url", "", "URL to crawl")
+	flag.StringVar(&searchTerm, "search", "", "Search terms (comma-separated)")
+	flag.Parse()
+
+	// Check if the URL flag is empty
+	if crawlURL == "" {
+		return "", nil, fmt.Errorf("URL is required")
 	}
-	return args[1], args[2], nil
+
+	// Split search terms if provided
+	var searchTerms []string
+	if searchTerm != "" {
+		searchTerms = strings.Split(searchTerm, ",")
+	}
+
+	return crawlURL, searchTerms, nil
 }
 
 func loadEnvironmentVariables(logger *zap.SugaredLogger) {
@@ -112,7 +119,7 @@ func configureCollector() *colly.Collector {
 	return collector
 }
 
-func setupCrawlingLogic(collector *colly.Collector, logger *zap.SugaredLogger, group string, searchTerms []string) {
+func setupCrawlingLogic(collector *colly.Collector, logger *zap.SugaredLogger, searchTerms []string) {
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 
@@ -141,7 +148,7 @@ func setupCrawlingLogic(collector *colly.Collector, logger *zap.SugaredLogger, g
 		for i := range hrefs {
 			href := hrefs[i]
 
-			err = rediswrapper.PublishHref(os.Getenv("REDIS_STREAM"), href, group)
+			err = rediswrapper.PublishHref(os.Getenv("REDIS_STREAM"), href)
 			if err != nil {
 				log.Fatal(err)
 			}
