@@ -46,7 +46,7 @@ func Del() (int64, error) {
 	return client.Del(ctx, keySet).Result()
 }
 
-func PublishHref(stream string, href string, group string) error {
+func PublishHref(stream string, href string) error {
 	return client.XAdd(ctx, &redis.XAddArgs{
 		Stream:       stream,
 		MaxLen:       0,
@@ -55,7 +55,6 @@ func PublishHref(stream string, href string, group string) error {
 		Values: map[string]interface{}{
 			"eventName": "receivedUrl",
 			"href":      href,
-			"group":     group,
 		},
 	}).Err()
 }
