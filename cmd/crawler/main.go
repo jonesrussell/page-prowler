@@ -56,7 +56,10 @@ func main() {
 	// Dynamically set allowed domain based on input URL
 	allowedDomain := getHostFromURL(crawlURL)
 
-	collector := configureCollector(allowedDomain) // Pass the allowed domain
+	// Log the allowed domains
+	fmt.Println("Allowed Domain:", allowedDomain)
+
+	collector := configureCollector([]string{allowedDomain}) // Pass the allowed domain
 
 	// Set up the crawling logic
 	setupCrawlingLogic(collector, logger, searchTerms)
@@ -111,14 +114,17 @@ func createRedisClient() *redis.Client {
 	return redisClient
 }
 
-func configureCollector(allowedDomain string) *colly.Collector {
+func configureCollector(allowedDomains []string) *colly.Collector {
 	collector := colly.NewCollector(
 		colly.Async(true),
 		colly.MaxDepth(2),
 	)
 
-	// Set allowed domains based on the provided domain
-	collector.AllowedDomains = []string{allowedDomain}
+	// Log the allowed domains
+	fmt.Println("Allowed Domains:", allowedDomains)
+
+	// Set allowed domains based on the provided domains
+	collector.AllowedDomains = allowedDomains
 
 	collector.Limit(&colly.LimitRule{
 		DomainGlob:  "*",
@@ -134,19 +140,11 @@ func setupCrawlingLogic(collector *colly.Collector, logger *zap.SugaredLogger, s
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 
 		if termmatcher.Related(href, searchTerms) {
-			logger.Info(href)
+			logger.Info("related: ", href)
 
 			_, err := rediswrapper.SAdd(href)
 			if err != nil {
 				logger.Errorw("Error adding URL to Redis set", "error", err)
-			}
-		}
-
-		if os.Getenv("CRAWL_MODE") != "single" {
-			if e.Request.Depth < 1 {
-				logger.Debug("CRAWL_MODE")
-				logger.Debug(href)
-				collector.Visit(href)
 			}
 		}
 	})

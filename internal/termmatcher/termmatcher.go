@@ -10,6 +10,8 @@ import (
 	"github.com/caneroj1/stemmer"
 )
 
+const minTitleLength = 5 // Set the minimum character limit as needed
+
 // Related checks if the URL title matches any of the provided search terms.
 func Related(href string, searchTerms []string) bool {
 	title := extractTitleFromURL(href)
@@ -19,6 +21,11 @@ func Related(href string, searchTerms []string) bool {
 
 	processedTitle := processTitle(title)
 	if processedTitle == "" {
+		return false
+	}
+
+	// Check if the title meets the minimum character limit
+	if len(processedTitle) < minTitleLength {
 		return false
 	}
 
