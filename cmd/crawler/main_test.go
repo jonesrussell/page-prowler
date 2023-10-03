@@ -46,14 +46,13 @@ func (m *MockRedisWrapper) Del() error {
 
 func TestParseCommandLineArguments(t *testing.T) {
 	// Test case 1: All required arguments provided
-	args1 := []string{"./crawler", "-url=https://www.example.com", "-search=search-term-1,search-term-2"}
+	args1 := []string{"./crawler", "-url=https://www.example.com", "-search=search-term-1,search-term-2", "-crawlsite=99"}
 	os.Args = args1
 	config1, err1 := parseCommandLineArguments()
 	assert.Equal(t, "https://www.example.com", config1.URL, "Expected crawlURL to match")
 	assert.Equal(t, "search-term-1,search-term-2", config1.SearchTerms, "Expected search terms to match")
+	assert.Equal(t, "99", config1.CrawlsiteID, "Expected crawlsite id to be 99")
 	assert.NoError(t, err1, "Expected no error")
-
-	// ...
 }
 
 func TestCreateLogger(t *testing.T) {

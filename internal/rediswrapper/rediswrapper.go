@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -14,11 +15,18 @@ type MsgPost struct {
 }
 
 var (
-	ctx    = context.Background()
-	client = (*redis.Client)(nil)
+	ctx              = context.Background()
+	client           = (*redis.Client)(nil)
+	keySetBase       = "hrefs"
+	crawlsiteID      = ""       // Store crawlsiteID as a package-level variable
+	crawlsiteIDMutex sync.Mutex // Mutex to protect concurrent access to crawlsiteID
 )
 
-const keySet = "hrefs"
+func SetCrawlsiteID(id string) {
+	crawlsiteIDMutex.Lock()
+	defer crawlsiteIDMutex.Unlock()
+	crawlsiteID = id
+}
 
 func Connect(addr string, password string) *redis.Client {
 	client = redis.NewClient(&redis.Options{
@@ -28,21 +36,24 @@ func Connect(addr string, password string) *redis.Client {
 
 	_, err := client.Ping(ctx).Result()
 	if err != nil {
-		log.Fatal(" unbale to connect to Redis ", err)
+		log.Fatal("unable to connect to Redis", err)
 	}
 
 	return client
 }
 
 func SAdd(href string) (int64, error) {
+	keySet := fmt.Sprintf("%s:%s", keySetBase, crawlsiteID)
 	return client.SAdd(ctx, keySet, href).Result()
 }
 
 func SMembers() ([]string, error) {
+	keySet := fmt.Sprintf("%s:%s", keySetBase, crawlsiteID)
 	return client.SMembers(ctx, keySet).Result()
 }
 
 func Del() (int64, error) {
+	keySet := fmt.Sprintf("%s:%s", keySetBase, crawlsiteID)
 	return client.Del(ctx, keySet).Result()
 }
 
