@@ -42,6 +42,9 @@ func main() {
 	// Log the URL being crawled
 	logger.Info("Crawling URL:", crawlURL)
 
+	// Log the search terms
+	logger.Info("Search Terms:", searchTerms)
+
 	// Load environment variables
 	loadEnvironmentVariables(logger)
 
@@ -134,6 +137,8 @@ func setupCrawlingLogic(collector *colly.Collector, logger *zap.SugaredLogger, s
 
 		if os.Getenv("CRAWL_MODE") != "single" {
 			if e.Request.Depth < 1 {
+				logger.Debug("CRAWL_MODE")
+				logger.Debug(href)
 				collector.Visit(href)
 			}
 		}
