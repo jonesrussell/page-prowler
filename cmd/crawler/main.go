@@ -56,10 +56,9 @@ func main() {
 	// Dynamically set allowed domain based on input URL
 	allowedDomain := getHostFromURL(crawlURL)
 
-	// Log the allowed domains
-	fmt.Println("Allowed Domain:", allowedDomain)
-
-	collector := configureCollector([]string{allowedDomain}) // Pass the allowed domain
+	// Configure Colly collector with user agent and increased MaxDepth
+	collector := configureCollector([]string{allowedDomain}, logger)
+	// collector.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
 
 	// Set up the crawling logic
 	setupCrawlingLogic(collector, logger, searchTerms)
@@ -114,14 +113,14 @@ func createRedisClient() *redis.Client {
 	return redisClient
 }
 
-func configureCollector(allowedDomains []string) *colly.Collector {
+func configureCollector(allowedDomains []string, logger *zap.SugaredLogger) *colly.Collector {
 	collector := colly.NewCollector(
 		colly.Async(true),
-		colly.MaxDepth(2),
+		colly.MaxDepth(3),
 	)
 
-	// Log the allowed domains
-	fmt.Println("Allowed Domains:", allowedDomains)
+	// Log the allowed domains using the logger
+	logger.Info("Allowed Domains:", allowedDomains)
 
 	// Set allowed domains based on the provided domains
 	collector.AllowedDomains = allowedDomains
@@ -140,11 +139,14 @@ func setupCrawlingLogic(collector *colly.Collector, logger *zap.SugaredLogger, s
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 
 		if termmatcher.Related(href, searchTerms) {
-			logger.Info("related: ", href)
+			logger.Info("Found: ", href)
 
 			_, err := rediswrapper.SAdd(href)
 			if err != nil {
 				logger.Errorw("Error adding URL to Redis set", "error", err)
+			} else {
+				// Visit the URL after adding it to the Redis set
+				collector.Visit(href)
 			}
 		}
 	})
@@ -171,16 +173,20 @@ func setupCrawlingLogic(collector *colly.Collector, logger *zap.SugaredLogger, s
 	})
 
 	collector.OnRequest(func(r *colly.Request) {
-		fmt.Println("Visiting", r.URL)
+		logger.Info("Visiting: ", r.URL)
 	})
 
 	collector.OnError(func(r *colly.Response, err error) {
+		// Extract the status code and URL
+		statusCode := r.StatusCode
+		url := r.Request.URL.String()
+
 		logger.Errorw("Request URL failed",
-			"request_url", r.Request.URL,
-			"response", r,
-			"error", err,
+			"request_url", url,
+			"status_code", statusCode,
 		)
 	})
+
 }
 
 func getHostFromURL(inputURL string) string {

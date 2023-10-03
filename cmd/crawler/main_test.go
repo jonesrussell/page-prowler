@@ -96,8 +96,9 @@ func TestCreateRedisClient(t *testing.T) {
 }
 
 func TestConfigureCollector(t *testing.T) {
-	domain := "example.com" // Replace with your desired domain
-	collector := configureCollector([]string{domain})
+	domain := "example.com"                                   // Replace with your desired domain
+	logger := createLogger()                                  // Create a logger for testing
+	collector := configureCollector([]string{domain}, logger) // Pass the domain and logger
 
 	// Assertions
 	assert.NotNil(t, collector, "Expected collector not to be nil")
