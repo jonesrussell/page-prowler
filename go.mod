@@ -21,7 +21,7 @@ require (
 )
 
 require (
-	github.com/adrg/strutil v0.3.0
+	github.com/adrg/strutil v0.3.1
 	github.com/bbalet/stopwords v1.0.0
 	github.com/caneroj1/stemmer v0.0.0-20170128035808-c9f2ce1504d5
 	github.com/go-redis/redis/v8 v8.11.5
