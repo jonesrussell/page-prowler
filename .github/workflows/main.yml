@@ -1,16 +1,37 @@
-name: A workflow for Streetcode Crawler / Consumer
+name: A workflow for Crawler
+
 on: push
 
 jobs:
   build:
-    name: Streetcode action
+    name: Crawler action
     runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Create .env file
+        run: |
+          echo "REDIS_HOST=localhost" >> .env
+          echo "REDIS_PORT=6379" >> .env
+          echo "REDIS_AUTH=" >> .env
+          echo "REDIS_STREAM=crawler" >> .env
+          echo "REDIS_DB=1" >> .env
+          # Add other environment variables as needed
+        working-directory: ${{ github.workspace }}
+
       - name: Set up Go
-        uses: actions/setup-go@v2 # Use version 2 of the setup-go action
+        uses: actions/setup-go@v2
         with:
-          go-version: '1.19' # Specify the desired Go version here
+          go-version: '1.19' # Change to the required Go version
           check-latest: true
-      - run: go run cmd/crawler/main.go --url=www.cp24.com --search=toronto
-      
+
+      - name: Run Tests
+        run: go test ./...
