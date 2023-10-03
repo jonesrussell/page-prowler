@@ -57,9 +57,12 @@ func Del() (int64, error) {
 	return client.Del(ctx, keySet).Result()
 }
 
-func PublishHref(stream string, href string) error {
-	return client.XAdd(ctx, &redis.XAddArgs{
-		Stream:       stream,
+func PublishHref(stream, href string) error {
+	keyStream := fmt.Sprintf("%s:%s", stream, crawlsiteID)
+	log.Printf("===*=== Publishing to stream %s", keyStream)
+
+	err := client.XAdd(ctx, &redis.XAddArgs{
+		Stream:       keyStream,
 		MaxLen:       0,
 		MaxLenApprox: 0,
 		ID:           "",
@@ -68,6 +71,12 @@ func PublishHref(stream string, href string) error {
 			"href":      href,
 		},
 	}).Err()
+
+	if err != nil {
+		log.Printf("Error publishing to stream %s: %v", keyStream, err)
+	}
+
+	return err
 }
 
 func Stream(stream string, group string) error {
