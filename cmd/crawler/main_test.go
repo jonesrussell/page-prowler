@@ -1,5 +1,3 @@
-// main_test.go
-
 package main
 
 import (
@@ -98,7 +96,8 @@ func TestCreateRedisClient(t *testing.T) {
 }
 
 func TestConfigureCollector(t *testing.T) {
-	collector := configureCollector()
+	domain := "example.com" // Replace with your desired domain
+	collector := configureCollector(domain)
 
 	// Assertions
 	assert.NotNil(t, collector, "Expected collector not to be nil")

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/url" // Import the net/url package
 	"os"
 	"strings"
 	"time"
@@ -52,7 +53,10 @@ func main() {
 	redisClient := createRedisClient()
 	defer redisClient.Close()
 
-	collector := configureCollector()
+	// Dynamically set allowed domain based on input URL
+	allowedDomain := getHostFromURL(crawlURL)
+
+	collector := configureCollector(allowedDomain) // Pass the allowed domain
 
 	// Set up the crawling logic
 	setupCrawlingLogic(collector, logger, searchTerms)
@@ -107,11 +111,14 @@ func createRedisClient() *redis.Client {
 	return redisClient
 }
 
-func configureCollector() *colly.Collector {
+func configureCollector(allowedDomain string) *colly.Collector {
 	collector := colly.NewCollector(
 		colly.Async(true),
 		colly.MaxDepth(2),
 	)
+
+	// Set allowed domains based on the provided domain
+	collector.AllowedDomains = []string{allowedDomain}
 
 	collector.Limit(&colly.LimitRule{
 		DomainGlob:  "*",
@@ -176,4 +183,12 @@ func setupCrawlingLogic(collector *colly.Collector, logger *zap.SugaredLogger, s
 			"error", err,
 		)
 	})
+}
+
+func getHostFromURL(inputURL string) string {
+	u, err := url.Parse(inputURL)
+	if err != nil {
+		log.Fatalf("Failed to parse URL: %v", err)
+	}
+	return u.Host
 }
