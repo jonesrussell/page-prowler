@@ -58,16 +58,6 @@ func TestParseCommandLineArguments(t *testing.T) {
 	// ...
 }
 
-//func TestParseCommandLineArgumentsInvalid(t *testing.T) {
-//	args := []string{"./crawler"}
-//	crawlURL, group, err := parseCommandLineArguments(args)
-//
-// Assertions
-//	assert.Equal(t, "", crawlURL, "Expected crawlURL to be empty")
-//	assert.Equal(t, "", group, "Expected group to be empty")
-//	assert.Error(t, err, "Expected an error")
-//}
-
 func TestCreateLogger(t *testing.T) {
 	logger := createLogger()
 
@@ -113,7 +103,7 @@ func TestConfigureCollector(t *testing.T) {
 	// Assertions
 	assert.NotNil(t, collector, "Expected collector not to be nil")
 	assert.True(t, collector.Async, "Expected collector to be asynchronous")
-	assert.Equal(t, 3, collector.MaxDepth, "Expected MaxDepth to be 3")
+	assert.Equal(t, 2, collector.MaxDepth, "Expected MaxDepth to be 2")
 	// You can add more assertions based on your requirements
 }
 
