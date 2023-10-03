@@ -1,4 +1,5 @@
 name: A workflow for Crawler
+
 on: push
 
 jobs:
@@ -27,15 +28,10 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: '1.19' # Change to the required Go version
           check-latest: true
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: 16  # Specify Node.js version 16
 
       - name: Run Tests
         run: go test ./...
