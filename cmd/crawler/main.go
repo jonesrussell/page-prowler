@@ -84,7 +84,9 @@ func loadEnvironmentVariables(logger *zap.SugaredLogger) {
 }
 
 func createLogger() *zap.SugaredLogger {
-	logger, err := zap.NewProduction()
+	loggerConfig := zap.NewProductionConfig()
+	loggerConfig.OutputPaths = []string{"stdout"} // Write logs to stdout
+	logger, err := loggerConfig.Build()
 	if err != nil {
 		log.Fatalf("Failed to initialize Zap logger: %v", err)
 	}
@@ -104,7 +106,7 @@ func createRedisClient() *redis.Client {
 
 func configureCollector() *colly.Collector {
 	collector := colly.NewCollector(
-		colly.Async(true),
+		// colly.Async(true),
 		colly.MaxDepth(3),
 	)
 
