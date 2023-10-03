@@ -20,6 +20,7 @@ import (
 type Config struct {
 	URL         string
 	SearchTerms string
+	CrawlsiteID string
 }
 
 func main() {
@@ -36,6 +37,9 @@ func main() {
 		logger.Error("Error:", err)
 		return // Return to exit the function gracefully
 	}
+
+	// Set the Crawlsite ID
+	rediswrapper.SetCrawlsiteID(config.CrawlsiteID)
 
 	crawlURL := config.URL
 	searchTerms := strings.Split(config.SearchTerms, ",")
@@ -77,10 +81,15 @@ func parseCommandLineArguments() (Config, error) {
 
 	flag.StringVar(&config.URL, "url", "", "URL to crawl")
 	flag.StringVar(&config.SearchTerms, "search", "", "Search terms (comma-separated)")
+	flag.StringVar(&config.CrawlsiteID, "crawlsite", "", "Crawlsite ID") // Add a new flag for Crawlsite ID
 	flag.Parse()
 
 	if config.URL == "" {
 		return Config{}, fmt.Errorf("URL is required")
+	}
+
+	if config.CrawlsiteID == "" {
+		return Config{}, fmt.Errorf("crawlsite id is required") // Ensure Crawlsite ID is provided
 	}
 
 	return config, nil
