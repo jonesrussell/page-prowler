@@ -25,7 +25,7 @@ require (
 	github.com/bbalet/stopwords v1.0.0
 	github.com/caneroj1/stemmer v0.0.0-20170128035808-c9f2ce1504d5
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/joho/godotenv v1.4.0
+	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.26.0
 )
