@@ -103,7 +103,7 @@ func TestConfigureCollector(t *testing.T) {
 	// Assertions
 	assert.NotNil(t, collector, "Expected collector not to be nil")
 	assert.True(t, collector.Async, "Expected collector to be asynchronous")
-	assert.Equal(t, 2, collector.MaxDepth, "Expected MaxDepth to be 2")
+	assert.Equal(t, 3, collector.MaxDepth, "Expected MaxDepth to be 3")
 	// You can add more assertions based on your requirements
 }
 
