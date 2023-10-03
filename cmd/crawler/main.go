@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/url" // Import the net/url package
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -169,7 +169,7 @@ func setupCrawlingLogic(collector *colly.Collector, logger *zap.SugaredLogger, s
 		for i := range hrefs {
 			href := hrefs[i]
 
-			err = rediswrapper.PublishHref(os.Getenv("REDIS_STREAM"), href)
+			err = rediswrapper.PublishHref("streetcode", href)
 			if err != nil {
 				log.Fatal(err)
 			}
