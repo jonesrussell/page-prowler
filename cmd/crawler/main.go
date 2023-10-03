@@ -106,8 +106,8 @@ func createRedisClient() *redis.Client {
 
 func configureCollector() *colly.Collector {
 	collector := colly.NewCollector(
-		// colly.Async(true),
-		colly.MaxDepth(3),
+		colly.Async(true),
+		colly.MaxDepth(2),
 	)
 
 	collector.Limit(&colly.LimitRule{
