@@ -3,10 +3,10 @@ package rediswrapper
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/go-redis/redis/v8"
+	"go.uber.org/zap"
 )
 
 type MsgPost struct {
@@ -20,6 +20,7 @@ var (
 	keySetBase       = "hrefs"
 	crawlsiteID      = ""       // Store crawlsiteID as a package-level variable
 	crawlsiteIDMutex sync.Mutex // Mutex to protect concurrent access to crawlsiteID
+	logger           *zap.SugaredLogger
 )
 
 func SetCrawlsiteID(id string) {
@@ -28,7 +29,9 @@ func SetCrawlsiteID(id string) {
 	crawlsiteID = id
 }
 
-func Connect(addr string, password string) *redis.Client {
+func InitializeRedis(loggerInstance *zap.SugaredLogger, addr string, password string) {
+	logger = loggerInstance
+
 	client = redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: password,
@@ -36,10 +39,8 @@ func Connect(addr string, password string) *redis.Client {
 
 	_, err := client.Ping(ctx).Result()
 	if err != nil {
-		log.Fatal("unable to connect to Redis", err)
+		logger.Fatal("Unable to connect to Redis: ", err)
 	}
-
-	return client
 }
 
 func SAdd(href string) (int64, error) {
@@ -59,7 +60,7 @@ func Del() (int64, error) {
 
 func PublishHref(stream, href string) error {
 	keyStream := fmt.Sprintf("%s:%s", stream, crawlsiteID)
-	log.Printf("===*=== Publishing to stream %s", keyStream)
+	logger.Infof("Publishing to stream %s", keyStream)
 
 	err := client.XAdd(ctx, &redis.XAddArgs{
 		Stream:       keyStream,
@@ -73,7 +74,7 @@ func PublishHref(stream, href string) error {
 	}).Err()
 
 	if err != nil {
-		log.Printf("Error publishing to stream %s: %v", keyStream, err)
+		logger.Infof("Error publishing to stream %s: %v", keyStream, err)
 	}
 
 	return err
