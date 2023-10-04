@@ -2,6 +2,7 @@ package rediswrapper
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -44,6 +45,10 @@ func InitializeRedis(loggerInstance *zap.SugaredLogger, addr string, password st
 }
 
 func SAdd(href string) (int64, error) {
+	if client == nil {
+		return 0, errors.New("Redis client is not initialized")
+	}
+
 	keySet := fmt.Sprintf("%s:%s", keySetBase, crawlsiteID)
 	return client.SAdd(ctx, keySet, href).Result()
 }
