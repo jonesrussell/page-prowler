@@ -118,10 +118,6 @@ func configureCollector(allowedDomains []string) *colly.Collector {
 		colly.MaxDepth(3),
 	)
 
-	// Log the allowed domains using the logger
-	logger.Info("Allowed Domains:", allowedDomains)
-
-	// Set allowed domains based on the provided domains
 	collector.AllowedDomains = allowedDomains
 
 	collector.Limit(&colly.LimitRule{
