@@ -7,7 +7,6 @@ import (
 	"github.com/gocolly/colly"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"go.uber.org/zap"
 )
 
 // MockDrug is a mocked object for termmatcher.Related
@@ -55,49 +54,9 @@ func TestParseCommandLineArguments(t *testing.T) {
 	assert.NoError(t, err1, "Expected no error")
 }
 
-func TestCreateLogger(t *testing.T) {
-	logger := createLogger()
-
-	// Check if the logger is not nil
-	assert.NotNil(t, logger, "Expected logger not to be nil")
-
-	// Log a message
-	logger.Info("Test log message")
-
-	// No need to check for a return value from logger.Info
-}
-
-func TestCreateRedisClient(t *testing.T) {
-	// Set up environment variables for testing
-	os.Setenv("REDIS_HOST", "localhost")
-	os.Setenv("REDIS_PORT", "6379")
-	os.Setenv("REDIS_AUTH", "")
-
-	// Clean up environment variables after the test
-	defer func() {
-		os.Unsetenv("REDIS_HOST")
-		os.Unsetenv("REDIS_PORT")
-		os.Unsetenv("REDIS_AUTH")
-	}()
-
-	// Create the Redis client
-	redisClient := createRedisClient()
-
-	// Assertions
-	assert.NotNil(t, redisClient, "Expected redisClient not to be nil")
-	defer redisClient.Close()
-
-	// Additional assertions based on your Redis client configuration
-	// For example, you can check if the client's options match your expectations
-	assert.Equal(t, "localhost:6379", redisClient.Options().Addr, "Expected Redis address to match")
-	assert.Equal(t, "", redisClient.Options().Password, "Expected empty Redis password")
-	// Add more assertions as needed
-}
-
 func TestConfigureCollector(t *testing.T) {
-	domain := "example.com"                                   // Replace with your desired domain
-	logger := createLogger()                                  // Create a logger for testing
-	collector := configureCollector([]string{domain}, logger) // Pass the domain and logger
+	domain := "example.com"                           // Replace with your desired domain
+	collector := configureCollector([]string{domain}) // Pass the domain
 
 	// Assertions
 	assert.NotNil(t, collector, "Expected collector not to be nil")
@@ -109,9 +68,6 @@ func TestConfigureCollector(t *testing.T) {
 func TestSetupCrawlingLogic(t *testing.T) {
 	// Create a new collector
 	collector := colly.NewCollector()
-
-	// Create a mock logger
-	logger := &zap.SugaredLogger{}
 
 	// Define search terms for testing
 	searchTerms := []string{
@@ -129,7 +85,7 @@ func TestSetupCrawlingLogic(t *testing.T) {
 	}
 
 	// Inject the mocked instances and search terms into your setupCrawlingLogic function
-	setupCrawlingLogic(collector, logger, searchTerms)
+	setupCrawlingLogic(collector, searchTerms)
 
 	// Your test assertions here
 	// ...TestSetupCrawlingLogic
