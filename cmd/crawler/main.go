@@ -1,3 +1,4 @@
+// main.go
 package main
 
 import (
@@ -5,11 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/gocolly/colly"
 	"github.com/joho/godotenv"
 	"github.com/jonesrussell/crawler/internal/rediswrapper"
@@ -23,9 +22,11 @@ type Config struct {
 	CrawlsiteID string
 }
 
+var logger *zap.SugaredLogger
+
 func main() {
 	// Create a logger
-	logger := createLogger()
+	initializeLogger()
 	defer logger.Sync() // Flush the logger before exiting
 
 	// Log the start of the main function
@@ -51,21 +52,17 @@ func main() {
 	logger.Info("Search Terms:", searchTerms)
 
 	// Load environment variables
-	loadEnvironmentVariables(logger)
-
-	// Create and configure dependencies
-	redisClient := createRedisClient()
-	defer redisClient.Close()
+	loadEnvironmentVariables()
 
 	// Dynamically set allowed domain based on input URL
 	allowedDomain := getHostFromURL(crawlURL)
 
 	// Configure Colly collector with user agent and increased MaxDepth
-	collector := configureCollector([]string{allowedDomain}, logger)
+	collector := configureCollector([]string{allowedDomain})
 	// collector.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
 
 	// Set up the crawling logic
-	setupCrawlingLogic(collector, logger, searchTerms)
+	setupCrawlingLogic(collector, searchTerms)
 
 	// Start crawling
 	logger.Info("Crawler started...")
@@ -95,34 +92,23 @@ func parseCommandLineArguments() (Config, error) {
 	return config, nil
 }
 
-func loadEnvironmentVariables(logger *zap.SugaredLogger) {
+func loadEnvironmentVariables() {
 	if godotenv.Load(".env") != nil {
 		logger.Warn("Error loading .env file")
 	}
 }
 
-func createLogger() *zap.SugaredLogger {
+func initializeLogger() {
 	loggerConfig := zap.NewProductionConfig()
 	loggerConfig.OutputPaths = []string{"stdout"} // Write logs to stdout
-	logger, err := loggerConfig.Build()
+	zapLogger, err := loggerConfig.Build()
 	if err != nil {
 		log.Fatalf("Failed to initialize Zap logger: %v", err)
 	}
-	sugar := logger.Sugar()
-	return sugar
+	logger = zapLogger.Sugar()
 }
 
-func createRedisClient() *redis.Client {
-	addr := fmt.Sprintf(
-		"%s:%s",
-		os.Getenv("REDIS_HOST"),
-		os.Getenv("REDIS_PORT"),
-	)
-	redisClient := rediswrapper.Connect(addr, os.Getenv("REDIS_AUTH"))
-	return redisClient
-}
-
-func configureCollector(allowedDomains []string, logger *zap.SugaredLogger) *colly.Collector {
+func configureCollector(allowedDomains []string) *colly.Collector {
 	collector := colly.NewCollector(
 		colly.Async(true),
 		colly.MaxDepth(3),
@@ -143,7 +129,7 @@ func configureCollector(allowedDomains []string, logger *zap.SugaredLogger) *col
 	return collector
 }
 
-func setupCrawlingLogic(collector *colly.Collector, logger *zap.SugaredLogger, searchTerms []string) {
+func setupCrawlingLogic(collector *colly.Collector, searchTerms []string) {
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 
@@ -195,7 +181,6 @@ func setupCrawlingLogic(collector *colly.Collector, logger *zap.SugaredLogger, s
 			"status_code", statusCode,
 		)
 	})
-
 }
 
 func getHostFromURL(inputURL string) string {
