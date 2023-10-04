@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -38,6 +39,9 @@ func main() {
 		logger.Error("Error:", err)
 		return // Return to exit the function gracefully
 	}
+
+	// Initialize Redis client
+	rediswrapper.InitializeRedis(logger, os.Getenv("REDIS_HOST"), os.Getenv("REDIS_AUTH"))
 
 	// Set the Crawlsite ID
 	rediswrapper.SetCrawlsiteID(config.CrawlsiteID)
@@ -136,8 +140,7 @@ func setupCrawlingLogic(collector *colly.Collector, searchTerms []string) {
 		if termmatcher.Related(href, searchTerms) {
 			logger.Info("Found: ", href)
 
-			_, err := rediswrapper.SAdd(href)
-			if err != nil {
+			if _, err := rediswrapper.SAdd(href); err != nil {
 				logger.Errorw("Error adding URL to Redis set", "error", err)
 			} else {
 				// Visit the URL after adding it to the Redis set
