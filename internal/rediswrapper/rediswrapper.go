@@ -34,7 +34,7 @@ func InitializeRedis(loggerInstance *zap.SugaredLogger, addr string, password st
 	logger = loggerInstance
 
 	client = redis.NewClient(&redis.Options{
-		Addr:     addr,
+		Addr:     addr, // Add the Redis port if it's not part of the address, e.g., "localhost:6379"
 		Password: password,
 	})
 
@@ -42,11 +42,16 @@ func InitializeRedis(loggerInstance *zap.SugaredLogger, addr string, password st
 	if err != nil {
 		logger.Fatal("Unable to connect to Redis: ", err)
 	}
+
+	// Log the stream and group names for debugging
+	streamName := fmt.Sprintf("streetcode:%s", crawlsiteID)
+	groupName := "streetcode" // Assuming the group name is "streetcode"
+	logger.Infof("Initialized Redis for Stream: %s, Group: %s", streamName, groupName)
 }
 
 func SAdd(href string) (int64, error) {
 	if client == nil {
-		return 0, errors.New("Redis client is not initialized")
+		return 0, errors.New("redis client is not initialized")
 	}
 
 	keySet := fmt.Sprintf("%s:%s", keySetBase, crawlsiteID)
@@ -86,6 +91,7 @@ func PublishHref(stream, href string) error {
 }
 
 func Stream(stream string, group string) error {
+	logger.Infof("Creating Redis stream: %s, Group: %s", stream, group)
 	return client.XGroupCreate(
 		ctx,
 		stream,

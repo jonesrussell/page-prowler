@@ -40,8 +40,12 @@ func main() {
 		return // Return to exit the function gracefully
 	}
 
+	redisHost := os.Getenv("REDIS_HOST")
+	redisPort := os.Getenv("REDIS_PORT")
+	redisAddress := fmt.Sprintf("%s:%s", redisHost, redisPort)
+
 	// Initialize Redis client
-	rediswrapper.InitializeRedis(logger, os.Getenv("REDIS_HOST"), os.Getenv("REDIS_AUTH"))
+	rediswrapper.InitializeRedis(logger, redisAddress, os.Getenv("REDIS_AUTH"))
 
 	// Set the Crawlsite ID
 	rediswrapper.SetCrawlsiteID(config.CrawlsiteID)
