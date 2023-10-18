@@ -1,4 +1,3 @@
-// main.go
 package main
 
 import (
@@ -6,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -14,6 +12,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/jonesrussell/crawler/internal/rediswrapper"
 	termmatcher "github.com/jonesrussell/crawler/internal/termmatcher"
+	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap"
 )
 
@@ -21,6 +20,9 @@ type Config struct {
 	URL         string
 	SearchTerms string
 	CrawlsiteID string
+	RedisHost   string `envconfig:"REDIS_HOST"`
+	RedisPort   string `envconfig:"REDIS_PORT"`
+	RedisAuth   string `envconfig:"REDIS_AUTH"`
 }
 
 var logger *zap.SugaredLogger
@@ -33,77 +35,50 @@ func main() {
 	// Log the start of the main function
 	logger.Info("Main function started...")
 
-	// Retrieve URL to crawl and search terms from command line arguments
-	config, err := parseCommandLineArguments()
-	if err != nil {
-		logger.Error("Error:", err)
-		return // Return to exit the function gracefully
-	}
+	// Define flags
+	urlFlag := flag.String("url", "", "URL to crawl")
+	searchTermsFlag := flag.String("searchterms", "", "Comma-separated search terms")
+	crawlsiteIDFlag := flag.String("crawlsiteid", "", "Crawlsite ID")
 
-	redisHost := os.Getenv("REDIS_HOST")
-	redisPort := os.Getenv("REDIS_PORT")
-	redisAddress := fmt.Sprintf("%s:%s", redisHost, redisPort)
-
-	// Initialize Redis client
-	rediswrapper.InitializeRedis(logger, redisAddress, os.Getenv("REDIS_AUTH"))
-
-	// Set the Crawlsite ID
-	rediswrapper.SetCrawlsiteID(config.CrawlsiteID)
-
-	crawlURL := config.URL
-	searchTerms := strings.Split(config.SearchTerms, ",")
-
-	// Log the URL being crawled
-	logger.Info("Crawling URL:", crawlURL)
-
-	// Log the search terms
-	logger.Info("Search Terms:", searchTerms)
-
-	// Load environment variables
-	loadEnvironmentVariables()
-
-	// Dynamically set allowed domain based on input URL
-	allowedDomain := getHostFromURL(crawlURL)
-
-	// Configure Colly collector with user agent and increased MaxDepth
-	collector := configureCollector([]string{allowedDomain})
-	// collector.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
-
-	// Set up the crawling logic
-	setupCrawlingLogic(collector, searchTerms)
-
-	// Start crawling
-	logger.Info("Crawler started...")
-	collector.Visit(crawlURL)
-	collector.Wait()
-
-	// Log the completion of the main function
-	logger.Info("Main function completed.")
-}
-
-func parseCommandLineArguments() (Config, error) {
-	var config Config
-
-	flag.StringVar(&config.URL, "url", "", "URL to crawl")
-	flag.StringVar(&config.SearchTerms, "search", "", "Search terms (comma-separated)")
-	flag.StringVar(&config.CrawlsiteID, "crawlsite", "", "Crawlsite ID") // Add a new flag for Crawlsite ID
 	flag.Parse()
 
-	if config.URL == "" {
-		return Config{}, fmt.Errorf("URL is required")
+	// Check if flags are set
+	if *urlFlag == "" || *searchTermsFlag == "" || *crawlsiteIDFlag == "" {
+		log.Fatal("url, searchterms, and crawlsiteid are required")
 	}
 
-	if config.CrawlsiteID == "" {
-		return Config{}, fmt.Errorf("crawlsite id is required") // Ensure Crawlsite ID is provided
+	var config Config
+	config.URL = *urlFlag
+	config.SearchTerms = *searchTermsFlag
+	config.CrawlsiteID = *crawlsiteIDFlag
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Error loading .env file:", err)
 	}
 
-	return config, nil
-}
-
-func loadEnvironmentVariables() {
-	if godotenv.Load(".env") != nil {
-		logger.Warn("Error loading .env file")
+	err = envconfig.Process("", &config)
+	if err != nil {
+		log.Fatal(err.Error())
 	}
+
+	initializeRedis(config)
+
+	searchTerms := strings.Split(config.SearchTerms, ",")
+	logger.Info("Search Terms:", searchTerms)
+
+	allowedDomain := getHostFromURL(config.URL)
+
+	collector := configureCollector([]string{allowedDomain})
+	setupCrawlingLogic(collector, searchTerms)
+
+	logger.Info("Crawling URL:", config.URL)
+
+	logger.Info("Crawler started...")
+	collector.Visit(config.URL)
+	collector.Wait()
+
+	logger.Info("Main function completed.")
 }
 
 func initializeLogger() {
@@ -114,6 +89,14 @@ func initializeLogger() {
 		log.Fatalf("Failed to initialize Zap logger: %v", err)
 	}
 	logger = zapLogger.Sugar()
+}
+
+func initializeRedis(config Config) {
+	redisAddress := fmt.Sprintf("%s:%s", config.RedisHost, config.RedisPort)
+	fmt.Printf("Redis Host: %s\n", config.RedisHost)
+	fmt.Printf("Redis Port: %s\n", config.RedisPort)
+	fmt.Printf("Redis Address: %s\n", redisAddress)
+	rediswrapper.InitializeRedis(logger, redisAddress, config.RedisAuth)
 }
 
 func configureCollector(allowedDomains []string) *colly.Collector {
@@ -133,49 +116,67 @@ func configureCollector(allowedDomains []string) *colly.Collector {
 	return collector
 }
 
-func setupCrawlingLogic(collector *colly.Collector, searchTerms []string) {
+// Handle HTML parsing and link extraction
+func handleHTMLParsing(collector *colly.Collector, searchTerms []string, totalLinks *int, matchedLinks *int, notMatchedLinks *int) {
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 
-		if termmatcher.Related(href, searchTerms) {
-			logger.Info("Found: ", href)
+		// Increment the totalLinks counter each time a link is found
+		*totalLinks++
 
-			if _, err := rediswrapper.SAdd(href); err != nil {
-				logger.Errorw("Error adding URL to Redis set", "error", err)
-			} else {
-				// Visit the URL after adding it to the Redis set
-				collector.Visit(href)
-			}
+		if termmatcher.Related(href, searchTerms) {
+			// Increment the matchedLinks counter each time a link is visited and found to be related to the search terms
+			*matchedLinks++
+			handleMatchingLinks(collector, href)
+		} else {
+			// Increment the notMatchedLinks counter each time a link is visited and found not to be related to the search terms
+			*notMatchedLinks++
+			handleNonMatchingLinks(href)
 		}
 	})
+}
 
-	collector.OnScraped(func(r *colly.Response) {
-		hrefs, err := rediswrapper.SMembers()
+// Handle matching links with search terms
+func handleMatchingLinks(collector *colly.Collector, href string) {
+	logger.Info("Found: ", href)
+	if _, err := rediswrapper.SAdd(href); err != nil {
+		logger.Errorw("Error adding URL to Redis set", "error", err)
+	} else {
+		// Visit the URL after adding it to the Redis set
+		collector.Visit(href)
+	}
+}
+
+// Handle non-matching links
+func handleNonMatchingLinks(href string) {
+	// You can add logic here if needed
+}
+
+// Handle Redis operations
+func handleRedisOperations() {
+	hrefs, err := rediswrapper.SMembers()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for i := range hrefs {
+		href := hrefs[i]
+
+		err = rediswrapper.PublishHref("streetcode", href)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		for i := range hrefs {
-			href := hrefs[i]
-
-			err = rediswrapper.PublishHref("streetcode", href)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			_, err = rediswrapper.Del()
-			if err != nil {
-				log.Fatal(err)
-			}
+		_, err = rediswrapper.Del()
+		if err != nil {
+			log.Fatal(err)
 		}
-	})
+	}
+}
 
-	collector.OnRequest(func(r *colly.Request) {
-		logger.Info("Visiting: ", r.URL)
-	})
-
+// Handle error events
+func handleErrorEvents(collector *colly.Collector) {
 	collector.OnError(func(r *colly.Response, err error) {
-		// Extract the status code and URL
 		statusCode := r.StatusCode
 		url := r.Request.URL.String()
 
@@ -183,6 +184,29 @@ func setupCrawlingLogic(collector *colly.Collector, searchTerms []string) {
 			"request_url", url,
 			"status_code", statusCode,
 		)
+	})
+}
+
+// The refactored setupCrawlingLogic function
+func setupCrawlingLogic(collector *colly.Collector, searchTerms []string) {
+	var totalLinks, matchedLinks, notMatchedLinks int
+
+	handleHTMLParsing(collector, searchTerms, &totalLinks, &matchedLinks, &notMatchedLinks)
+	handleErrorEvents(collector)
+
+	collector.OnScraped(func(r *colly.Response) {
+		handleRedisOperations()
+
+		logger.Info("Finished scraping the page:", r.Request.URL.String())
+
+		logger.Info("Total links found:", totalLinks)
+		logger.Info("Matched links:", matchedLinks)
+		logger.Info("Not matched links:", notMatchedLinks)
+
+	})
+
+	collector.OnRequest(func(r *colly.Request) {
+		logger.Info("Visiting: ", r.URL)
 	})
 }
 
