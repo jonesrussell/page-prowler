@@ -1,21 +1,30 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/gocolly/colly"
 	"github.com/joho/godotenv"
+	"github.com/jonesrussell/crawler/internal/crawlResult"
 	"github.com/jonesrussell/crawler/internal/rediswrapper"
 	"github.com/jonesrussell/crawler/internal/stats"
 	termmatcher "github.com/jonesrussell/crawler/internal/termmatcher"
 	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap"
 )
+
+type CommandLineArgs struct {
+	URL         string
+	SearchTerms string
+	CrawlsiteID string
+}
 
 type Config struct {
 	URL         string
@@ -29,29 +38,18 @@ type Config struct {
 var logger *zap.SugaredLogger
 
 func main() {
-	// Create a logger
 	initializeLogger()
 	defer logger.Sync() // Flush the logger before exiting
 
 	// Log the start of the main function
 	logger.Info("Main function started...")
 
-	// Define flags
-	urlFlag := flag.String("url", "", "URL to crawl")
-	searchTermsFlag := flag.String("searchterms", "", "Comma-separated search terms")
-	crawlsiteIDFlag := flag.String("crawlsiteid", "", "Crawlsite ID")
-
-	flag.Parse()
-
-	// Check if flags are set
-	if *urlFlag == "" || *searchTermsFlag == "" || *crawlsiteIDFlag == "" {
-		log.Fatal("url, searchterms, and crawlsiteid are required")
-	}
+	args := processFlags()
 
 	var config Config
-	config.URL = *urlFlag
-	config.SearchTerms = *searchTermsFlag
-	config.CrawlsiteID = *crawlsiteIDFlag
+	config.URL = args.URL
+	config.SearchTerms = args.SearchTerms
+	config.CrawlsiteID = args.CrawlsiteID
 
 	err := godotenv.Load()
 	if err != nil {
@@ -66,23 +64,55 @@ func main() {
 	initializeRedis(config)
 
 	logger.Info("Crawling URL:", config.URL)
-	searchTerms := strings.Split(config.SearchTerms, ",")
-	logger.Info("Search Terms:", searchTerms)
+	splitSearchTerms := strings.Split(config.SearchTerms, ",") // Use a new variable for the split search terms
+	logger.Info("Search Terms:", splitSearchTerms)
 
 	allowedDomain := getHostFromURL(config.URL)
 
+	var results []crawlResult.PageData
 	collector := configureCollector([]string{allowedDomain})
-	setupCrawlingLogic(collector, searchTerms)
+	setupCrawlingLogic(collector, splitSearchTerms, &results) // Use the new variable here
 
 	logger.Info("Crawler started...")
-	collector.Visit(config.URL)
+
+	if err := collector.Visit(config.URL); err != nil {
+		logger.Errorw("Error visiting URL", "error", err)
+		return
+	}
+
 	collector.Wait()
+
+	// After all crawling jobs are done, print the results
+	jsonData, err := json.Marshal(results)
+	if err != nil {
+		log.Fatalf("Error occurred during marshaling. Error: %s", err.Error())
+	}
+	fmt.Println(string(jsonData))
 
 	logger.Info("Main function completed.")
 }
 
+func processFlags() CommandLineArgs {
+	args := CommandLineArgs{}
+
+	flag.StringVar(&args.URL, "url", "", "URL to crawl")
+	flag.StringVar(&args.SearchTerms, "searchterms", "", "Comma-separated search terms")
+	flag.StringVar(&args.CrawlsiteID, "crawlsiteid", "", "Crawlsite ID")
+
+	flag.Parse()
+
+	if args.URL == "" || args.SearchTerms == "" || args.CrawlsiteID == "" {
+		fmt.Println("The following flags are required: url, searchterms, crawlsiteid")
+		flag.PrintDefaults()
+		os.Exit(2)
+	}
+
+	return args
+}
+
 func initializeLogger() {
 	loggerConfig := zap.NewProductionConfig()
+	loggerConfig.Level.SetLevel(zap.ErrorLevel)   // Only log errors
 	loggerConfig.OutputPaths = []string{"stdout"} // Write logs to stdout
 	zapLogger, err := loggerConfig.Build()
 	if err != nil {
@@ -116,32 +146,44 @@ func configureCollector(allowedDomains []string) *colly.Collector {
 	return collector
 }
 
-// Handle HTML parsing and link extraction
-func handleHTMLParsing(collector *colly.Collector, searchTerms []string, linkStats *stats.Stats) {
+func handleHTMLParsing(collector *colly.Collector, searchTerms []string, linkStats *stats.Stats, results *[]crawlResult.PageData) (err error) {
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 
 		linkStats.IncrementTotalLinks()
 
+		pageData := crawlResult.PageData{
+			URL: href,
+			// Add other fields as necessary
+		}
+
 		if termmatcher.Related(href, searchTerms) {
 			linkStats.IncrementMatchedLinks()
-			handleMatchingLinks(collector, href)
+			err = handleMatchingLinks(collector, href)
+			if err != nil {
+				logger.Errorw("Error handling matching links", "error", err)
+				return
+			}
+			pageData.MatchingTerms = searchTerms
 		} else {
 			linkStats.IncrementNotMatchedLinks()
 			handleNonMatchingLinks(href)
 		}
+
+		*results = append(*results, pageData)
 	})
+	return
 }
 
-// Handle matching links with search terms
-func handleMatchingLinks(collector *colly.Collector, href string) {
+func handleMatchingLinks(collector *colly.Collector, href string) error {
 	logger.Info("Found: ", href)
 	if _, err := rediswrapper.SAdd(href); err != nil {
 		logger.Errorw("Error adding URL to Redis set", "error", err)
-	} else {
-		// Visit the URL after adding it to the Redis set
-		collector.Visit(href)
+		return err
 	}
+	// Visit the URL after adding it to the Redis set
+	collector.Visit(href) // Ignore any errors from visiting the URL
+	return nil
 }
 
 // Handle non-matching links
@@ -149,11 +191,11 @@ func handleNonMatchingLinks(href string) {
 	// You can add logic here if needed
 }
 
-// Handle Redis operations
-func handleRedisOperations() {
+func handleRedisOperations() error {
 	hrefs, err := rediswrapper.SMembers()
 	if err != nil {
-		log.Fatal(err)
+		logger.Errorw("Error getting members from Redis", "error", err)
+		return err
 	}
 
 	for i := range hrefs {
@@ -161,17 +203,18 @@ func handleRedisOperations() {
 
 		err = rediswrapper.PublishHref("streetcode", href)
 		if err != nil {
-			log.Fatal(err)
+			logger.Errorw("Error publishing href to Redis", "error", err)
+			return err
 		}
 
-		_, err = rediswrapper.Del()
-		if err != nil {
-			log.Fatal(err)
+		if _, err = rediswrapper.Del(); err != nil {
+			logger.Errorw("Error deleting from Redis", "error", err)
+			return err
 		}
 	}
+	return nil
 }
 
-// Handle error events
 func handleErrorEvents(collector *colly.Collector) {
 	collector.OnError(func(r *colly.Response, err error) {
 		statusCode := r.StatusCode
@@ -184,11 +227,10 @@ func handleErrorEvents(collector *colly.Collector) {
 	})
 }
 
-// The refactored setupCrawlingLogic function
-func setupCrawlingLogic(collector *colly.Collector, searchTerms []string) {
+func setupCrawlingLogic(collector *colly.Collector, searchTerms []string, results *[]crawlResult.PageData) {
 	linkStats := stats.NewStats()
 
-	handleHTMLParsing(collector, searchTerms, linkStats)
+	handleHTMLParsing(collector, searchTerms, linkStats, results) // include 'results' as the fourth argument
 	handleErrorEvents(collector)
 
 	collector.OnScraped(func(r *colly.Response) {
@@ -200,6 +242,7 @@ func setupCrawlingLogic(collector *colly.Collector, searchTerms []string) {
 		logger.Info("Matched links:", linkStats.MatchedLinks)
 		logger.Info("Not matched links:", linkStats.NotMatchedLinks)
 
+		// Here, you would add code to populate the 'results' slice with data
 	})
 
 	collector.OnRequest(func(r *colly.Request) {
