@@ -11,6 +11,7 @@ import (
 	"github.com/gocolly/colly"
 	"github.com/joho/godotenv"
 	"github.com/jonesrussell/crawler/internal/rediswrapper"
+	"github.com/jonesrussell/crawler/internal/stats"
 	termmatcher "github.com/jonesrussell/crawler/internal/termmatcher"
 	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap"
@@ -64,6 +65,7 @@ func main() {
 
 	initializeRedis(config)
 
+	logger.Info("Crawling URL:", config.URL)
 	searchTerms := strings.Split(config.SearchTerms, ",")
 	logger.Info("Search Terms:", searchTerms)
 
@@ -71,8 +73,6 @@ func main() {
 
 	collector := configureCollector([]string{allowedDomain})
 	setupCrawlingLogic(collector, searchTerms)
-
-	logger.Info("Crawling URL:", config.URL)
 
 	logger.Info("Crawler started...")
 	collector.Visit(config.URL)
@@ -117,20 +117,17 @@ func configureCollector(allowedDomains []string) *colly.Collector {
 }
 
 // Handle HTML parsing and link extraction
-func handleHTMLParsing(collector *colly.Collector, searchTerms []string, totalLinks *int, matchedLinks *int, notMatchedLinks *int) {
+func handleHTMLParsing(collector *colly.Collector, searchTerms []string, linkStats *stats.Stats) {
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 
-		// Increment the totalLinks counter each time a link is found
-		*totalLinks++
+		linkStats.IncrementTotalLinks()
 
 		if termmatcher.Related(href, searchTerms) {
-			// Increment the matchedLinks counter each time a link is visited and found to be related to the search terms
-			*matchedLinks++
+			linkStats.IncrementMatchedLinks()
 			handleMatchingLinks(collector, href)
 		} else {
-			// Increment the notMatchedLinks counter each time a link is visited and found not to be related to the search terms
-			*notMatchedLinks++
+			linkStats.IncrementNotMatchedLinks()
 			handleNonMatchingLinks(href)
 		}
 	})
@@ -189,9 +186,9 @@ func handleErrorEvents(collector *colly.Collector) {
 
 // The refactored setupCrawlingLogic function
 func setupCrawlingLogic(collector *colly.Collector, searchTerms []string) {
-	var totalLinks, matchedLinks, notMatchedLinks int
+	linkStats := stats.NewStats()
 
-	handleHTMLParsing(collector, searchTerms, &totalLinks, &matchedLinks, &notMatchedLinks)
+	handleHTMLParsing(collector, searchTerms, linkStats)
 	handleErrorEvents(collector)
 
 	collector.OnScraped(func(r *colly.Response) {
@@ -199,9 +196,9 @@ func setupCrawlingLogic(collector *colly.Collector, searchTerms []string) {
 
 		logger.Info("Finished scraping the page:", r.Request.URL.String())
 
-		logger.Info("Total links found:", totalLinks)
-		logger.Info("Matched links:", matchedLinks)
-		logger.Info("Not matched links:", notMatchedLinks)
+		logger.Info("Total links found:", linkStats.TotalLinks)
+		logger.Info("Matched links:", linkStats.MatchedLinks)
+		logger.Info("Not matched links:", linkStats.NotMatchedLinks)
 
 	})
 
