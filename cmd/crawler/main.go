@@ -40,13 +40,13 @@ type Config struct {
 var logger *zap.SugaredLogger
 
 func main() {
-	initializeLogger()
+	args := processFlags()
+
+	initializeLogger(args.Debug)
 	defer logger.Sync() // Flush the logger before exiting
 
 	// Log the start of the main function
 	logger.Info("Main function started...")
-
-	args := processFlags()
 
 	var config Config
 	config.URL = args.URL
@@ -111,12 +111,24 @@ func processFlags() CommandLineArgs {
 		os.Exit(2)
 	}
 
+	if args.Debug {
+		fmt.Printf("URL: %s\n", args.URL)
+		fmt.Printf("SearchTerms: %s\n", args.SearchTerms)
+		fmt.Printf("CrawlsiteID: %s\n", args.CrawlsiteID)
+		fmt.Printf("MaxDepth: %d\n", args.MaxDepth)
+		fmt.Printf("Debug: %v\n", args.Debug)
+	}
+
 	return args
 }
 
-func initializeLogger() {
+func initializeLogger(debug bool) {
 	loggerConfig := zap.NewProductionConfig()
-	loggerConfig.Level.SetLevel(zap.ErrorLevel)   // Only log errors
+	if debug {
+		loggerConfig.Level.SetLevel(zap.DebugLevel) // Log all messages in debug mode
+	} else {
+		loggerConfig.Level.SetLevel(zap.ErrorLevel) // Only log errors in non-debug mode
+	}
 	loggerConfig.OutputPaths = []string{"stdout"} // Write logs to stdout
 	zapLogger, err := loggerConfig.Build()
 	if err != nil {
