@@ -24,6 +24,8 @@ type CommandLineArgs struct {
 	URL         string
 	SearchTerms string
 	CrawlsiteID string
+	MaxDepth    int
+	Debug       bool
 }
 
 type Config struct {
@@ -61,7 +63,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	initializeRedis(config)
+	initializeRedis(config, args.Debug)
 
 	logger.Info("Crawling URL:", config.URL)
 	splitSearchTerms := strings.Split(config.SearchTerms, ",") // Use a new variable for the split search terms
@@ -70,8 +72,8 @@ func main() {
 	allowedDomain := getHostFromURL(config.URL)
 
 	var results []crawlResult.PageData
-	collector := configureCollector([]string{allowedDomain})
-	setupCrawlingLogic(collector, splitSearchTerms, &results) // Use the new variable here
+	collector := configureCollector([]string{allowedDomain}, args.MaxDepth)
+	setupCrawlingLogic(collector, splitSearchTerms, &results)
 
 	logger.Info("Crawler started...")
 
@@ -98,6 +100,8 @@ func processFlags() CommandLineArgs {
 	flag.StringVar(&args.URL, "url", "", "URL to crawl")
 	flag.StringVar(&args.SearchTerms, "searchterms", "", "Comma-separated search terms")
 	flag.StringVar(&args.CrawlsiteID, "crawlsiteid", "", "Crawlsite ID")
+	flag.IntVar(&args.MaxDepth, "maxdepth", 1, "Maximum depth for the crawler")
+	flag.BoolVar(&args.Debug, "debug", false, "Enable debug mode")
 
 	flag.Parse()
 
@@ -121,18 +125,21 @@ func initializeLogger() {
 	logger = zapLogger.Sugar()
 }
 
-func initializeRedis(config Config) {
+func initializeRedis(config Config, debug bool) {
 	redisAddress := fmt.Sprintf("%s:%s", config.RedisHost, config.RedisPort)
-	fmt.Printf("Redis Host: %s\n", config.RedisHost)
-	fmt.Printf("Redis Port: %s\n", config.RedisPort)
-	fmt.Printf("Redis Address: %s\n", redisAddress)
+	if debug {
+		fmt.Printf("Redis Host: %s\n", config.RedisHost)
+		fmt.Printf("Redis Port: %s\n", config.RedisPort)
+		fmt.Printf("Redis Address: %s\n", redisAddress)
+	}
+
 	rediswrapper.InitializeRedis(logger, redisAddress, config.RedisAuth)
 }
 
-func configureCollector(allowedDomains []string) *colly.Collector {
+func configureCollector(allowedDomains []string, maxDepth int) *colly.Collector {
 	collector := colly.NewCollector(
 		colly.Async(true),
-		colly.MaxDepth(3),
+		colly.MaxDepth(maxDepth),
 	)
 
 	collector.AllowedDomains = allowedDomains
@@ -220,10 +227,12 @@ func handleErrorEvents(collector *colly.Collector) {
 		statusCode := r.StatusCode
 		url := r.Request.URL.String()
 
-		logger.Errorw("Request URL failed",
-			"request_url", url,
-			"status_code", statusCode,
-		)
+		if statusCode != 404 {
+			logger.Errorw("Request URL failed",
+				"request_url", url,
+				"status_code", statusCode,
+			)
+		}
 	})
 }
 
