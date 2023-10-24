@@ -15,7 +15,7 @@ import (
 	"github.com/jonesrussell/crawler/internal/crawlResult"
 	"github.com/jonesrussell/crawler/internal/rediswrapper"
 	"github.com/jonesrussell/crawler/internal/stats"
-	termmatcher "github.com/jonesrussell/crawler/internal/termmatcher"
+	"github.com/jonesrussell/crawler/internal/termmatcher"
 	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap"
 )
@@ -23,7 +23,7 @@ import (
 type CommandLineArgs struct {
 	URL         string
 	SearchTerms string
-	CrawlsiteID string
+	CrawlSiteID string
 	MaxDepth    int
 	Debug       bool
 }
@@ -31,7 +31,7 @@ type CommandLineArgs struct {
 type Config struct {
 	URL         string
 	SearchTerms string
-	CrawlsiteID string
+	CrawlSiteID string
 	RedisHost   string `envconfig:"REDIS_HOST"`
 	RedisPort   string `envconfig:"REDIS_PORT"`
 	RedisAuth   string `envconfig:"REDIS_AUTH"`
@@ -43,7 +43,12 @@ func main() {
 	args := processFlags()
 
 	initializeLogger(args.Debug)
-	defer logger.Sync() // Flush the logger before exiting
+	defer func(logger *zap.SugaredLogger) {
+		err := logger.Sync()
+		if err != nil {
+			fmt.Printf("Error syncing logger: %v", err)
+		}
+	}(logger) // Flush the logger before exiting
 
 	// Log the start of the main function
 	logger.Info("Main function started...")
@@ -51,7 +56,7 @@ func main() {
 	var config Config
 	config.URL = args.URL
 	config.SearchTerms = args.SearchTerms
-	config.CrawlsiteID = args.CrawlsiteID
+	config.CrawlSiteID = args.CrawlSiteID
 
 	err := godotenv.Load()
 	if err != nil {
@@ -99,13 +104,13 @@ func processFlags() CommandLineArgs {
 
 	flag.StringVar(&args.URL, "url", "", "URL to crawl")
 	flag.StringVar(&args.SearchTerms, "searchterms", "", "Comma-separated search terms")
-	flag.StringVar(&args.CrawlsiteID, "crawlsiteid", "", "Crawlsite ID")
+	flag.StringVar(&args.CrawlSiteID, "crawlsiteid", "", "CrawlSite ID")
 	flag.IntVar(&args.MaxDepth, "maxdepth", 1, "Maximum depth for the crawler")
 	flag.BoolVar(&args.Debug, "debug", false, "Enable debug mode")
 
 	flag.Parse()
 
-	if args.URL == "" || args.SearchTerms == "" || args.CrawlsiteID == "" {
+	if args.URL == "" || args.SearchTerms == "" || args.CrawlSiteID == "" {
 		fmt.Println("The following flags are required: url, searchterms, crawlsiteid")
 		flag.PrintDefaults()
 		os.Exit(2)
@@ -114,7 +119,7 @@ func processFlags() CommandLineArgs {
 	if args.Debug {
 		fmt.Printf("URL: %s\n", args.URL)
 		fmt.Printf("SearchTerms: %s\n", args.SearchTerms)
-		fmt.Printf("CrawlsiteID: %s\n", args.CrawlsiteID)
+		fmt.Printf("CrawlSiteID: %s\n", args.CrawlSiteID)
 		fmt.Printf("MaxDepth: %d\n", args.MaxDepth)
 		fmt.Printf("Debug: %v\n", args.Debug)
 	}
@@ -156,11 +161,14 @@ func configureCollector(allowedDomains []string, maxDepth int) *colly.Collector 
 
 	collector.AllowedDomains = allowedDomains
 
-	collector.Limit(&colly.LimitRule{
+	err := collector.Limit(&colly.LimitRule{
 		DomainGlob:  "*",
 		Parallelism: 2,
 		Delay:       3000 * time.Millisecond,
 	})
+	if err != nil {
+		return nil
+	}
 
 	return collector
 }
@@ -201,13 +209,16 @@ func handleMatchingLinks(collector *colly.Collector, href string) error {
 		return err
 	}
 	// Visit the URL after adding it to the Redis set
-	collector.Visit(href) // Ignore any errors from visiting the URL
+	err := collector.Visit(href)
+	if err != nil {
+		return err
+	} // Ignore any errors from visiting the URL
 	return nil
 }
 
 // Handle non-matching links
 func handleNonMatchingLinks(href string) {
-	// You can add logic here if needed
+	logger.Infof("Non-matching link: %s", href)
 }
 
 func handleRedisOperations() error {
@@ -237,11 +248,11 @@ func handleRedisOperations() error {
 func handleErrorEvents(collector *colly.Collector) {
 	collector.OnError(func(r *colly.Response, err error) {
 		statusCode := r.StatusCode
-		url := r.Request.URL.String()
+		requestUrl := r.Request.URL.String()
 
 		if statusCode != 404 {
 			logger.Errorw("Request URL failed",
-				"request_url", url,
+				"request_url", requestUrl,
 				"status_code", statusCode,
 			)
 		}
@@ -251,11 +262,17 @@ func handleErrorEvents(collector *colly.Collector) {
 func setupCrawlingLogic(collector *colly.Collector, searchTerms []string, results *[]crawlResult.PageData) {
 	linkStats := stats.NewStats()
 
-	handleHTMLParsing(collector, searchTerms, linkStats, results) // include 'results' as the fourth argument
+	err := handleHTMLParsing(collector, searchTerms, linkStats, results)
+	if err != nil {
+		return
+	}
 	handleErrorEvents(collector)
 
 	collector.OnScraped(func(r *colly.Response) {
-		handleRedisOperations()
+		err := handleRedisOperations()
+		if err != nil {
+			return
+		}
 
 		logger.Info("Finished scraping the page:", r.Request.URL.String())
 
