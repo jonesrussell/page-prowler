@@ -1,13 +1,37 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/gocolly/colly"
+	"github.com/jonesrussell/crawler/internal/crawlResult"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+type MockLogger struct {
+	logs []string
+}
+
+func (l *MockLogger) Info(args ...interface{}) {
+	l.logs = append(l.logs, fmt.Sprint(args...))
+}
+
+func (l *MockLogger) Infof(template string, args ...interface{}) {
+	l.logs = append(l.logs, fmt.Sprintf(template, args...))
+}
+
+func (l *MockLogger) Errorw(msg string, keysAndValues ...interface{}) {
+	l.logs = append(l.logs, fmt.Sprint(keysAndValues...))
+}
+
+func (l *MockLogger) Sync() error {
+	// Implement the method
+	return nil
+}
 
 // MockDrug is a mocked object for termmatcher.Related
 type MockDrug struct {
@@ -43,25 +67,58 @@ func (m *MockRedisWrapper) Del() error {
 	return args.Error(0)
 }
 
-func TestParseCommandLineArguments(t *testing.T) {
+func TestProcessFlags(t *testing.T) {
+	// Define a helper function to set os.Args for the test
+	setArgs := func(url, searchTerms, crawlSiteID string, maxDepth int, debug bool) {
+		os.Args = []string{
+			"cmd",
+			"-url=" + url,
+			"-searchterms=" + searchTerms,
+			"-crawlsiteid=" + crawlSiteID,
+			"-maxdepth=" + strconv.Itoa(maxDepth),
+			"-debug=" + strconv.FormatBool(debug),
+		}
+	}
+
 	// Test case 1: All required arguments provided
-	args1 := []string{"./crawler", "-url=https://www.example.com", "-search=search-term-1,search-term-2", "-crawlsite=99"}
-	os.Args = args1
-	config1, err1 := parseCommandLineArguments()
-	assert.Equal(t, "https://www.example.com", config1.URL, "Expected crawlURL to match")
-	assert.Equal(t, "search-term-1,search-term-2", config1.SearchTerms, "Expected search terms to match")
-	assert.Equal(t, "99", config1.CrawlsiteID, "Expected crawlsite id to be 99")
-	assert.NoError(t, err1, "Expected no error")
+	setArgs("https://www.example.com", "search-term-1,search-term-2", "99", 1, false)
+	args := processFlags()
+	assert.Equal(t, "https://www.example.com", args.URL, "Expected URL to match")
+	assert.Equal(t, "search-term-1,search-term-2", args.SearchTerms, "Expected search terms to match")
+	assert.Equal(t, "99", args.CrawlSiteID, "Expected crawlsite id to be 99")
+	assert.Equal(t, 1, args.MaxDepth, "Expected max depth to be 1")
+	assert.Equal(t, false, args.Debug, "Expected debug to be false")
+
+	// Add more test cases as needed
+}
+
+func TestSetupRedis(t *testing.T) {
+	// Use the mock logger
+	logger = &MockLogger{}
+
+	// Create a Config with your test settings
+	config := Config{
+		RedisHost: "localhost",
+		RedisPort: "6379",
+		RedisAuth: "",
+	}
+
+	// Call your function with the test config
+	setupRedis(config, true)
+
+	// Add assertions here to verify the behavior of your function.
 }
 
 func TestConfigureCollector(t *testing.T) {
-	domain := "example.com"                           // Replace with your desired domain
-	collector := configureCollector([]string{domain}) // Pass the domain
+	domain := "example.com"
+	maxDepth := 3
+
+	collector := configureCollector([]string{domain}, maxDepth)
 
 	// Assertions
 	assert.NotNil(t, collector, "Expected collector not to be nil")
 	assert.True(t, collector.Async, "Expected collector to be asynchronous")
-	assert.Equal(t, 3, collector.MaxDepth, "Expected MaxDepth to be 3")
+	assert.Equal(t, maxDepth, collector.MaxDepth, "Expected MaxDepth to match the input")
 	// You can add more assertions based on your requirements
 }
 
@@ -84,20 +141,18 @@ func TestSetupCrawlingLogic(t *testing.T) {
 		"BREAK ENTER",
 	}
 
-	// Inject the mocked instances and search terms into your setupCrawlingLogic function
-	setupCrawlingLogic(collector, searchTerms)
+	// Create an empty slice of crawlResult.PageData
+	var results []crawlResult.PageData
+
+	// Pass the address of results to setupCrawlingLogic
+	setupCrawlingLogic(collector, searchTerms, &results)
 
 	// Your test assertions here
-	// ...TestSetupCrawlingLogic
+	// ...
 
 	// Assert that the expectations of your mocks are met
 	// ...
 
 	// Clean up any resources
 	// ...
-}
-
-func TestMain(m *testing.M) {
-	// Run tests and exit with the result
-	os.Exit(m.Run())
 }
