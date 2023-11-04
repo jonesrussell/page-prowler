@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/gocolly/colly"
@@ -18,6 +20,7 @@ import (
 	"github.com/jonesrussell/crawler/internal/termmatcher"
 	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type CommandLineArgs struct {
@@ -28,75 +31,129 @@ type CommandLineArgs struct {
 	Debug       bool
 }
 
-type Config struct {
-	URL         string
-	SearchTerms string
-	CrawlSiteID string
-	RedisHost   string `envconfig:"REDIS_HOST"`
-	RedisPort   string `envconfig:"REDIS_PORT"`
-	RedisAuth   string `envconfig:"REDIS_AUTH"`
+// Define your struct that matches the environment variables
+type EnvConfig struct {
+	RedisHost string `envconfig:"REDIS_HOST"`
+	RedisPort string `envconfig:"REDIS_PORT"`
+	RedisAuth string `envconfig:"REDIS_AUTH"`
 }
 
-var logger *zap.SugaredLogger
-
 func main() {
+	ctx := context.Background()
 	args := processFlags()
 
-	initializeLogger(args.Debug)
-	defer func(logger *zap.SugaredLogger) {
-		err := logger.Sync()
-		if err != nil {
-			fmt.Printf("Error syncing logger: %v", err)
+	logger, err := initializeLogger(args.Debug)
+	if err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
+	defer safeLoggerSync(logger)
+
+	envCfg, err := loadConfiguration()
+	if err != nil {
+		logger.Fatal("Failed to load environment configuration: ", zap.Error(err))
+	}
+
+	if args.Debug {
+		logger.Infof("Redis Host: %s", envCfg.RedisHost)
+		logger.Infof("Redis Port: %s", envCfg.RedisPort)
+		logger.Infof("Redis Auth: %s", envCfg.RedisAuth)
+	}
+
+	// Initialize Redis with the context
+	redisWrapper, err := rediswrapper.NewRedisWrapper(ctx, envCfg.RedisHost, envCfg.RedisPort, envCfg.RedisAuth, logger)
+	if err != nil {
+		logger.Fatal("Failed to initialize Redis", zap.Error(err))
+	}
+
+	setupAndStartCrawler(ctx, args, redisWrapper, logger)
+}
+
+func loadConfiguration() (*EnvConfig, error) {
+	var cfg EnvConfig
+
+	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("error loading .env file: %w", err)
+	}
+
+	if err := envconfig.Process("", &cfg); err != nil {
+		return nil, fmt.Errorf("error processing environment variables: %w", err)
+	}
+
+	return &cfg, nil
+}
+
+func initializeLogger(debug bool) (*zap.SugaredLogger, error) {
+	var logger *zap.Logger
+	var err error
+
+	if debug {
+		// Development logger is more verbose and writes to standard output
+		config := zap.NewDevelopmentConfig()
+		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder // optional, colorizes the output
+		logger, err = config.Build()
+	} else {
+		// Production logger is less verbose and could be set to log to a file
+		logger, err = zap.NewProduction()
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize logger: %w", err)
+	}
+
+	return logger.Sugar(), nil
+}
+
+func safeLoggerSync(logger *zap.SugaredLogger) {
+	if err := logger.Sync(); err != nil {
+		// As of Zap 1.x, Sync() returns an error on Windows, which can be ignored.
+		// You can log the error if you're running on other platforms or if you want to be thorough.
+		if zapErr, ok := err.(*os.PathError); !ok || zapErr.Err != syscall.EINVAL {
+			log.Printf("Error syncing logger: %v", err)
 		}
-	}(logger) // Flush the logger before exiting
-
-	// Log the start of the main function
-	logger.Info("Main function started...")
-
-	var config Config
-	config.URL = args.URL
-	config.SearchTerms = args.SearchTerms
-	config.CrawlSiteID = args.CrawlSiteID
-
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Error loading .env file:", err)
 	}
+}
 
-	err = envconfig.Process("", &config)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
+func setupAndStartCrawler(
+	ctx context.Context,
+	args CommandLineArgs,
+	redisWrapper *rediswrapper.RedisWrapper,
+	logger *zap.SugaredLogger,
+) {
+	// Split search terms
+	splitSearchTerms := strings.Split(args.SearchTerms, ",")
 
-	initializeRedis(config, args.Debug)
-
-	logger.Info("Crawling URL:", config.URL)
-	splitSearchTerms := strings.Split(config.SearchTerms, ",") // Use a new variable for the split search terms
-	logger.Info("Search Terms:", splitSearchTerms)
-
-	allowedDomain := getHostFromURL(config.URL)
-
-	var results []crawlResult.PageData
-	collector := configureCollector([]string{allowedDomain}, args.MaxDepth)
-	setupCrawlingLogic(collector, splitSearchTerms, &results)
-
-	logger.Info("Crawler started...")
-
-	if err := collector.Visit(config.URL); err != nil {
-		logger.Errorw("Error visiting URL", "error", err)
+	// Configure the collector
+	collector := configureCollector([]string{getHostFromURL(args.URL)}, args.MaxDepth)
+	if collector == nil {
+		logger.Fatal("Failed to configure collector")
 		return
 	}
 
+	// Setup crawling logic
+	var results []crawlResult.PageData
+	setupCrawlingLogic(ctx, collector, splitSearchTerms, &results, logger, redisWrapper)
+
+	// Start the crawling process
+	logger.Info("Crawler started...")
+	if err := collector.Visit(args.URL); err != nil {
+		logger.Error("Error visiting URL", zap.Error(err))
+		return
+	}
+
+	// Wait for crawling to complete
 	collector.Wait()
 
-	// After all crawling jobs are done, print the results
+	// Handle the results after crawling is done
 	jsonData, err := json.Marshal(results)
 	if err != nil {
-		log.Fatalf("Error occurred during marshaling. Error: %s", err.Error())
+		logger.Error("Error occurred during marshaling", zap.Error(err))
+		return
 	}
+
+	// Output or process the results as needed
 	fmt.Println(string(jsonData))
 
-	logger.Info("Main function completed.")
+	logger.Info("Crawling completed.")
 }
 
 func processFlags() CommandLineArgs {
@@ -127,32 +184,6 @@ func processFlags() CommandLineArgs {
 	return args
 }
 
-func initializeLogger(debug bool) {
-	loggerConfig := zap.NewProductionConfig()
-	if debug {
-		loggerConfig.Level.SetLevel(zap.DebugLevel) // Log all messages in debug mode
-	} else {
-		loggerConfig.Level.SetLevel(zap.ErrorLevel) // Only log errors in non-debug mode
-	}
-	loggerConfig.OutputPaths = []string{"stdout"} // Write logs to stdout
-	zapLogger, err := loggerConfig.Build()
-	if err != nil {
-		log.Fatalf("Failed to initialize Zap logger: %v", err)
-	}
-	logger = zapLogger.Sugar()
-}
-
-func initializeRedis(config Config, debug bool) {
-	redisAddress := fmt.Sprintf("%s:%s", config.RedisHost, config.RedisPort)
-	if debug {
-		fmt.Printf("Redis Host: %s\n", config.RedisHost)
-		fmt.Printf("Redis Port: %s\n", config.RedisPort)
-		fmt.Printf("Redis Address: %s\n", redisAddress)
-	}
-
-	rediswrapper.InitializeRedis(logger, redisAddress, config.RedisAuth)
-}
-
 func configureCollector(allowedDomains []string, maxDepth int) *colly.Collector {
 	collector := colly.NewCollector(
 		colly.Async(true),
@@ -173,10 +204,17 @@ func configureCollector(allowedDomains []string, maxDepth int) *colly.Collector 
 	return collector
 }
 
-func handleHTMLParsing(collector *colly.Collector, searchTerms []string, linkStats *stats.Stats, results *[]crawlResult.PageData) (err error) {
+func handleHTMLParsing(
+	ctx context.Context, // Add context as the first parameter
+	logger *zap.SugaredLogger,
+	collector *colly.Collector,
+	searchTerms []string,
+	linkStats *stats.Stats,
+	results *[]crawlResult.PageData,
+	redisWrapper *rediswrapper.RedisWrapper,
+) (err error) {
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
-
 		linkStats.IncrementTotalLinks()
 
 		pageData := crawlResult.PageData{
@@ -186,15 +224,17 @@ func handleHTMLParsing(collector *colly.Collector, searchTerms []string, linkSta
 
 		if termmatcher.Related(href, searchTerms) {
 			linkStats.IncrementMatchedLinks()
-			err = handleMatchingLinks(collector, href)
+			// Pass the context to handleMatchingLinks
+			err := handleMatchingLinks(ctx, logger, collector, href, redisWrapper)
 			if err != nil {
-				logger.Errorw("Error handling matching links", "error", err)
+				logger.Error("Error handling matching links", zap.Error(err))
 				return
 			}
 			pageData.MatchingTerms = searchTerms
 		} else {
 			linkStats.IncrementNotMatchedLinks()
-			handleNonMatchingLinks(href)
+			// handleNonMatchingLinks does not require context at this moment, so not modifying it
+			handleNonMatchingLinks(logger, href)
 		}
 
 		*results = append(*results, pageData)
@@ -202,89 +242,105 @@ func handleHTMLParsing(collector *colly.Collector, searchTerms []string, linkSta
 	return
 }
 
-func handleMatchingLinks(collector *colly.Collector, href string) error {
-	logger.Info("Found: ", href)
-	if _, err := rediswrapper.SAdd(href); err != nil {
-		logger.Errorw("Error adding URL to Redis set", "error", err)
+func handleMatchingLinks(
+	ctx context.Context,
+	logger *zap.SugaredLogger,
+	collector *colly.Collector,
+	href string,
+	redisWrapper *rediswrapper.RedisWrapper,
+) error {
+	logger.Info("Found: ", zap.String("url", href))
+	if _, err := redisWrapper.SAdd(ctx, href); err != nil { // Pass the context to SAdd
+		logger.Error("Error adding URL to Redis set", zap.Error(err))
 		return err
 	}
 	// Visit the URL after adding it to the Redis set
 	err := collector.Visit(href)
 	if err != nil {
 		return err
-	} // Ignore any errors from visiting the URL
+	}
 	return nil
 }
 
 // Handle non-matching links
-func handleNonMatchingLinks(href string) {
-	logger.Infof("Non-matching link: %s", href)
+func handleNonMatchingLinks(logger *zap.SugaredLogger, href string) {
+	logger.Info("Non-matching link: ", zap.String("url", href))
 }
 
-func handleRedisOperations() error {
-	hrefs, err := rediswrapper.SMembers()
+func handleRedisOperations(ctx context.Context, redisWrapper *rediswrapper.RedisWrapper, logger *zap.SugaredLogger) error {
+	// You need to pass the context and the appropriate key to SMembers
+	hrefs, err := redisWrapper.SMembers(ctx, "yourKeyHere") // Replace "yourKeyHere" with the actual key you're interested in
 	if err != nil {
-		logger.Errorw("Error getting members from Redis", "error", err)
+		logger.Error("Error getting members from Redis", zap.Error(err))
 		return err
 	}
 
-	for i := range hrefs {
-		href := hrefs[i]
-
-		err = rediswrapper.PublishHref("streetcode", href)
+	for _, href := range hrefs {
+		err = redisWrapper.PublishHref(ctx, "streetcode", href) // Make sure to pass ctx to PublishHref if it requires it
 		if err != nil {
-			logger.Errorw("Error publishing href to Redis", "error", err)
+			logger.Error("Error publishing href to Redis", zap.Error(err))
 			return err
 		}
 
-		if _, err = rediswrapper.Del(); err != nil {
-			logger.Errorw("Error deleting from Redis", "error", err)
+		if _, err = redisWrapper.Del(ctx, href); err != nil { // Make sure to pass ctx to Del if it requires it
+			logger.Error("Error deleting from Redis", zap.Error(err))
 			return err
 		}
 	}
 	return nil
 }
 
-func handleErrorEvents(collector *colly.Collector) {
+func handleErrorEvents(collector *colly.Collector, logger *zap.SugaredLogger) {
 	collector.OnError(func(r *colly.Response, err error) {
 		statusCode := r.StatusCode
-		requestUrl := r.Request.URL.String()
+		requestURL := r.Request.URL.String()
 
 		if statusCode != 404 {
-			logger.Errorw("Request URL failed",
-				"request_url", requestUrl,
-				"status_code", statusCode,
+			logger.Error("Request URL failed",
+				zap.String("request_url", requestURL),
+				zap.Int("status_code", statusCode),
+				zap.Error(err),
 			)
 		}
 	})
 }
 
-func setupCrawlingLogic(collector *colly.Collector, searchTerms []string, results *[]crawlResult.PageData) {
+func setupCrawlingLogic(
+	ctx context.Context,
+	collector *colly.Collector,
+	searchTerms []string,
+	results *[]crawlResult.PageData,
+	logger *zap.SugaredLogger,
+	redisWrapper *rediswrapper.RedisWrapper,
+) {
 	linkStats := stats.NewStats()
 
-	err := handleHTMLParsing(collector, searchTerms, linkStats, results)
+	// Correct the arguments order for handleHTMLParsing
+	err := handleHTMLParsing(ctx, logger, collector, searchTerms, linkStats, results, redisWrapper)
 	if err != nil {
+		logger.Error("Error during HTML parsing", zap.Error(err))
 		return
 	}
-	handleErrorEvents(collector)
 
+	handleErrorEvents(collector, logger)
+
+	// Correct the arguments for handleRedisOperations
 	collector.OnScraped(func(r *colly.Response) {
-		err := handleRedisOperations()
+		err := handleRedisOperations(ctx, redisWrapper, logger)
 		if err != nil {
+			logger.Error("Error with Redis operations", zap.Error(err))
 			return
 		}
 
-		logger.Info("Finished scraping the page:", r.Request.URL.String())
-
-		logger.Info("Total links found:", linkStats.TotalLinks)
-		logger.Info("Matched links:", linkStats.MatchedLinks)
-		logger.Info("Not matched links:", linkStats.NotMatchedLinks)
-
+		logger.Info("Finished scraping the page", zap.String("url", r.Request.URL.String()))
+		logger.Info("Total links found", zap.Int("total_links", linkStats.TotalLinks))
+		logger.Info("Matched links", zap.Int("matched_links", linkStats.MatchedLinks))
+		logger.Info("Not matched links", zap.Int("not_matched_links", linkStats.NotMatchedLinks))
 		// Here, you would add code to populate the 'results' slice with data
 	})
 
 	collector.OnRequest(func(r *colly.Request) {
-		logger.Info("Visiting: ", r.URL)
+		logger.Info("Visiting", zap.String("url", r.URL.String()))
 	})
 }
 

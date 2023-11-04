@@ -2,7 +2,6 @@ package rediswrapper
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -10,98 +9,69 @@ import (
 	"go.uber.org/zap"
 )
 
+// MsgPost represents a message with a URL and group.
 type MsgPost struct {
 	Href  string `json:"href"`
 	Group string `json:"group"`
 }
 
-var (
-	ctx              = context.Background()
-	client           = (*redis.Client)(nil)
-	keySetBase       = "hrefs"
-	crawlsiteID      = ""       // Store crawlsiteID as a package-level variable
-	crawlsiteIDMutex sync.Mutex // Mutex to protect concurrent access to crawlsiteID
-	logger           *zap.SugaredLogger
-)
-
-func SetCrawlsiteID(id string) {
-	crawlsiteIDMutex.Lock()
-	defer crawlsiteIDMutex.Unlock()
-	crawlsiteID = id
+// RedisWrapper encapsulates a Redis client and associated methods.
+type RedisWrapper struct {
+	Client      *redis.Client
+	Logger      *zap.SugaredLogger
+	crawlsiteID string
+	mu          sync.Mutex
 }
 
-func InitializeRedis(loggerInstance *zap.SugaredLogger, addr string, password string) {
-	logger = loggerInstance
-
-	client = redis.NewClient(&redis.Options{
-		Addr:     addr, // Add the Redis port if it's not part of the address, e.g., "localhost:6379"
+// NewRedisWrapper creates a new RedisWrapper with the given configuration.
+func NewRedisWrapper(ctx context.Context, host, port, password string, logger *zap.SugaredLogger) (*RedisWrapper, error) {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     host + ":" + port,
 		Password: password,
+		DB:       0,
 	})
 
-	_, err := client.Ping(ctx).Result()
+	_, err := rdb.Ping(ctx).Result()
 	if err != nil {
-		logger.Fatal("Unable to connect to Redis: ", err)
+		return nil, err
 	}
 
-	// Log the stream and group names for debugging
-	streamName := fmt.Sprintf("streetcode:%s", crawlsiteID)
-	groupName := "streetcode" // Assuming the group name is "streetcode"
-	logger.Infof("Initialized Redis for Stream: %s, Group: %s", streamName, groupName)
+	return &RedisWrapper{
+		Client: rdb,
+		Logger: logger,
+	}, nil
 }
 
-func SAdd(href string) (int64, error) {
-	if client == nil {
-		return 0, errors.New("redis client is not initialized")
-	}
-
-	keySet := fmt.Sprintf("%s:%s", keySetBase, crawlsiteID)
-	return client.SAdd(ctx, keySet, href).Result()
+// SetCrawlsiteID sets the crawlsite ID for this RedisWrapper instance.
+func (rw *RedisWrapper) SetCrawlsiteID(id string) {
+	rw.mu.Lock()
+	defer rw.mu.Unlock()
+	rw.crawlsiteID = id
 }
 
-func SMembers() ([]string, error) {
-	keySet := fmt.Sprintf("%s:%s", keySetBase, crawlsiteID)
-	return client.SMembers(ctx, keySet).Result()
+func (rw *RedisWrapper) SAdd(ctx context.Context, key string, values ...interface{}) (int64, error) {
+	return rw.Client.SAdd(ctx, key, values...).Result()
 }
 
-func Del() (int64, error) {
-	keySet := fmt.Sprintf("%s:%s", keySetBase, crawlsiteID)
-	return client.Del(ctx, keySet).Result()
+func (rw *RedisWrapper) SMembers(ctx context.Context, key string) ([]string, error) {
+	return rw.Client.SMembers(ctx, key).Result()
 }
 
-func PublishHref(stream, href string) error {
-	keyStream := fmt.Sprintf("%s:%s", stream, crawlsiteID)
-	logger.Infof("Publishing to stream %s", keyStream)
-
-	err := client.XAdd(ctx, &redis.XAddArgs{
-		Stream:       keyStream,
-		MaxLen:       0,
-		MaxLenApprox: 0,
-		ID:           "",
-		Values: map[string]interface{}{
-			"eventName": "receivedUrl",
-			"href":      href,
-		},
-	}).Err()
-
-	if err != nil {
-		logger.Infof("Error publishing to stream %s: %v", keyStream, err)
-	}
-
-	return err
+func (rw *RedisWrapper) PublishHref(ctx context.Context, channel, message string) error {
+	return rw.Client.Publish(ctx, channel, message).Err()
 }
 
-func Stream(stream string, group string) error {
-	logger.Infof("Creating Redis stream: %s, Group: %s", stream, group)
-	return client.XGroupCreate(
-		ctx,
-		stream,
-		group,
-		"0",
-	).Err()
+func (rw *RedisWrapper) Del(ctx context.Context, keys ...string) (int64, error) {
+	return rw.Client.Del(ctx, keys...).Result()
 }
 
-func Entries(group string, stream string) ([]redis.XStream, error) {
-	return client.XReadGroup(ctx, &redis.XReadGroupArgs{
+func (rw *RedisWrapper) Stream(ctx context.Context, stream string, group string) error {
+	rw.Logger.Infof("Creating Redis stream: %s, Group: %s", stream, group)
+	return rw.Client.XGroupCreate(ctx, stream, group, "$").Err()
+}
+
+func (rw *RedisWrapper) Entries(ctx context.Context, group string, stream string) ([]redis.XStream, error) {
+	return rw.Client.XReadGroup(ctx, &redis.XReadGroupArgs{
 		Group:    group,
 		Consumer: "*",
 		Streams:  []string{stream, ">"},
@@ -115,23 +85,16 @@ func Messages(entries []redis.XStream) []redis.XMessage {
 	return entries[0].Messages
 }
 
-func Process(messages []redis.XMessage, stream string, group string) []MsgPost {
+func (rw *RedisWrapper) Process(ctx context.Context, messages []redis.XMessage, stream string, group string) []MsgPost {
 	var urls []MsgPost
-
-	for i := 0; i < len(messages); i++ {
-		eventName, href, group := processEntry(messages[i].Values)
-
+	for _, message := range messages {
+		eventName, href, group := processEntry(message.Values)
 		if eventName == "receivedUrl" {
-			msgPost := MsgPost{
-				Href:  href,
-				Group: group,
-			}
-
+			msgPost := MsgPost{Href: href, Group: group}
 			urls = append(urls, msgPost)
-			ackEntry(stream, group, messages[i].ID)
+			rw.ackEntry(ctx, stream, group, message.ID) // Now it uses the method on the RedisWrapper
 		}
 	}
-
 	return urls
 }
 
@@ -143,11 +106,7 @@ func processEntry(values map[string]interface{}) (string, string, string) {
 	return eventName, href, group
 }
 
-func ackEntry(stream string, group string, id string) {
-	client.XAck(
-		ctx,
-		stream,
-		group,
-		id,
-	)
+// Make sure ackEntry is correctly capitalized as it is a method of RedisWrapper
+func (rw *RedisWrapper) ackEntry(ctx context.Context, stream string, group string, id string) error {
+	return rw.Client.XAck(ctx, stream, group, id).Err()
 }
