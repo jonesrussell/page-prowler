@@ -131,7 +131,8 @@ func setupAndStartCrawler(
 
 	// Setup crawling logic
 	var results []crawlResult.PageData
-	setupCrawlingLogic(ctx, collector, splitSearchTerms, &results, logger, redisWrapper)
+	// Pass args.CrawlSiteID to setupCrawlingLogic along with other parameters
+	setupCrawlingLogic(ctx, args.CrawlSiteID, collector, splitSearchTerms, &results, logger, redisWrapper)
 
 	// Start the crawling process
 	logger.Info("Crawler started...")
@@ -205,14 +206,15 @@ func configureCollector(allowedDomains []string, maxDepth int) *colly.Collector 
 }
 
 func handleHTMLParsing(
-	ctx context.Context, // Add context as the first parameter
+	ctx context.Context,
+	crawlSiteID string, // Include crawlSiteID as a parameter
 	logger *zap.SugaredLogger,
 	collector *colly.Collector,
 	searchTerms []string,
 	linkStats *stats.Stats,
 	results *[]crawlResult.PageData,
 	redisWrapper *rediswrapper.RedisWrapper,
-) (err error) {
+) error { // Removed the named return value 'err' to avoid confusion with the 'err' inside the callback
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 		linkStats.IncrementTotalLinks()
@@ -224,22 +226,20 @@ func handleHTMLParsing(
 
 		if termmatcher.Related(href, searchTerms) {
 			linkStats.IncrementMatchedLinks()
-			// Pass the context to handleMatchingLinks
-			err := handleMatchingLinks(ctx, logger, collector, href, redisWrapper)
-			if err != nil {
+			// Correctly pass the context and crawlSiteID to handleMatchingLinks
+			if err := handleMatchingLinks(ctx, logger, collector, href, crawlSiteID, redisWrapper); err != nil {
 				logger.Error("Error handling matching links", zap.Error(err))
-				return
+				// Do not return from the callback, as it will not propagate to the outer function
 			}
 			pageData.MatchingTerms = searchTerms
 		} else {
 			linkStats.IncrementNotMatchedLinks()
-			// handleNonMatchingLinks does not require context at this moment, so not modifying it
 			handleNonMatchingLinks(logger, href)
 		}
 
 		*results = append(*results, pageData)
 	})
-	return
+	return nil // Return nil here as any errors inside the callback do not propagate out
 }
 
 func handleMatchingLinks(
@@ -247,16 +247,18 @@ func handleMatchingLinks(
 	logger *zap.SugaredLogger,
 	collector *colly.Collector,
 	href string,
+	crawlSiteID string, // Assuming this is passed into the function
 	redisWrapper *rediswrapper.RedisWrapper,
 ) error {
 	logger.Info("Found: ", zap.String("url", href))
-	if _, err := redisWrapper.SAdd(ctx, href); err != nil { // Pass the context to SAdd
-		logger.Error("Error adding URL to Redis set", zap.Error(err))
+	if _, err := redisWrapper.SAdd(ctx, crawlSiteID, href); err != nil { // Use CrawlSiteID as the key name
+		logger.Error("Error adding URL to Redis set", zap.String("set", crawlSiteID), zap.Error(err))
 		return err
 	}
 	// Visit the URL after adding it to the Redis set
 	err := collector.Visit(href)
 	if err != nil {
+		logger.Error("Error visiting URL", zap.String("url", href), zap.Error(err))
 		return err
 	}
 	return nil
@@ -307,6 +309,7 @@ func handleErrorEvents(collector *colly.Collector, logger *zap.SugaredLogger) {
 
 func setupCrawlingLogic(
 	ctx context.Context,
+	crawlSiteID string, // Added CrawlSiteID as a parameter
 	collector *colly.Collector,
 	searchTerms []string,
 	results *[]crawlResult.PageData,
@@ -315,8 +318,8 @@ func setupCrawlingLogic(
 ) {
 	linkStats := stats.NewStats()
 
-	// Correct the arguments order for handleHTMLParsing
-	err := handleHTMLParsing(ctx, logger, collector, searchTerms, linkStats, results, redisWrapper)
+	// Pass crawlSiteID to handleHTMLParsing along with other parameters
+	err := handleHTMLParsing(ctx, crawlSiteID, logger, collector, searchTerms, linkStats, results, redisWrapper)
 	if err != nil {
 		logger.Error("Error during HTML parsing", zap.Error(err))
 		return
@@ -324,7 +327,7 @@ func setupCrawlingLogic(
 
 	handleErrorEvents(collector, logger)
 
-	// Correct the arguments for handleRedisOperations
+	// Assuming handleRedisOperations does not need CrawlSiteID; if it does, it needs to be added as a parameter
 	collector.OnScraped(func(r *colly.Response) {
 		err := handleRedisOperations(ctx, redisWrapper, logger)
 		if err != nil {
