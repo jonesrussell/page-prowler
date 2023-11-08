@@ -1,6 +1,4 @@
-/*
-Copyright © 2023 Russell Jones <jonesrussell42@gmail.com>
-*/
+// Package cmd contains the command-line commands for the crawler application.
 package cmd
 
 import (
@@ -10,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jonesrussell/crawler/internal/crawlResult"
 	"github.com/jonesrussell/crawler/internal/crawler"
+	"github.com/jonesrussell/crawler/internal/crawlresult"
 	"github.com/jonesrussell/crawler/internal/rediswrapper"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -93,7 +91,7 @@ func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 		return
 	}
 
-	var results []crawlResult.PageData
+	var results []crawlresult.PageData
 	crawler.SetupCrawlingLogic(ctx, crawlSiteID, collector, splitSearchTerms, &results, logger, redisWrapper)
 
 	logger.Info("Crawler started...")
