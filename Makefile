@@ -1,46 +1,32 @@
--include .env
+.PHONY: all build install clean fmt lint test docker-build docker-push
 
-VERSION := $(shell git describe --tags)
-BUILD := $(shell git rev-parse --short HEAD)
-PROJECTNAME := $(shell basename "$(PWD)")
-USERNAME := $(shell whoami)
-
-# Go related variables.
-PKG = github.com/jonesrussell/crawler
-PREFIX = /home/$(USERNAME)/.local
-
-# Add the -extldflags "-static" and -tags "netgo" flags to enable static linking.
-GO = CGO_ENABLED=0 go
-GO_BUILDFLAGS = -tags "netgo"
-GO_LDFLAGS = -s -w -extldflags "-static"
-
-# Build targets.
-BINARY_NAMES = crawler consumer
+GO = go
+GO_LDFLAGS = -ldflags "-s -w"
 BINARY_DIR = bin
-BINARY_FILES = $(addprefix $(BINARY_DIR)/,$(BINARY_NAMES))
+BINARY_NAME = crawler
 
-.PHONY: all build install clean update-dependencies clean-binaries clean-vendor
+all: fmt lint test build
 
-all: build
-
-build: $(BINARY_FILES)
-
-$(BINARY_DIR)/%: FORCE
-	$(GO) build -o $@ -ldflags '$(GO_LDFLAGS)' '$(PKG)/cmd/$*'
+build:
+	$(GO) build $(GO_LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME) ./cmd/$(BINARY_NAME)
 
 install: build
-	install -D -m 0755 $(BINARY_FILES) $(DESTDIR)$(PREFIX)/bin/
+	install -D -m 0755 $(BINARY_DIR)/$(BINARY_NAME) $(DESTDIR)$(PREFIX)/bin/
 
-clean: clean-binaries clean-vendor
+clean:
+	rm -f $(BINARY_DIR)/$(BINARY_NAME)
 
-clean-binaries:
-	rm -f $(BINARY_FILES)
+fmt:
+	$(GO) fmt ./...
 
-clean-vendor:
-	rm -rf vendor
+lint:
+	golint ./...
 
-update-dependencies:
-	$(GO) mod tidy
-	$(GO) mod vendor
+test:
+	$(GO) test ./... -cover
 
-FORCE:
+docker-build:
+	docker build -t $(USERNAME)/$(PROJECTNAME):$(VERSION) .
+
+docker-push:
+	docker push $(USERNAME)/$(PROJECTNAME):$(VERSION)
