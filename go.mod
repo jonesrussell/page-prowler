@@ -26,8 +26,6 @@ require (
 	github.com/caneroj1/stemmer v0.0.0-20170128035808-c9f2ce1504d5
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-redis/redismock/v8 v8.11.5
-	github.com/joho/godotenv v1.5.1
-	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.17.0
 	github.com/stretchr/testify v1.8.4

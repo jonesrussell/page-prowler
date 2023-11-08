@@ -5,16 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"os"
 	"time"
 
 	"github.com/gocolly/colly"
-	"github.com/joho/godotenv"
 	"github.com/jonesrussell/crawler/internal/crawlResult"
 	"github.com/jonesrussell/crawler/internal/rediswrapper"
 	"github.com/jonesrussell/crawler/internal/stats"
 	"github.com/jonesrussell/crawler/internal/termmatcher"
-	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -25,27 +22,6 @@ type CommandLineArgs struct {
 	CrawlSiteID string
 	MaxDepth    int
 	Debug       bool
-}
-
-// Define your struct that matches the environment variables
-type EnvConfig struct {
-	RedisHost string `envconfig:"REDIS_HOST"`
-	RedisPort string `envconfig:"REDIS_PORT"`
-	RedisAuth string `envconfig:"REDIS_AUTH"`
-}
-
-func LoadConfiguration() (*EnvConfig, error) {
-	var cfg EnvConfig
-
-	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
-		return nil, fmt.Errorf("error loading .env file: %w", err)
-	}
-
-	if err := envconfig.Process("", &cfg); err != nil {
-		return nil, fmt.Errorf("error processing environment variables: %w", err)
-	}
-
-	return &cfg, nil
 }
 
 func InitializeLogger(debug bool) (*zap.SugaredLogger, error) {
