@@ -27,6 +27,7 @@ type CrawlOptions struct {
 	SearchTerms []string
 	Results     *[]crawlresult.PageData
 	LinkStats   *stats.Stats
+	Debug       bool
 }
 
 // ConfigureCollector initializes a new gocolly collector with the specified domains and depth.
@@ -93,6 +94,10 @@ func (cs *CrawlManager) handleMatchingLinks(
 		return err
 	}
 
+	if options.Debug {
+		cs.Logger.Debug("Added URL to Redis set", "set", options.CrawlSiteID, "url", href)
+	}
+
 	err := options.Collector.Visit(href)
 	if err != nil {
 		if err == colly.ErrAlreadyVisited {
@@ -155,6 +160,10 @@ func (cs *CrawlManager) handleRedisOperations(ctx context.Context) error {
 
 // SetupCrawlingLogic configures and initiates the crawling logic.
 func (cs *CrawlManager) SetupCrawlingLogic(ctx context.Context, options CrawlOptions) {
+	if options.Debug {
+		cs.Logger.Debug("Setting up crawling logic...")
+	}
+
 	if err := cs.HandleHTMLParsing(ctx, options); err != nil {
 		cs.Logger.Error("Error during HTML parsing", "error", err)
 		return
