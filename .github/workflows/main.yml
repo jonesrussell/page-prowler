@@ -41,6 +41,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      - name: Install golint
+        run: go get -u golang.org/x/lint/golint
+
       - name: Lint
         run: golint ./...
 
