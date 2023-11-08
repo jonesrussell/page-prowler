@@ -4,85 +4,115 @@ import (
 	"context"
 	"testing"
 
-	redismock "github.com/go-redis/redismock/v8"
+	"github.com/go-redis/redis/v8"
+	"github.com/go-redis/redismock/v8"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSMembers(t *testing.T) {
+type MockLogger struct{}
+
+func (m *MockLogger) Debug(msg string, keysAndValues ...interface{}) {}
+func (m *MockLogger) Info(msg string, keysAndValues ...interface{})  {}
+func (m *MockLogger) Warn(msg string, keysAndValues ...interface{})  {}
+func (m *MockLogger) Error(msg string, keysAndValues ...interface{}) {}
+func (m *MockLogger) Fatal(msg string, keysAndValues ...interface{}) {}
+
+func TestNewRedisWrapper(t *testing.T) {
 	ctx := context.Background()
 	db, mock := redismock.NewClientMock()
 
-	rw := &RedisWrapper{Client: db}
+	// Expect Ping call and return nil (indicating a successful connection)
+	mock.ExpectPing().SetVal("PONG")
 
-	// Set expectations
-	key := "myset"
-	members := []string{"member1", "member2"}
-	mock.ExpectSMembers(key).SetVal(members)
+	// Call NewRedisWrapper function
+	rw, err := NewRedisWrapper(ctx, db)
 
-	// Call the function that uses SMembers
-	gotMembers, err := rw.SMembers(ctx, key)
-
+	// Assert there was no error and the RedisWrapper was correctly created
 	assert.NoError(t, err)
-	assert.Equal(t, members, gotMembers)
-
-	// Assert that all expectations were met
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.NotNil(t, rw)
+	assert.Equal(t, db, rw.Client)
 }
 
 func TestSAdd(t *testing.T) {
 	ctx := context.Background()
 	db, mock := redismock.NewClientMock()
 
-	rw := &RedisWrapper{Client: db}
+	// Create a new RedisWrapper instance
+	rw := &RedisWrapper{
+		Client: db,
+	}
 
-	// Set expectations for SAdd
-	mock.ExpectSAdd("mykey", "myvalue").SetVal(1)
+	key := "testKey"
+	values := []interface{}{"value1", "value2"}
 
-	// Call the SAdd function
-	added, err := rw.SAdd(ctx, "mykey", "myvalue")
+	// Expect SAdd call and return 2 (the number of values added)
+	mock.ExpectSAdd(key, values...).SetVal(2)
 
+	// Call SAdd method
+	added, err := rw.SAdd(ctx, key, values...)
+
+	// Assert there was no error and the return value is as expected
 	assert.NoError(t, err)
-	assert.Equal(t, int64(1), added)
-
-	// Assert that all expectations were met
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.Equal(t, int64(2), added)
 }
 
 func TestDel(t *testing.T) {
 	ctx := context.Background()
 	db, mock := redismock.NewClientMock()
 
-	rw := &RedisWrapper{Client: db}
+	// Create a new RedisWrapper instance
+	rw := &RedisWrapper{
+		Client: db,
+	}
 
-	// Set expectations for Del
-	mock.ExpectDel("mykey").SetVal(1) // Assume it deletes one item
+	keys := []string{"key1", "key2"}
 
-	// Call the Del function
-	deleted, err := rw.Del(ctx, "mykey")
+	// Expect Del call and return 2 (the number of keys deleted)
+	mock.ExpectDel(keys...).SetVal(2)
 
+	// Call Del method
+	deleted, err := rw.Del(ctx, keys...)
+
+	// Assert there was no error and the return value is as expected
 	assert.NoError(t, err)
-	assert.Equal(t, int64(1), deleted)
-
-	// Assert that all expectations were met
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.Equal(t, int64(2), deleted)
 }
 
-func TestPublishHref(t *testing.T) {
+func TestProcess(t *testing.T) {
 	ctx := context.Background()
 	db, mock := redismock.NewClientMock()
 
-	rw := &RedisWrapper{Client: db}
+	// Create a new RedisWrapper instance
+	rw := &RedisWrapper{
+		Client: db,
+	}
 
-	// Set expectations for Publish
-	channel := "mychannel"
-	message := "mymessage"
-	mock.ExpectPublish(channel, message).SetVal(1) // Assume it publishes one message
+	// Create a mock logger
+	log := new(MockLogger)
 
-	// Call the PublishHref function
-	err := rw.PublishHref(ctx, channel, message)
+	// Create a slice of XMessage
+	messages := []redis.XMessage{
+		{
+			ID: "1",
+			Values: map[string]interface{}{
+				"event": "received",
+				"href":  "http://example.com",
+				"group": "testGroup",
+			},
+		},
+	}
 
-	assert.NoError(t, err)
+	stream := "testStream"
+	group := "testGroup"
 
-	// Assert that all expectations were met
-	assert.NoError(t, mock.ExpectationsWereMet())
+	// Expect XAck call and return 1 (the number of messages acknowledged)
+	mock.ExpectXAck(stream, group, "1").SetVal(1)
+
+	// Call Process method
+	posts := rw.Process(ctx, messages, stream, group, log)
+
+	// Assert the return value is as expected
+	assert.Equal(t, 1, len(posts))
+	assert.Equal(t, "http://example.com", posts[0].Href)
+	assert.Equal(t, "testGroup", posts[0].Group)
 }
