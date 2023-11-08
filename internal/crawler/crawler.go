@@ -1,15 +1,11 @@
-package main
+package crawler
 
 import (
 	"context"
-	"encoding/json"
-	"flag"
 	"fmt"
 	"log"
 	"net/url"
 	"os"
-	"strings"
-	"syscall"
 	"time"
 
 	"github.com/gocolly/colly"
@@ -38,37 +34,7 @@ type EnvConfig struct {
 	RedisAuth string `envconfig:"REDIS_AUTH"`
 }
 
-func main() {
-	ctx := context.Background()
-	args := processFlags()
-
-	logger, err := initializeLogger(args.Debug)
-	if err != nil {
-		log.Fatalf("Failed to initialize logger: %v", err)
-	}
-	defer safeLoggerSync(logger)
-
-	envCfg, err := loadConfiguration()
-	if err != nil {
-		logger.Fatal("Failed to load environment configuration: ", zap.Error(err))
-	}
-
-	if args.Debug {
-		logger.Infof("Redis Host: %s", envCfg.RedisHost)
-		logger.Infof("Redis Port: %s", envCfg.RedisPort)
-		logger.Infof("Redis Auth: %s", envCfg.RedisAuth)
-	}
-
-	// Initialize Redis with the context
-	redisWrapper, err := rediswrapper.NewRedisWrapper(ctx, envCfg.RedisHost, envCfg.RedisPort, envCfg.RedisAuth, logger)
-	if err != nil {
-		logger.Fatal("Failed to initialize Redis", zap.Error(err))
-	}
-
-	setupAndStartCrawler(ctx, args, redisWrapper, logger)
-}
-
-func loadConfiguration() (*EnvConfig, error) {
+func LoadConfiguration() (*EnvConfig, error) {
 	var cfg EnvConfig
 
 	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
@@ -82,7 +48,7 @@ func loadConfiguration() (*EnvConfig, error) {
 	return &cfg, nil
 }
 
-func initializeLogger(debug bool) (*zap.SugaredLogger, error) {
+func InitializeLogger(debug bool) (*zap.SugaredLogger, error) {
 	var logger *zap.Logger
 	var err error
 
@@ -103,89 +69,7 @@ func initializeLogger(debug bool) (*zap.SugaredLogger, error) {
 	return logger.Sugar(), nil
 }
 
-func safeLoggerSync(logger *zap.SugaredLogger) {
-	if err := logger.Sync(); err != nil {
-		// As of Zap 1.x, Sync() returns an error on Windows, which can be ignored.
-		// You can log the error if you're running on other platforms or if you want to be thorough.
-		if zapErr, ok := err.(*os.PathError); !ok || zapErr.Err != syscall.EINVAL {
-			log.Printf("Error syncing logger: %v", err)
-		}
-	}
-}
-
-func setupAndStartCrawler(
-	ctx context.Context,
-	args CommandLineArgs,
-	redisWrapper *rediswrapper.RedisWrapper,
-	logger *zap.SugaredLogger,
-) {
-	// Split search terms
-	splitSearchTerms := strings.Split(args.SearchTerms, ",")
-
-	// Configure the collector
-	collector := configureCollector([]string{getHostFromURL(args.URL)}, args.MaxDepth)
-	if collector == nil {
-		logger.Fatal("Failed to configure collector")
-		return
-	}
-
-	// Setup crawling logic
-	var results []crawlResult.PageData
-	// Pass args.CrawlSiteID to setupCrawlingLogic along with other parameters
-	setupCrawlingLogic(ctx, args.CrawlSiteID, collector, splitSearchTerms, &results, logger, redisWrapper)
-
-	// Start the crawling process
-	logger.Info("Crawler started...")
-	if err := collector.Visit(args.URL); err != nil {
-		logger.Error("Error visiting URL", zap.Error(err))
-		return
-	}
-
-	// Wait for crawling to complete
-	collector.Wait()
-
-	// Handle the results after crawling is done
-	jsonData, err := json.Marshal(results)
-	if err != nil {
-		logger.Error("Error occurred during marshaling", zap.Error(err))
-		return
-	}
-
-	// Output or process the results as needed
-	fmt.Println(string(jsonData))
-
-	logger.Info("Crawling completed.")
-}
-
-func processFlags() CommandLineArgs {
-	args := CommandLineArgs{}
-
-	flag.StringVar(&args.URL, "url", "", "URL to crawl")
-	flag.StringVar(&args.SearchTerms, "searchterms", "", "Comma-separated search terms")
-	flag.StringVar(&args.CrawlSiteID, "crawlsiteid", "", "CrawlSite ID")
-	flag.IntVar(&args.MaxDepth, "maxdepth", 1, "Maximum depth for the crawler")
-	flag.BoolVar(&args.Debug, "debug", false, "Enable debug mode")
-
-	flag.Parse()
-
-	if args.URL == "" || args.SearchTerms == "" || args.CrawlSiteID == "" {
-		fmt.Println("The following flags are required: url, searchterms, crawlsiteid")
-		flag.PrintDefaults()
-		os.Exit(2)
-	}
-
-	if args.Debug {
-		fmt.Printf("URL: %s\n", args.URL)
-		fmt.Printf("SearchTerms: %s\n", args.SearchTerms)
-		fmt.Printf("CrawlSiteID: %s\n", args.CrawlSiteID)
-		fmt.Printf("MaxDepth: %d\n", args.MaxDepth)
-		fmt.Printf("Debug: %v\n", args.Debug)
-	}
-
-	return args
-}
-
-func configureCollector(allowedDomains []string, maxDepth int) *colly.Collector {
+func ConfigureCollector(allowedDomains []string, maxDepth int) *colly.Collector {
 	collector := colly.NewCollector(
 		colly.Async(true),
 		colly.MaxDepth(maxDepth),
@@ -205,7 +89,7 @@ func configureCollector(allowedDomains []string, maxDepth int) *colly.Collector 
 	return collector
 }
 
-func handleHTMLParsing(
+func HandleHTMLParsing(
 	ctx context.Context,
 	crawlSiteID string, // Include crawlSiteID as a parameter
 	logger *zap.SugaredLogger,
@@ -247,19 +131,24 @@ func handleMatchingLinks(
 	logger *zap.SugaredLogger,
 	collector *colly.Collector,
 	href string,
-	crawlSiteID string, // Assuming this is passed into the function
+	crawlSiteID string,
 	redisWrapper *rediswrapper.RedisWrapper,
 ) error {
 	logger.Info("Found: ", zap.String("url", href))
-	if _, err := redisWrapper.SAdd(ctx, crawlSiteID, href); err != nil { // Use CrawlSiteID as the key name
+	if _, err := redisWrapper.SAdd(ctx, crawlSiteID, href); err != nil {
 		logger.Error("Error adding URL to Redis set", zap.String("set", crawlSiteID), zap.Error(err))
 		return err
 	}
-	// Visit the URL after adding it to the Redis set
 	err := collector.Visit(href)
 	if err != nil {
-		logger.Error("Error visiting URL", zap.String("url", href), zap.Error(err))
-		return err
+		if err == colly.ErrAlreadyVisited {
+			logger.Info("URL already visited", zap.String("url", href))
+			// Do not return an error for already visited URLs
+			return nil
+		} else {
+			logger.Error("Error visiting URL", zap.String("url", href), zap.Error(err))
+			return err
+		}
 	}
 	return nil
 }
@@ -307,7 +196,7 @@ func handleErrorEvents(collector *colly.Collector, logger *zap.SugaredLogger) {
 	})
 }
 
-func setupCrawlingLogic(
+func SetupCrawlingLogic(
 	ctx context.Context,
 	crawlSiteID string, // Added CrawlSiteID as a parameter
 	collector *colly.Collector,
@@ -318,8 +207,8 @@ func setupCrawlingLogic(
 ) {
 	linkStats := stats.NewStats()
 
-	// Pass crawlSiteID to handleHTMLParsing along with other parameters
-	err := handleHTMLParsing(ctx, crawlSiteID, logger, collector, searchTerms, linkStats, results, redisWrapper)
+	// Pass crawlSiteID to HandleHTMLParsing along with other parameters
+	err := HandleHTMLParsing(ctx, crawlSiteID, logger, collector, searchTerms, linkStats, results, redisWrapper)
 	if err != nil {
 		logger.Error("Error during HTML parsing", zap.Error(err))
 		return
@@ -347,7 +236,7 @@ func setupCrawlingLogic(
 	})
 }
 
-func getHostFromURL(inputURL string) string {
+func GetHostFromURL(inputURL string) string {
 	u, err := url.Parse(inputURL)
 	if err != nil {
 		log.Fatalf("Failed to parse URL: %v", err)
