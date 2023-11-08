@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/jonesrussell/crawler/internal/crawler"
 	"github.com/jonesrussell/crawler/internal/crawlresult"
 	"github.com/jonesrussell/crawler/internal/logger"
@@ -79,8 +80,15 @@ func initializeCrawlManager(ctx context.Context, debug bool) *crawler.CrawlManag
 	// Initialize Logger with the new logger package
 	log := logger.New(debug) // Use the logger package's New function to get a logger instance
 
+	// Create a new Redis client instance.
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
+		Password: redisAuth, // no password set
+		DB:       0,         // use default DB
+	})
+
 	// Initialize RedisWrapper
-	redisWrapper, err := rediswrapper.NewRedisWrapper(ctx, redisHost, redisPort, redisAuth)
+	redisWrapper, err := rediswrapper.NewRedisWrapper(ctx, rdb)
 	if err != nil {
 		log.Error("Failed to initialize Redis", "error", err)
 		os.Exit(1)
