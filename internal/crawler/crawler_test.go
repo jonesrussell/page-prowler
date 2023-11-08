@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/go-redis/redismock/v8"
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/crawler/internal/crawlResult"
 	"github.com/jonesrussell/crawler/internal/crawler"
-	"github.com/jonesrussell/crawler/internal/rediswrapper/mocks"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
@@ -57,11 +57,18 @@ func TestSetupCrawlingLogic(t *testing.T) {
 	searchTerms := []string{"test"}
 	results := []crawlResult.PageData{}
 	logger, _ := zap.NewProduction()
-	redisMock := new(mocks.MockRedisWrapper)
+	db, mock := redismock.NewClientMock() // Create a new mock Redis client
 	collector := colly.NewCollector()
 
-	crawler.SetupCrawlingLogic(ctx, crawlSiteID, collector, searchTerms, &results, logger.Sugar(), redisMock)
-	assert.NotNil(t, results)
+	// Set your expectations here
+	// For example, if you expect the SAdd function to be called once with "testSiteID" and "testURL",
+	// and it should return a NewIntResult(1, nil), you can do:
+	mock.ExpectSAdd(crawlSiteID, "testURL").SetVal(1)
+
+	crawler.SetupCrawlingLogic(ctx, crawlSiteID, collector, searchTerms, &results, logger.Sugar(), db) // Use the mock client here
+
+	// Check if all expectations were met
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestGetHostFromURL(t *testing.T) {
