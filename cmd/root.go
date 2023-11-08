@@ -66,37 +66,51 @@ func initConfig() {
 	}
 }
 
-func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool) {
+// initializeCrawlerService sets up the necessary services for the crawler.
+func initializeCrawlerService(ctx context.Context, debug bool) *crawler.CrawlerService {
+	// Fetch Redis configuration from Viper
+	redisHost := viper.GetString("REDIS_HOST")
+	redisPort := viper.GetString("REDIS_PORT")
+	redisAuth := viper.GetString("REDIS_AUTH")
+
+	// Initialize Logger
 	logger, err := crawler.InitializeLogger(debug)
 	if err != nil {
 		fmt.Println("Failed to initialize logger:", err)
 		os.Exit(1)
 	}
 
-	// Use Viper to get Redis configuration directly
-	redisHost := viper.GetString("REDIS_HOST")
-	redisPort := viper.GetString("REDIS_PORT")
-	redisAuth := viper.GetString("REDIS_AUTH")
-
+	// Initialize RedisWrapper
 	redisWrapper, err := rediswrapper.NewRedisWrapper(ctx, redisHost, redisPort, redisAuth, logger)
 	if err != nil {
 		logger.Errorf("Failed to initialize Redis: %v", err)
 		os.Exit(1)
 	}
 
+	// Return the CrawlerService instance
+	return &crawler.CrawlerService{
+		Logger:       logger,
+		RedisWrapper: redisWrapper,
+	}
+}
+
+func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool) {
+	// Initialize CrawlerService
+	crawlerService := initializeCrawlerService(ctx, debug)
+
 	splitSearchTerms := strings.Split(searchTerms, ",")
 	collector := crawler.ConfigureCollector([]string{crawler.GetHostFromURL(url)}, maxDepth)
 	if collector == nil {
-		logger.Fatal("Failed to configure collector")
+		crawlerService.Logger.Fatal("Failed to configure collector")
 		return
 	}
 
 	var results []crawlresult.PageData
-	crawler.SetupCrawlingLogic(ctx, crawlSiteID, collector, splitSearchTerms, &results, logger, redisWrapper)
+	crawlerService.SetupCrawlingLogic(ctx, crawlSiteID, collector, splitSearchTerms, &results)
 
-	logger.Info("Crawler started...")
+	crawlerService.Logger.Info("Crawler started...")
 	if err := collector.Visit(url); err != nil {
-		logger.Error("Error visiting URL", zap.Error(err))
+		crawlerService.Logger.Error("Error visiting URL", zap.Error(err))
 		return
 	}
 
@@ -104,10 +118,10 @@ func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 
 	jsonData, err := json.Marshal(results)
 	if err != nil {
-		logger.Error("Error occurred during marshaling", zap.Error(err))
+		crawlerService.Logger.Error("Error occurred during marshaling", zap.Error(err))
 		return
 	}
 
 	fmt.Println(string(jsonData))
-	logger.Info("Crawling completed.")
+	crawlerService.Logger.Info("Crawling completed.")
 }
