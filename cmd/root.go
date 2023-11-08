@@ -4,6 +4,8 @@ package cmd
 import (
 	"os"
 
+	"github.com/jonesrussell/page-prowler/cmd/consume"
+	"github.com/jonesrussell/page-prowler/cmd/crawl"
 	"github.com/spf13/cobra"
 )
 
@@ -13,6 +15,11 @@ var rootCmd = &cobra.Command{
 	Short: "Page Prowler is a CLI tool for web crawling and data extraction",
 	Long: `Page Prowler is a CLI tool designed to perform web scraping and data extraction from websites.
            It allows users to specify parameters such as depth of crawl and target elements to extract.`,
+}
+
+func init() {
+	rootCmd.AddCommand(consume.ConsumeCmd)
+	rootCmd.AddCommand(crawl.CrawlCmd)
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

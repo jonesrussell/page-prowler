@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/gocolly/colly"
-	"github.com/jonesrussell/crawler/internal/crawlresult"
-	"github.com/jonesrussell/crawler/internal/logger"
-	"github.com/jonesrussell/crawler/internal/rediswrapper"
-	"github.com/jonesrussell/crawler/internal/stats"
-	"github.com/jonesrussell/crawler/internal/termmatcher"
+	"github.com/jonesrussell/page-prowler/internal/crawlresult"
+	"github.com/jonesrussell/page-prowler/internal/logger"
+	"github.com/jonesrussell/page-prowler/internal/rediswrapper"
+	"github.com/jonesrussell/page-prowler/internal/stats"
+	"github.com/jonesrussell/page-prowler/internal/termmatcher"
 )
 
 // CrawlManager encapsulates shared dependencies for crawler functions.

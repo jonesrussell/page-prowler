@@ -3,7 +3,7 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 */
 package main
 
-import "github.com/jonesrussell/crawler/cmd"
+import "github.com/jonesrussell/page-prowler/cmd"
 
 func main() {
 	cmd.Execute()

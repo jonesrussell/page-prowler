@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/jonesrussell/crawler/internal/rediswrapper"
+	"github.com/jonesrussell/page-prowler/internal/rediswrapper"
 )
 
 // Response represents the structure of an API response.
