@@ -17,6 +17,12 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// CrawlerService encapsulates shared dependencies for crawler functions.
+type CrawlerService struct {
+	Logger       *zap.SugaredLogger
+	RedisWrapper *rediswrapper.RedisWrapper
+}
+
 // InitializeLogger initializes the logger used in the application.
 func InitializeLogger(debug bool) (*zap.SugaredLogger, error) {
 	var logger *zap.Logger
@@ -61,16 +67,14 @@ func ConfigureCollector(allowedDomains []string, maxDepth int) *colly.Collector 
 }
 
 // HandleHTMLParsing sets up the handler for HTML parsing with gocolly, using the provided parameters.
-func HandleHTMLParsing(
+func (cs *CrawlerService) HandleHTMLParsing(
 	ctx context.Context,
-	crawlSiteID string, // Include crawlSiteID as a parameter
-	logger *zap.SugaredLogger,
+	crawlSiteID string,
 	collector *colly.Collector,
 	searchTerms []string,
 	linkStats *stats.Stats,
 	results *[]crawlresult.PageData,
-	redisWrapper *rediswrapper.RedisWrapper,
-) error { // Removed the named return value 'err' to avoid confusion with the 'err' inside the callback
+) error {
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 		linkStats.IncrementTotalLinks()
@@ -82,86 +86,59 @@ func HandleHTMLParsing(
 
 		if termmatcher.Related(href, searchTerms) {
 			linkStats.IncrementMatchedLinks()
-			// Correctly pass the context and crawlSiteID to handleMatchingLinks
-			if err := handleMatchingLinks(ctx, logger, collector, href, crawlSiteID, redisWrapper); err != nil {
-				logger.Error("Error handling matching links", zap.Error(err))
-				// Do not return from the callback, as it will not propagate to the outer function
+			if err := cs.handleMatchingLinks(ctx, collector, href, crawlSiteID); err != nil {
+				cs.Logger.Error("Error handling matching links", zap.Error(err))
 			}
 			pageData.MatchingTerms = searchTerms
 		} else {
 			linkStats.IncrementNotMatchedLinks()
-			handleNonMatchingLinks(logger, href)
+			cs.handleNonMatchingLinks(href)
 		}
 
 		*results = append(*results, pageData)
 	})
-	return nil // Return nil here as any errors inside the callback do not propagate out
+	return nil
 }
 
 // handleMatchingLinks is responsible for handling the links that match the search criteria during crawling.
-func handleMatchingLinks(
+func (cs *CrawlerService) handleMatchingLinks(
 	ctx context.Context,
-	logger *zap.SugaredLogger,
 	collector *colly.Collector,
 	href string,
 	crawlSiteID string,
-	redisWrapper *rediswrapper.RedisWrapper,
 ) error {
-	logger.Info("Found: ", zap.String("url", href))
-	if _, err := redisWrapper.SAdd(ctx, crawlSiteID, href); err != nil {
-		logger.Error("Error adding URL to Redis set", zap.String("set", crawlSiteID), zap.Error(err))
+	cs.Logger.Info("Found: ", zap.String("url", href))
+	if _, err := cs.RedisWrapper.SAdd(ctx, crawlSiteID, href); err != nil {
+		cs.Logger.Error("Error adding URL to Redis set", zap.String("set", crawlSiteID), zap.Error(err))
 		return err
 	}
 
 	err := collector.Visit(href)
 	if err != nil {
 		if err == colly.ErrAlreadyVisited {
-			logger.Info("URL already visited", zap.String("url", href))
+			cs.Logger.Info("URL already visited", zap.String("url", href))
 			return nil
 		}
-		logger.Error("Error visiting URL", zap.String("url", href), zap.Error(err))
+		cs.Logger.Error("Error visiting URL", zap.String("url", href), zap.Error(err))
 		return err
 	}
 
 	return nil
 }
 
-// Handle non-matching links
-func handleNonMatchingLinks(logger *zap.SugaredLogger, href string) {
-	logger.Info("Non-matching link: ", zap.String("url", href))
+// handleNonMatchingLinks logs the occurrence of a non-matching link.
+func (cs *CrawlerService) handleNonMatchingLinks(href string) {
+	cs.Logger.Info("Non-matching link: ", zap.String("url", href))
 }
 
-// handleRedisOperations manages the Redis operations after crawling a page.
-func handleRedisOperations(ctx context.Context, redisWrapper *rediswrapper.RedisWrapper, logger *zap.SugaredLogger) error {
-	// You need to pass the context and the appropriate key to SMembers
-	hrefs, err := redisWrapper.SMembers(ctx, "yourKeyHere") // Replace "yourKeyHere" with the actual key you're interested in
-	if err != nil {
-		logger.Error("Error getting members from Redis", zap.Error(err))
-		return err
-	}
-
-	for _, href := range hrefs {
-		err = redisWrapper.PublishHref(ctx, "streetcode", href) // Make sure to pass ctx to PublishHref if it requires it
-		if err != nil {
-			logger.Error("Error publishing href to Redis", zap.Error(err))
-			return err
-		}
-
-		if _, err = redisWrapper.Del(ctx, href); err != nil { // Make sure to pass ctx to Del if it requires it
-			logger.Error("Error deleting from Redis", zap.Error(err))
-			return err
-		}
-	}
-	return nil
-}
-
-func handleErrorEvents(collector *colly.Collector, logger *zap.SugaredLogger) {
+// handleErrorEvents sets up the error handling for the colly collector.
+func (cs *CrawlerService) handleErrorEvents(collector *colly.Collector) {
 	collector.OnError(func(r *colly.Response, err error) {
 		statusCode := r.StatusCode
 		requestURL := r.Request.URL.String()
 
 		if statusCode != 404 {
-			logger.Error("Request URL failed",
+			cs.Logger.Error("Request URL failed",
 				zap.String("request_url", requestURL),
 				zap.Int("status_code", statusCode),
 				zap.Error(err),
@@ -170,44 +147,64 @@ func handleErrorEvents(collector *colly.Collector, logger *zap.SugaredLogger) {
 	})
 }
 
+// handleRedisOperations manages the Redis operations after crawling a page.
+func (cs *CrawlerService) handleRedisOperations(ctx context.Context) error {
+	// You need to pass the context and the appropriate key to SMembers
+	hrefs, err := cs.RedisWrapper.SMembers(ctx, "yourKeyHere") // Replace "yourKeyHere" with the actual key you're interested in
+	if err != nil {
+		cs.Logger.Error("Error getting members from Redis", zap.Error(err))
+		return err
+	}
+
+	for _, href := range hrefs {
+		err = cs.RedisWrapper.PublishHref(ctx, "streetcode", href) // Make sure to pass ctx to PublishHref if it requires it
+		if err != nil {
+			cs.Logger.Error("Error publishing href to Redis", zap.Error(err))
+			return err
+		}
+
+		if _, err = cs.RedisWrapper.Del(ctx, href); err != nil { // Make sure to pass ctx to Del if it requires it
+			cs.Logger.Error("Error deleting from Redis", zap.Error(err))
+			return err
+		}
+	}
+	return nil
+}
+
 // SetupCrawlingLogic configures and initiates the crawling logic.
-func SetupCrawlingLogic(
+func (cs *CrawlerService) SetupCrawlingLogic(
 	ctx context.Context,
-	crawlSiteID string, // Added CrawlSiteID as a parameter
+	crawlSiteID string,
 	collector *colly.Collector,
 	searchTerms []string,
 	results *[]crawlresult.PageData,
-	logger *zap.SugaredLogger,
-	redisWrapper *rediswrapper.RedisWrapper,
 ) {
 	linkStats := stats.NewStats()
 
-	// Pass crawlSiteID to HandleHTMLParsing along with other parameters
-	err := HandleHTMLParsing(ctx, crawlSiteID, logger, collector, searchTerms, linkStats, results, redisWrapper)
+	err := cs.HandleHTMLParsing(ctx, crawlSiteID, collector, searchTerms, linkStats, results)
 	if err != nil {
-		logger.Error("Error during HTML parsing", zap.Error(err))
+		cs.Logger.Error("Error during HTML parsing", zap.Error(err))
 		return
 	}
 
-	handleErrorEvents(collector, logger)
+	cs.handleErrorEvents(collector)
 
-	// Assuming handleRedisOperations does not need CrawlSiteID; if it does, it needs to be added as a parameter
 	collector.OnScraped(func(r *colly.Response) {
-		err := handleRedisOperations(ctx, redisWrapper, logger)
+		err := cs.handleRedisOperations(ctx)
 		if err != nil {
-			logger.Error("Error with Redis operations", zap.Error(err))
+			cs.Logger.Error("Error with Redis operations", zap.Error(err))
 			return
 		}
 
-		logger.Info("Finished scraping the page", zap.String("url", r.Request.URL.String()))
-		logger.Info("Total links found", zap.Int("total_links", linkStats.TotalLinks))
-		logger.Info("Matched links", zap.Int("matched_links", linkStats.MatchedLinks))
-		logger.Info("Not matched links", zap.Int("not_matched_links", linkStats.NotMatchedLinks))
+		cs.Logger.Info("Finished scraping the page", zap.String("url", r.Request.URL.String()))
+		cs.Logger.Info("Total links found", zap.Int("total_links", linkStats.TotalLinks))
+		cs.Logger.Info("Matched links", zap.Int("matched_links", linkStats.MatchedLinks))
+		cs.Logger.Info("Not matched links", zap.Int("not_matched_links", linkStats.NotMatchedLinks))
 		// Here, you would add code to populate the 'results' slice with data
 	})
 
 	collector.OnRequest(func(r *colly.Request) {
-		logger.Info("Visiting", zap.String("url", r.URL.String()))
+		cs.Logger.Info("Visiting", zap.String("url", r.URL.String()))
 	})
 }
 
