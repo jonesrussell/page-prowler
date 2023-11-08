@@ -23,11 +23,13 @@ type RedisWrapper struct {
 	mu          sync.Mutex
 }
 
+// Cmdable represents an interface that includes the methods needed for Redis operations.
 type Cmdable interface {
 	redis.Cmdable
 	Ping(ctx context.Context) *redis.StatusCmd
 }
 
+// NewRedisWrapper creates a new RedisWrapper instance and returns an error if the connection to Redis fails.
 func NewRedisWrapper(ctx context.Context, client Cmdable) (*RedisWrapper, error) {
 	// Test the connection to Redis.
 	_, err := client.Ping(ctx).Result()
