@@ -41,11 +41,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Install golint
-        run: go get -u golang.org/x/lint/golint
+      - name: Install golangci-lint
+        run: go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+
+      - name: Add golangci-lint to PATH
+        run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
       - name: Lint
-        run: golint ./...
+        run: golangci-lint run ./...
 
       - name: Build
         run: go build ./...
