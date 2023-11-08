@@ -10,11 +10,14 @@ import (
 
 	"github.com/jonesrussell/crawler/internal/crawler"
 	"github.com/jonesrussell/crawler/internal/crawlresult"
+	"github.com/jonesrussell/crawler/internal/logger"
 	"github.com/jonesrussell/crawler/internal/rediswrapper"
+	"github.com/jonesrussell/crawler/internal/stats"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
+
+var linkStats = stats.NewStats() // Define linkStats
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -73,23 +76,19 @@ func initializeCrawlManager(ctx context.Context, debug bool) *crawler.CrawlManag
 	redisPort := viper.GetString("REDIS_PORT")
 	redisAuth := viper.GetString("REDIS_AUTH")
 
-	// Initialize Logger
-	logger, err := crawler.InitializeLogger(debug)
-	if err != nil {
-		fmt.Println("Failed to initialize logger:", err)
-		os.Exit(1)
-	}
+	// Initialize Logger with the new logger package
+	log := logger.New(debug) // Use the logger package's New function to get a logger instance
 
 	// Initialize RedisWrapper
-	redisWrapper, err := rediswrapper.NewRedisWrapper(ctx, redisHost, redisPort, redisAuth, logger)
+	redisWrapper, err := rediswrapper.NewRedisWrapper(ctx, redisHost, redisPort, redisAuth)
 	if err != nil {
-		logger.Errorf("Failed to initialize Redis: %v", err)
+		log.Error("Failed to initialize Redis", "error", err)
 		os.Exit(1)
 	}
 
 	// Return the CrawlManager instance
 	return &crawler.CrawlManager{
-		Logger:       logger,
+		Logger:       log, // Use the new logger instance here
 		RedisWrapper: redisWrapper,
 	}
 }
@@ -99,18 +98,32 @@ func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 	crawlerService := initializeCrawlManager(ctx, debug)
 
 	splitSearchTerms := strings.Split(searchTerms, ",")
-	collector := crawler.ConfigureCollector([]string{crawler.GetHostFromURL(url)}, maxDepth)
+	host, err := crawler.GetHostFromURL(url, crawlerService.Logger) // Now it needs two arguments
+	if err != nil {
+		crawlerService.Logger.Error("Failed to parse URL", "url", url, "error", err)
+		return
+	}
+
+	collector := crawler.ConfigureCollector([]string{host}, maxDepth)
 	if collector == nil {
 		crawlerService.Logger.Fatal("Failed to configure collector")
 		return
 	}
 
 	var results []crawlresult.PageData
-	crawlerService.SetupCrawlingLogic(ctx, crawlSiteID, collector, splitSearchTerms, &results)
+	// Create a CrawlOptions struct and pass it to SetupCrawlingLogic
+	options := crawler.CrawlOptions{
+		CrawlSiteID: crawlSiteID,
+		Collector:   collector,
+		SearchTerms: splitSearchTerms,
+		Results:     &results,
+		LinkStats:   linkStats,
+	}
+	crawlerService.SetupCrawlingLogic(ctx, options)
 
 	crawlerService.Logger.Info("Crawler started...")
 	if err := collector.Visit(url); err != nil {
-		crawlerService.Logger.Error("Error visiting URL", zap.Error(err))
+		crawlerService.Logger.Error("Error visiting URL", "url", url, "error", err)
 		return
 	}
 
@@ -118,7 +131,7 @@ func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 
 	jsonData, err := json.Marshal(results)
 	if err != nil {
-		crawlerService.Logger.Error("Error occurred during marshaling", zap.Error(err))
+		crawlerService.Logger.Error("Error occurred during marshaling", "error", err)
 		return
 	}
 
