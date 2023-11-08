@@ -17,8 +17,8 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// CrawlerService encapsulates shared dependencies for crawler functions.
-type CrawlerService struct {
+// CrawlManager encapsulates shared dependencies for crawler functions.
+type CrawlManager struct {
 	Logger       *zap.SugaredLogger
 	RedisWrapper *rediswrapper.RedisWrapper
 }
@@ -67,7 +67,7 @@ func ConfigureCollector(allowedDomains []string, maxDepth int) *colly.Collector 
 }
 
 // HandleHTMLParsing sets up the handler for HTML parsing with gocolly, using the provided parameters.
-func (cs *CrawlerService) HandleHTMLParsing(
+func (cs *CrawlManager) HandleHTMLParsing(
 	ctx context.Context,
 	crawlSiteID string,
 	collector *colly.Collector,
@@ -101,7 +101,7 @@ func (cs *CrawlerService) HandleHTMLParsing(
 }
 
 // handleMatchingLinks is responsible for handling the links that match the search criteria during crawling.
-func (cs *CrawlerService) handleMatchingLinks(
+func (cs *CrawlManager) handleMatchingLinks(
 	ctx context.Context,
 	collector *colly.Collector,
 	href string,
@@ -127,12 +127,12 @@ func (cs *CrawlerService) handleMatchingLinks(
 }
 
 // handleNonMatchingLinks logs the occurrence of a non-matching link.
-func (cs *CrawlerService) handleNonMatchingLinks(href string) {
+func (cs *CrawlManager) handleNonMatchingLinks(href string) {
 	cs.Logger.Info("Non-matching link: ", zap.String("url", href))
 }
 
 // handleErrorEvents sets up the error handling for the colly collector.
-func (cs *CrawlerService) handleErrorEvents(collector *colly.Collector) {
+func (cs *CrawlManager) handleErrorEvents(collector *colly.Collector) {
 	collector.OnError(func(r *colly.Response, err error) {
 		statusCode := r.StatusCode
 		requestURL := r.Request.URL.String()
@@ -148,7 +148,7 @@ func (cs *CrawlerService) handleErrorEvents(collector *colly.Collector) {
 }
 
 // handleRedisOperations manages the Redis operations after crawling a page.
-func (cs *CrawlerService) handleRedisOperations(ctx context.Context) error {
+func (cs *CrawlManager) handleRedisOperations(ctx context.Context) error {
 	// You need to pass the context and the appropriate key to SMembers
 	hrefs, err := cs.RedisWrapper.SMembers(ctx, "yourKeyHere") // Replace "yourKeyHere" with the actual key you're interested in
 	if err != nil {
@@ -172,7 +172,7 @@ func (cs *CrawlerService) handleRedisOperations(ctx context.Context) error {
 }
 
 // SetupCrawlingLogic configures and initiates the crawling logic.
-func (cs *CrawlerService) SetupCrawlingLogic(
+func (cs *CrawlManager) SetupCrawlingLogic(
 	ctx context.Context,
 	crawlSiteID string,
 	collector *colly.Collector,

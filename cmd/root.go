@@ -66,8 +66,8 @@ func initConfig() {
 	}
 }
 
-// initializeCrawlerService sets up the necessary services for the crawler.
-func initializeCrawlerService(ctx context.Context, debug bool) *crawler.CrawlerService {
+// initializeCrawlManager sets up the necessary services for the crawler.
+func initializeCrawlManager(ctx context.Context, debug bool) *crawler.CrawlManager {
 	// Fetch Redis configuration from Viper
 	redisHost := viper.GetString("REDIS_HOST")
 	redisPort := viper.GetString("REDIS_PORT")
@@ -87,16 +87,16 @@ func initializeCrawlerService(ctx context.Context, debug bool) *crawler.CrawlerS
 		os.Exit(1)
 	}
 
-	// Return the CrawlerService instance
-	return &crawler.CrawlerService{
+	// Return the CrawlManager instance
+	return &crawler.CrawlManager{
 		Logger:       logger,
 		RedisWrapper: redisWrapper,
 	}
 }
 
 func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool) {
-	// Initialize CrawlerService
-	crawlerService := initializeCrawlerService(ctx, debug)
+	// Initialize CrawlManager
+	crawlerService := initializeCrawlManager(ctx, debug)
 
 	splitSearchTerms := strings.Split(searchTerms, ",")
 	collector := crawler.ConfigureCollector([]string{crawler.GetHostFromURL(url)}, maxDepth)
