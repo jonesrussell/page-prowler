@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-redis/redismock/v8"
 	"github.com/gocolly/colly"
-	"github.com/jonesrussell/crawler/internal/crawlResult"
 	"github.com/jonesrussell/crawler/internal/crawler"
+	"github.com/jonesrussell/crawler/internal/crawlresult"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
@@ -55,7 +55,7 @@ func TestSetupCrawlingLogic(t *testing.T) {
 	ctx := context.Background()
 	crawlSiteID := "testSiteID"
 	searchTerms := []string{"test"}
-	results := []crawlResult.PageData{}
+	results := []crawlresult.PageData{}
 	logger, _ := zap.NewProduction()
 	db, mock := redismock.NewClientMock() // Create a new mock Redis client
 	collector := colly.NewCollector()

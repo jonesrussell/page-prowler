@@ -1,3 +1,4 @@
+// Package rediswrapper provides a wrapper for the Redis client to facilitate Redis operations.
 package rediswrapper
 
 import (
@@ -9,13 +10,13 @@ import (
 	"go.uber.org/zap"
 )
 
-// MsgPost represents a message with a URL and group.
+// MsgPost represents a message with a URL and group, typically used for message queues.
 type MsgPost struct {
 	Href  string `json:"href"`
 	Group string `json:"group"`
 }
 
-// RedisWrapper encapsulates a Redis client and associated methods.
+// RedisWrapper encapsulates a Redis client and associated methods, making it easier to interact with Redis.
 type RedisWrapper struct {
 	Client      *redis.Client
 	Logger      *zap.SugaredLogger
@@ -23,17 +24,17 @@ type RedisWrapper struct {
 	mu          sync.Mutex
 }
 
-// NewRedisWrapper creates a new RedisWrapper with the given configuration.
+// NewRedisWrapper creates a new RedisWrapper with the given configuration and returns it.
 func NewRedisWrapper(ctx context.Context, host, port, password string, logger *zap.SugaredLogger) (*RedisWrapper, error) {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     host + ":" + port,
-		Password: password,
-		DB:       0,
+		Addr:     fmt.Sprintf("%s:%s", host, port),
+		Password: password, // no password set
+		DB:       0,        // use default DB
 	})
 
 	_, err := rdb.Ping(ctx).Result()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to connect to Redis: %v", err)
 	}
 
 	return &RedisWrapper{
@@ -42,71 +43,84 @@ func NewRedisWrapper(ctx context.Context, host, port, password string, logger *z
 	}, nil
 }
 
-// SetCrawlsiteID sets the crawlsite ID for this RedisWrapper instance.
+// SetCrawlsiteID sets the identifier for the current crawl site in the RedisWrapper.
 func (rw *RedisWrapper) SetCrawlsiteID(id string) {
 	rw.mu.Lock()
-	defer rw.mu.Unlock()
 	rw.crawlsiteID = id
+	rw.mu.Unlock()
 }
 
+// SAdd adds one or more values to a set at a given key.
 func (rw *RedisWrapper) SAdd(ctx context.Context, key string, values ...interface{}) (int64, error) {
 	return rw.Client.SAdd(ctx, key, values...).Result()
 }
 
+// SMembers retrieves all the members of the set stored at a given key.
 func (rw *RedisWrapper) SMembers(ctx context.Context, key string) ([]string, error) {
 	return rw.Client.SMembers(ctx, key).Result()
 }
 
+// PublishHref publishes a message under a specific channel in Redis.
 func (rw *RedisWrapper) PublishHref(ctx context.Context, channel, message string) error {
 	return rw.Client.Publish(ctx, channel, message).Err()
 }
 
+// Del deletes one or more keys from Redis and returns the number of keys that were removed.
 func (rw *RedisWrapper) Del(ctx context.Context, keys ...string) (int64, error) {
 	return rw.Client.Del(ctx, keys...).Result()
 }
 
+// Stream creates a new group in a Redis stream with the specified stream key.
 func (rw *RedisWrapper) Stream(ctx context.Context, stream string, group string) error {
-	rw.Logger.Infof("Creating Redis stream: %s, Group: %s", stream, group)
 	return rw.Client.XGroupCreate(ctx, stream, group, "$").Err()
 }
 
+// Entries reads entries from a stream associated with a Redis group.
 func (rw *RedisWrapper) Entries(ctx context.Context, group string, stream string) ([]redis.XStream, error) {
 	return rw.Client.XReadGroup(ctx, &redis.XReadGroupArgs{
 		Group:    group,
-		Consumer: "*",
+		Consumer: "consumer",
 		Streams:  []string{stream, ">"},
-		Count:    1,
+		Count:    10,
 		Block:    0,
 		NoAck:    false,
 	}).Result()
 }
 
+// Messages is a helper function that extracts messages from a slice of XStream.
 func Messages(entries []redis.XStream) []redis.XMessage {
-	return entries[0].Messages
+	var messages []redis.XMessage
+	for _, entry := range entries {
+		messages = append(messages, entry.Messages...)
+	}
+	return messages
 }
 
+// Process takes a slice of XMessage and processes each message accordingly.
 func (rw *RedisWrapper) Process(ctx context.Context, messages []redis.XMessage, stream string, group string) []MsgPost {
-	var urls []MsgPost
-	for _, message := range messages {
-		eventName, href, group := processEntry(message.Values)
-		if eventName == "receivedUrl" {
-			msgPost := MsgPost{Href: href, Group: group}
-			urls = append(urls, msgPost)
-			rw.ackEntry(ctx, stream, group, message.ID) // Now it uses the method on the RedisWrapper
+	var posts []MsgPost
+	for _, msg := range messages {
+		values := msg.Values
+		eventName := fmt.Sprintf("%v", values["event"])
+		href := fmt.Sprintf("%v", values["href"])
+		group := fmt.Sprintf("%v", values["group"])
+
+		if eventName == "received" {
+			post := MsgPost{
+				Href:  href,
+				Group: group,
+			}
+			posts = append(posts, post)
+			// Acknowledge the message so it isn't processed again
+			if err := rw.ackEntry(ctx, stream, group, msg.ID); err != nil {
+				rw.Logger.Errorf("Failed to acknowledge message ID %s on stream %s: %v", msg.ID, stream, err)
+			}
 		}
 	}
-	return urls
+	return posts
 }
 
-func processEntry(values map[string]interface{}) (string, string, string) {
-	eventName := fmt.Sprintf("%v", values["eventName"])
-	href := fmt.Sprintf("%v", values["href"])
-	group := fmt.Sprintf("%v", values["group"])
-
-	return eventName, href, group
-}
-
-// Make sure ackEntry is correctly capitalized as it is a method of RedisWrapper
+// ackEntry acknowledges a processed message from a stream, so it doesn't get sent again.
 func (rw *RedisWrapper) ackEntry(ctx context.Context, stream string, group string, id string) error {
 	return rw.Client.XAck(ctx, stream, group, id).Err()
 }

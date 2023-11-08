@@ -1,3 +1,4 @@
+// Package crawler provides the tools and logic needed to perform web crawling and data extraction.
 package crawler
 
 import (
@@ -8,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gocolly/colly"
-	"github.com/jonesrussell/crawler/internal/crawlResult"
+	"github.com/jonesrussell/crawler/internal/crawlresult"
 	"github.com/jonesrussell/crawler/internal/rediswrapper"
 	"github.com/jonesrussell/crawler/internal/stats"
 	"github.com/jonesrussell/crawler/internal/termmatcher"
@@ -16,14 +17,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type CommandLineArgs struct {
-	URL         string
-	SearchTerms string
-	CrawlSiteID string
-	MaxDepth    int
-	Debug       bool
-}
-
+// InitializeLogger initializes the logger used in the application.
 func InitializeLogger(debug bool) (*zap.SugaredLogger, error) {
 	var logger *zap.Logger
 	var err error
@@ -45,6 +39,7 @@ func InitializeLogger(debug bool) (*zap.SugaredLogger, error) {
 	return logger.Sugar(), nil
 }
 
+// ConfigureCollector initializes a new gocolly collector with the specified domains and depth.
 func ConfigureCollector(allowedDomains []string, maxDepth int) *colly.Collector {
 	collector := colly.NewCollector(
 		colly.Async(true),
@@ -65,6 +60,7 @@ func ConfigureCollector(allowedDomains []string, maxDepth int) *colly.Collector 
 	return collector
 }
 
+// HandleHTMLParsing sets up the handler for HTML parsing with gocolly, using the provided parameters.
 func HandleHTMLParsing(
 	ctx context.Context,
 	crawlSiteID string, // Include crawlSiteID as a parameter
@@ -72,14 +68,14 @@ func HandleHTMLParsing(
 	collector *colly.Collector,
 	searchTerms []string,
 	linkStats *stats.Stats,
-	results *[]crawlResult.PageData,
+	results *[]crawlresult.PageData,
 	redisWrapper *rediswrapper.RedisWrapper,
 ) error { // Removed the named return value 'err' to avoid confusion with the 'err' inside the callback
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 		linkStats.IncrementTotalLinks()
 
-		pageData := crawlResult.PageData{
+		pageData := crawlresult.PageData{
 			URL: href,
 			// Add other fields as necessary
 		}
@@ -102,6 +98,7 @@ func HandleHTMLParsing(
 	return nil // Return nil here as any errors inside the callback do not propagate out
 }
 
+// handleMatchingLinks is responsible for handling the links that match the search criteria during crawling.
 func handleMatchingLinks(
 	ctx context.Context,
 	logger *zap.SugaredLogger,
@@ -115,17 +112,17 @@ func handleMatchingLinks(
 		logger.Error("Error adding URL to Redis set", zap.String("set", crawlSiteID), zap.Error(err))
 		return err
 	}
+
 	err := collector.Visit(href)
 	if err != nil {
 		if err == colly.ErrAlreadyVisited {
 			logger.Info("URL already visited", zap.String("url", href))
-			// Do not return an error for already visited URLs
 			return nil
-		} else {
-			logger.Error("Error visiting URL", zap.String("url", href), zap.Error(err))
-			return err
 		}
+		logger.Error("Error visiting URL", zap.String("url", href), zap.Error(err))
+		return err
 	}
+
 	return nil
 }
 
@@ -134,6 +131,7 @@ func handleNonMatchingLinks(logger *zap.SugaredLogger, href string) {
 	logger.Info("Non-matching link: ", zap.String("url", href))
 }
 
+// handleRedisOperations manages the Redis operations after crawling a page.
 func handleRedisOperations(ctx context.Context, redisWrapper *rediswrapper.RedisWrapper, logger *zap.SugaredLogger) error {
 	// You need to pass the context and the appropriate key to SMembers
 	hrefs, err := redisWrapper.SMembers(ctx, "yourKeyHere") // Replace "yourKeyHere" with the actual key you're interested in
@@ -172,12 +170,13 @@ func handleErrorEvents(collector *colly.Collector, logger *zap.SugaredLogger) {
 	})
 }
 
+// SetupCrawlingLogic configures and initiates the crawling logic.
 func SetupCrawlingLogic(
 	ctx context.Context,
 	crawlSiteID string, // Added CrawlSiteID as a parameter
 	collector *colly.Collector,
 	searchTerms []string,
-	results *[]crawlResult.PageData,
+	results *[]crawlresult.PageData,
 	logger *zap.SugaredLogger,
 	redisWrapper *rediswrapper.RedisWrapper,
 ) {
@@ -212,6 +211,7 @@ func SetupCrawlingLogic(
 	})
 }
 
+// GetHostFromURL extracts the host from a given URL string.
 func GetHostFromURL(inputURL string) string {
 	u, err := url.Parse(inputURL)
 	if err != nil {
