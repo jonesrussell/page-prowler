@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 Russell Jones jonesrussell42@gmail.com
 */
 package cmd
 
@@ -14,6 +14,7 @@ import (
 	"github.com/jonesrussell/crawler/internal/crawler"
 	"github.com/jonesrussell/crawler/internal/rediswrapper"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper" // Import viper
 	"go.uber.org/zap"
 )
 
@@ -48,6 +49,7 @@ var maxDepth int
 var debug bool
 
 func init() {
+	cobra.OnInitialize(initConfig) // Initialize viper when the application starts
 	rootCmd.PersistentFlags().StringVarP(&url, "url", "u", "", "URL to crawl")
 	rootCmd.PersistentFlags().StringVarP(&searchTerms, "searchterms", "s", "", "Comma-separated search terms")
 	rootCmd.PersistentFlags().StringVarP(&crawlSiteID, "crawlsiteid", "c", "", "CrawlSite ID")
@@ -57,6 +59,22 @@ func init() {
 	rootCmd.MarkPersistentFlagRequired("url")
 	rootCmd.MarkPersistentFlagRequired("searchterms")
 	rootCmd.MarkPersistentFlagRequired("crawlsiteid")
+
+	// Bind the flags to Viper parameters
+	viper.BindPFlag("url", rootCmd.PersistentFlags().Lookup("url"))
+	viper.BindPFlag("searchterms", rootCmd.PersistentFlags().Lookup("searchterms"))
+	viper.BindPFlag("crawlsiteid", rootCmd.PersistentFlags().Lookup("crawlsiteid"))
+	viper.BindPFlag("maxdepth", rootCmd.PersistentFlags().Lookup("maxdepth"))
+	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
+}
+
+func initConfig() {
+	viper.SetConfigFile(".env") // name of your env file
+	viper.SetConfigType("env")  // config file type to be .env
+
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Println("Error while reading config file", err)
+	}
 }
 
 func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool) {
