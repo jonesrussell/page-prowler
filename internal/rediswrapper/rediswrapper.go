@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/jonesrussell/crawler/internal/logger"
+	"github.com/jonesrussell/page-prowler/internal/logger"
 )
 
 // MsgPost represents a message with a URL and group, typically used for message queues.

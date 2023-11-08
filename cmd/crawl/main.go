@@ -1,4 +1,4 @@
-package main
+package crawl
 
 import (
 	"context"
@@ -8,52 +8,48 @@ import (
 	"strings"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/jonesrussell/crawler/internal/crawler"
-	"github.com/jonesrussell/crawler/internal/crawlresult"
-	"github.com/jonesrussell/crawler/internal/logger"
-	"github.com/jonesrussell/crawler/internal/rediswrapper"
-	"github.com/jonesrussell/crawler/internal/stats"
+	"github.com/jonesrussell/page-prowler/internal/crawler"
+	"github.com/jonesrussell/page-prowler/internal/crawlresult"
+	"github.com/jonesrussell/page-prowler/internal/logger"
+	"github.com/jonesrussell/page-prowler/internal/rediswrapper"
+	"github.com/jonesrussell/page-prowler/internal/stats"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var linkStats = stats.NewStats() // Define linkStats
 
-// crawlCmd represents the crawl command
-var crawlCmd = &cobra.Command{
+// CrawlCmd represents the crawl command
+var CrawlCmd = &cobra.Command{
 	Use:   "crawl",
 	Short: "Crawl websites and extract information",
 	Long: `Crawl is a CLI tool designed to perform web scraping and data extraction from websites.
            It allows users to specify parameters such as depth of crawl and target elements to extract.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
-		startCrawling(ctx, viper.GetString("url"), viper.GetString("searchterms"), viper.GetString("crawlsiteid"), viper.GetInt("maxdepth"), viper.GetBool("debug"))
+		debug := viper.GetBool("debug")
+		fmt.Println("Debug:", debug) // Print the value of debug
+		startCrawling(ctx, viper.GetString("url"), viper.GetString("searchterms"), viper.GetString("crawlsiteid"), viper.GetInt("maxdepth"), debug)
 	},
 }
 
-func main() {
-	// Cobra related code
+func init() {
 	cobra.OnInitialize(initConfig)
-	crawlCmd.PersistentFlags().String("url", "", "URL to crawl")
-	crawlCmd.PersistentFlags().String("searchterms", "", "Comma-separated search terms")
-	crawlCmd.PersistentFlags().String("crawlsiteid", "", "CrawlSite ID")
-	crawlCmd.PersistentFlags().Int("maxdepth", 1, "Maximum depth for the crawler")
-	crawlCmd.PersistentFlags().Bool("debug", false, "Enable debug mode")
+	CrawlCmd.PersistentFlags().String("url", "", "URL to crawl")
+	CrawlCmd.PersistentFlags().String("searchterms", "", "Comma-separated search terms")
+	CrawlCmd.PersistentFlags().String("crawlsiteid", "", "CrawlSite ID")
+	CrawlCmd.PersistentFlags().Int("maxdepth", 1, "Maximum depth for the crawler")
+	CrawlCmd.PersistentFlags().Bool("debug", false, "Enable debug mode")
 
-	crawlCmd.MarkPersistentFlagRequired("url")
-	crawlCmd.MarkPersistentFlagRequired("searchterms")
-	crawlCmd.MarkPersistentFlagRequired("crawlsiteid")
+	CrawlCmd.MarkPersistentFlagRequired("url")
+	CrawlCmd.MarkPersistentFlagRequired("searchterms")
+	CrawlCmd.MarkPersistentFlagRequired("crawlsiteid")
 
-	viper.BindPFlag("url", crawlCmd.PersistentFlags().Lookup("url"))
-	viper.BindPFlag("searchterms", crawlCmd.PersistentFlags().Lookup("searchterms"))
-	viper.BindPFlag("crawlsiteid", crawlCmd.PersistentFlags().Lookup("crawlsiteid"))
-	viper.BindPFlag("maxdepth", crawlCmd.PersistentFlags().Lookup("maxdepth"))
-	viper.BindPFlag("debug", crawlCmd.PersistentFlags().Lookup("debug"))
-
-	// Execute the crawl command
-	if err := crawlCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
+	viper.BindPFlag("url", CrawlCmd.PersistentFlags().Lookup("url"))
+	viper.BindPFlag("searchterms", CrawlCmd.PersistentFlags().Lookup("searchterms"))
+	viper.BindPFlag("crawlsiteid", CrawlCmd.PersistentFlags().Lookup("crawlsiteid"))
+	viper.BindPFlag("maxdepth", CrawlCmd.PersistentFlags().Lookup("maxdepth"))
+	viper.BindPFlag("debug", CrawlCmd.PersistentFlags().Lookup("debug"))
 }
 
 func initConfig() {
@@ -64,6 +60,9 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Println("Error while reading config file", err)
 	}
+
+	// Bind the current command's flags to viper
+	viper.BindPFlags(CrawlCmd.PersistentFlags())
 }
 
 // initializeCrawlManager sets up the necessary services for the crawler.
