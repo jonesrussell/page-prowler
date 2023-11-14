@@ -1,4 +1,7 @@
-package consume
+/*
+Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+*/
+package cmd
 
 import (
 	"context"
@@ -13,8 +16,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-// ConsumeCmd represents the consume command
-var ConsumeCmd = &cobra.Command{
+// consumeCmd represents the consume command
+var consumeCmd = &cobra.Command{
 	Use:   "consume",
 	Short: "Consume URLs from Redis",
 	Long:  `Consume is a CLI tool designed to fetch URLs from a Redis set.`,
@@ -32,13 +35,15 @@ var ConsumeCmd = &cobra.Command{
 }
 
 func init() {
-	ConsumeCmd.PersistentFlags().String("crawlsiteid", "", "CrawlSite ID")
-	ConsumeCmd.PersistentFlags().Bool("debug", false, "Enable debug mode")
+	rootCmd.AddCommand(consumeCmd)
 
-	ConsumeCmd.MarkPersistentFlagRequired("crawlsiteid")
+	consumeCmd.PersistentFlags().String("crawlsiteid", "", "CrawlSite ID")
+	consumeCmd.PersistentFlags().Bool("debug", false, "Enable debug mode")
 
-	viper.BindPFlag("crawlsiteid", ConsumeCmd.PersistentFlags().Lookup("crawlsiteid"))
-	viper.BindPFlag("debug", ConsumeCmd.PersistentFlags().Lookup("debug"))
+	consumeCmd.MarkPersistentFlagRequired("crawlsiteid")
+
+	viper.BindPFlag("crawlsiteid", consumeCmd.PersistentFlags().Lookup("crawlsiteid"))
+	viper.BindPFlag("debug", consumeCmd.PersistentFlags().Lookup("debug"))
 
 	cobra.OnInitialize(initConfig)
 }
