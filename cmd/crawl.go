@@ -11,6 +11,7 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/crawlresult"
 	"github.com/jonesrussell/page-prowler/internal/stats"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -21,6 +22,18 @@ var crawlCmd = &cobra.Command{
            It allows users to specify parameters such as depth of crawl and target elements to extract.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		initConfig()
+
+		if viper.GetBool("debug") {
+			fmt.Println("\nFlags:")
+			cmd.Flags().VisitAll(func(flag *pflag.Flag) {
+				fmt.Printf("  %-12s : %v\n", flag.Name, flag.Value)
+			})
+
+			fmt.Println("\nRedis Environment Variables:")
+			fmt.Printf("  %-12s : %s\n", "REDIS_HOST", viper.GetString("REDIS_HOST"))
+			fmt.Printf("  %-12s : %s\n", "REDIS_PORT", viper.GetString("REDIS_PORT"))
+			fmt.Printf("  %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH"))
+		}
 
 		startCrawling(context.Background(), viper.GetString("url"), viper.GetString("searchterms"), viper.GetString("crawlsiteid"), viper.GetInt("maxdepth"), viper.GetBool("debug"))
 	},
