@@ -1,34 +1,30 @@
-/*
-Copyright © 2023 RUSSELL JONES
-
-*/
 package cmd
 
 import (
+	"context"
+	"fmt"
 	"os"
 
+	"github.com/go-redis/redis/v8"
+	"github.com/jonesrussell/page-prowler/internal/crawler"
+	"github.com/jonesrussell/page-prowler/internal/logger"
+	"github.com/jonesrussell/page-prowler/internal/rediswrapper"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-
-
-// rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "page-prowler",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-		examples and usage of using your application. For example:
+	Short: "A web crawler for data extraction and URL consumption",
+	Long: `Page Prowler is a CLI tool designed for web scraping and data extraction from websites, 
+           as well as consuming URLs from a Redis set. It provides two main functionalities:
 
-		Cobra is a CLI library for Go that empowers applications.
-		This application is a tool to generate the needed files
-		to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+           1. The 'crawl' command: This command is used to crawl websites and extract information based on specified search terms.
+           2. The 'consume' command: This command fetches URLs from a Redis set.
+
+           Page Prowler is designed to be flexible and easy to use, making it a powerful tool for any data extraction needs.`,
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
@@ -37,15 +33,44 @@ func Execute() {
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	rootCmd.PersistentFlags().String("crawlsiteid", "", "CrawlSite ID")
+	rootCmd.PersistentFlags().Bool("debug", false, "Enable debug mode")
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.page-prowler.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	viper.BindPFlag("crawlsiteid", rootCmd.PersistentFlags().Lookup("crawlsiteid"))
+	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 }
 
+func initConfig() {
+	viper.SetConfigFile(".env")
+	viper.SetConfigType("env")
+	viper.AutomaticEnv() // Automatically override values from the .env file with those from the environment.
 
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Println("Error while reading config file", err)
+	}
+}
+
+func initializeManager(ctx context.Context, debug bool) (*crawler.CrawlManager, error) {
+	redisHost := viper.GetString("REDIS_HOST")
+	redisPort := viper.GetString("REDIS_PORT")
+	redisAuth := viper.GetString("REDIS_AUTH")
+
+	log := logger.New(debug)
+
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
+		Password: redisAuth,
+		DB:       0,
+	})
+
+	redisWrapper, err := rediswrapper.NewRedisWrapper(ctx, rdb)
+	if err != nil {
+		log.Error("Failed to initialize Redis", "error", err)
+		return nil, err
+	}
+
+	return &crawler.CrawlManager{
+		Logger:       log,
+		RedisWrapper: redisWrapper,
+	}, nil
+}
