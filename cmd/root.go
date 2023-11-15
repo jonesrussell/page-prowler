@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
@@ -25,11 +24,8 @@ var rootCmd = &cobra.Command{
            Page Prowler is designed to be flexible and easy to use, making it a powerful tool for any data extraction needs.`,
 }
 
-func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
-	}
+func Execute() error {
+	return rootCmd.Execute()
 }
 
 func init() {

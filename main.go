@@ -1,11 +1,19 @@
 /*
 Copyright © 2023 RUSSELL JONES
-
 */
 package main
 
-import "github.com/jonesrussell/page-prowler/cmd"
+import (
+	"fmt"
+	"os"
+
+	"github.com/jonesrussell/page-prowler/cmd"
+)
 
 func main() {
-	cmd.Execute()
+	err := cmd.Execute()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }
