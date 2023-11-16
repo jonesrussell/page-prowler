@@ -89,14 +89,6 @@ func (cs *CrawlManager) handleMatchingLinks(
 	href string,
 ) error {
 	cs.Logger.Info("Found URL", "url", href)
-	if _, err := cs.RedisWrapper.SAdd(ctx, options.CrawlSiteID, href); err != nil {
-		cs.Logger.Error("Error adding URL to Redis set", "set", options.CrawlSiteID, "error", err)
-		return err
-	}
-
-	if options.Debug {
-		cs.Logger.Debug("Added URL to Redis set", "set", options.CrawlSiteID, "url", href)
-	}
 
 	err := options.Collector.Visit(href)
 	if err != nil {
@@ -172,11 +164,6 @@ func (cs *CrawlManager) SetupCrawlingLogic(ctx context.Context, options CrawlOpt
 	cs.handleErrorEvents(options.Collector)
 
 	options.Collector.OnScraped(func(r *colly.Response) {
-		if err := cs.handleRedisOperations(ctx); err != nil {
-			cs.Logger.Error("Error with Redis operations", "error", err)
-			return
-		}
-
 		cs.Logger.Info("Finished scraping the page", "url", r.Request.URL.String())
 		cs.Logger.Info("Total links found", "total_links", options.LinkStats.TotalLinks)
 		cs.Logger.Info("Matched links", "matched_links", options.LinkStats.MatchedLinks)

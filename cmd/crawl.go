@@ -35,7 +35,14 @@ var crawlCmd = &cobra.Command{
 			fmt.Printf("  %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH"))
 		}
 
-		startCrawling(context.Background(), viper.GetString("url"), viper.GetString("searchterms"), viper.GetString("crawlsiteid"), viper.GetInt("maxdepth"), viper.GetBool("debug"))
+		ctx := context.Background()
+		crawlerService, err := initializeManager(ctx, viper.GetBool("debug"))
+		if err != nil {
+			fmt.Println("Failed to initialize Crawl Manager", "error", err)
+			os.Exit(1)
+		}
+
+		startCrawling(ctx, viper.GetString("url"), viper.GetString("searchterms"), viper.GetString("crawlsiteid"), viper.GetInt("maxdepth"), viper.GetBool("debug"), crawlerService)
 	},
 }
 
@@ -51,18 +58,9 @@ func init() {
 	rootCmd.AddCommand(crawlCmd)
 }
 
-func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool) {
-	crawlerService, err := initializeManager(ctx, debug)
-	if err != nil {
-		fmt.Println("Failed to initialize Crawl Manager", "error", err)
-		os.Exit(1)
-	}
-
-	// Create a new instance of Stats
-	linkStats := stats.NewStats()
-
+func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool, crawlerService *crawler.CrawlManager) {
 	splitSearchTerms := strings.Split(searchTerms, ",")
-	host, err := crawler.GetHostFromURL(url, crawlerService.Logger) // Now it needs two arguments
+	host, err := crawler.GetHostFromURL(url, crawlerService.Logger)
 	if err != nil {
 		crawlerService.Logger.Error("Failed to parse URL", "url", url, "error", err)
 		return
@@ -75,13 +73,13 @@ func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 	}
 
 	var results []crawlresult.PageData
-	// Create a CrawlOptions struct and pass it to SetupCrawlingLogic
+
 	options := crawler.CrawlOptions{
 		CrawlSiteID: crawlSiteID,
 		Collector:   collector,
 		SearchTerms: splitSearchTerms,
 		Results:     &results,
-		LinkStats:   linkStats,
+		LinkStats:   stats.NewStats(),
 		Debug:       debug,
 	}
 	crawlerService.SetupCrawlingLogic(ctx, options)
@@ -94,6 +92,23 @@ func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 
 	collector.Wait()
 
+	crawlerService.Logger.Info("Crawling completed.")
+
+	saveResultsToRedis(ctx, crawlerService, results)
+	printResults(crawlerService, results)
+}
+
+func saveResultsToRedis(ctx context.Context, crawlerService *crawler.CrawlManager, results []crawlresult.PageData) {
+	for _, result := range results {
+		_, err := crawlerService.RedisWrapper.SAdd(ctx, "yourKeyHere", result)
+		if err != nil {
+			crawlerService.Logger.Error("Error occurred during saving to Redis", "error", err)
+			return
+		}
+	}
+}
+
+func printResults(crawlerService *crawler.CrawlManager, results []crawlresult.PageData) {
 	jsonData, err := json.Marshal(results)
 	if err != nil {
 		crawlerService.Logger.Error("Error occurred during marshaling", "error", err)
@@ -101,5 +116,4 @@ func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 	}
 
 	fmt.Println(string(jsonData))
-	crawlerService.Logger.Info("Crawling completed.")
 }

@@ -46,20 +46,31 @@ func initConfig() {
 	}
 }
 
-func initializeManager(ctx context.Context, debug bool) (*crawler.CrawlManager, error) {
+func initializeLogger(debug bool) logger.Logger {
+	return logger.New(debug)
+}
+
+func initializeRedisClient() *redis.Client {
 	redisHost := viper.GetString("REDIS_HOST")
 	redisPort := viper.GetString("REDIS_PORT")
 	redisAuth := viper.GetString("REDIS_AUTH")
 
-	log := logger.New(debug)
-
-	rdb := redis.NewClient(&redis.Options{
+	return redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
 		Password: redisAuth,
 		DB:       0,
 	})
+}
 
-	redisWrapper, err := rediswrapper.NewRedisWrapper(ctx, rdb)
+func initializeRedisWrapper(ctx context.Context, rdb *redis.Client) (*rediswrapper.RedisWrapper, error) {
+	return rediswrapper.NewRedisWrapper(ctx, rdb)
+}
+
+func initializeManager(ctx context.Context, debug bool) (*crawler.CrawlManager, error) {
+	log := initializeLogger(debug)
+	rdb := initializeRedisClient()
+
+	redisWrapper, err := initializeRedisWrapper(ctx, rdb)
 	if err != nil {
 		log.Error("Failed to initialize Redis", "error", err)
 		return nil, err
