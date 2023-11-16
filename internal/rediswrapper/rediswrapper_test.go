@@ -2,6 +2,7 @@ package rediswrapper
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/go-redis/redis/v8"
@@ -115,4 +116,64 @@ func TestProcess(t *testing.T) {
 	assert.Equal(t, 1, len(posts))
 	assert.Equal(t, "http://example.com", posts[0].Href)
 	assert.Equal(t, "testGroup", posts[0].Group)
+}
+
+func TestNewRedisWrapper_Error(t *testing.T) {
+	ctx := context.Background()
+	db, mock := redismock.NewClientMock()
+
+	// Expect Ping call and return an error
+	mock.ExpectPing().SetErr(errors.New("Redis server not available"))
+
+	// Call NewRedisWrapper function
+	rw, err := NewRedisWrapper(ctx, db)
+
+	// Assert there was an error and the RedisWrapper was not created
+	assert.Error(t, err)
+	assert.Nil(t, rw)
+}
+
+func TestSAdd_Error(t *testing.T) {
+	ctx := context.Background()
+	db, mock := redismock.NewClientMock()
+
+	// Create a new RedisWrapper instance
+	rw := &RedisWrapper{
+		Client: db,
+	}
+
+	key := "testKey"
+	values := []interface{}{"value1", "value2"}
+
+	// Expect SAdd call and return an error
+	mock.ExpectSAdd(key, values...).SetErr(errors.New("Error adding to set"))
+
+	// Call SAdd method
+	added, err := rw.SAdd(ctx, key, values...)
+
+	// Assert there was an error and no values were added
+	assert.Error(t, err)
+	assert.Equal(t, int64(0), added)
+}
+
+func TestDel_Error(t *testing.T) {
+	ctx := context.Background()
+	db, mock := redismock.NewClientMock()
+
+	// Create a new RedisWrapper instance
+	rw := &RedisWrapper{
+		Client: db,
+	}
+
+	keys := []string{"key1", "key2"}
+
+	// Expect Del call and return an error
+	mock.ExpectDel(keys...).SetErr(errors.New("Error deleting keys"))
+
+	// Call Del method
+	deleted, err := rw.Del(ctx, keys...)
+
+	// Assert there was an error and no keys were deleted
+	assert.Error(t, err)
+	assert.Equal(t, int64(0), deleted)
 }
