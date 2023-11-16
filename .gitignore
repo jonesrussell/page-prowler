@@ -27,3 +27,5 @@ cmd/crawler/crawler
 cmd/consumer/consumer
 *__debug_bin*
 page-prowler
+
+/.idea
