@@ -29,5 +29,6 @@ cmd/consumer/consumer
 page-prowler
 
 /.idea
-qodana.yaml
+qodana.*
+:Zone.Identifier
 
