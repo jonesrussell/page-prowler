@@ -1,19 +1,20 @@
 /*
 Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-
 */
+
 package cmd
 
 import (
-	"fmt"
+	"context"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/spf13/cobra"
 )
 
 // serverCmd represents the server command
 var serverCmd = &cobra.Command{
 	Use:   "server",
-	Short: "A brief description of your command",
+	Short: "Start the Fiber server",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
@@ -21,20 +22,50 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("server called")
+		app := fiber.New()
+
+		app.Get("/ping", func(c *fiber.Ctx) error {
+			return c.JSON(fiber.Map{
+				"message": "pong",
+			})
+		})
+
+		app.Post("/start-crawling", func(c *fiber.Ctx) error {
+			// Parse the request body
+			var data struct {
+				URL         string
+				SearchTerms string
+				CrawlSiteID string
+				MaxDepth    int
+				Debug       bool
+			}
+			if err := c.BodyParser(&data); err != nil {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+					"error": "Cannot parse JSON",
+				})
+			}
+
+			// Initialize the CrawlManager
+			ctx := context.Background()
+			crawlerService, err := initializeManager(ctx, data.Debug)
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"error": "Failed to initialize Crawl Manager",
+				})
+			}
+
+			// Start crawling
+			startCrawling(ctx, data.URL, data.SearchTerms, data.CrawlSiteID, data.MaxDepth, data.Debug, crawlerService)
+
+			return c.JSON(fiber.Map{
+				"message": "Crawling started",
+			})
+		})
+
+		app.Listen(":3000")
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// serverCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// serverCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
