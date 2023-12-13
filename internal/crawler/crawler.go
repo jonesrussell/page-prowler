@@ -48,6 +48,10 @@ func ConfigureCollector(allowedDomains []string, maxDepth int) *colly.Collector 
 		return nil
 	}
 
+	// Respect robots.txt
+	collector.AllowURLRevisit = true
+	collector.IgnoreRobotsTxt = false
+
 	return collector
 }
 
@@ -120,34 +124,6 @@ func (cs *CrawlManager) handleErrorEvents(collector *colly.Collector) {
 			cs.Logger.Error("Request URL failed request_url=", requestURL, "status_code=", statusCode, "error=", err)
 		}
 	})
-}
-
-// handleRedisOperations manages the Redis operations after crawling a page.
-func (cs *CrawlManager) handleRedisOperations(ctx context.Context) error {
-	// Retrieve the members of the set from Redis.
-	hrefs, err := cs.RedisWrapper.SMembers(ctx, "yourKeyHere") // Replace "yourKeyHere" with the actual key you're interested in.
-	if err != nil {
-		cs.Logger.Error("Error getting members from Redis error=", err)
-		return err
-	}
-
-	// Iterate over the set members and publish each href to the specified channel.
-	for _, href := range hrefs {
-		err = cs.RedisWrapper.PublishHref(ctx, "streetcode", href)
-		if err != nil {
-			cs.Logger.Error("Error publishing href to Redis href=", href, "error=", err)
-			return err
-		}
-
-		// Delete the href from Redis now that it's been published.
-		if _, err = cs.RedisWrapper.Del(ctx, href); err != nil {
-			cs.Logger.Error("Error deleting href from Redis href=", href, "error=", err)
-			return err
-		}
-	}
-
-	// If no errors occurred, return nil to indicate success.
-	return nil
 }
 
 // SetupCrawlingLogic configures and initiates the crawling logic.
