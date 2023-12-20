@@ -7,6 +7,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
+	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
 	"github.com/jonesrussell/page-prowler/internal/rediswrapper"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -62,22 +63,25 @@ func initializeRedisClient() *redis.Client {
 	})
 }
 
-func initializeRedisWrapper(ctx context.Context, rdb *redis.Client) (*rediswrapper.RedisWrapper, error) {
-	return rediswrapper.NewRedisWrapper(ctx, rdb)
-}
-
 func initializeManager(ctx context.Context, debug bool) (*crawler.CrawlManager, error) {
 	log := initializeLogger(debug)
 	rdb := initializeRedisClient()
+	mongoDBWrapper, err := mongodbwrapper.NewMongoDBWrapper(ctx, "mongodb://localhost:27017")
 
-	redisWrapper, err := initializeRedisWrapper(ctx, rdb)
+	if err != nil {
+		log.Error("Failed to initialize MongoDB", "error", err)
+		return nil, err
+	}
+
+	redisWrapper, err := rediswrapper.NewRedisWrapper(ctx, rdb, log)
 	if err != nil {
 		log.Error("Failed to initialize Redis", "error", err)
 		return nil, err
 	}
 
 	return &crawler.CrawlManager{
-		Logger:       log,
-		RedisWrapper: redisWrapper,
+		Logger:         log,
+		RedisWrapper:   redisWrapper,
+		MongoDBWrapper: mongoDBWrapper,
 	}, nil
 }

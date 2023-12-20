@@ -22,25 +22,33 @@ func TestNewRedisWrapper(t *testing.T) {
 	ctx := context.Background()
 	db, mock := redismock.NewClientMock()
 
+	// Create a mock logger
+	log := &MockLogger{}
+
 	// Expect Ping call and return nil (indicating a successful connection)
 	mock.ExpectPing().SetVal("PONG")
 
-	// Call NewRedisWrapper function
-	rw, err := NewRedisWrapper(ctx, db)
+	// Call NewRedisWrapper function with the mock logger
+	rw, err := NewRedisWrapper(ctx, db, log)
 
 	// Assert there was no error and the RedisWrapper was correctly created
 	assert.NoError(t, err)
 	assert.NotNil(t, rw)
 	assert.Equal(t, db, rw.Client)
+	assert.Equal(t, log, rw.Log)
 }
 
 func TestSAdd(t *testing.T) {
 	ctx := context.Background()
 	db, mock := redismock.NewClientMock()
 
-	// Create a new RedisWrapper instance
+	// Create a mock logger
+	log := &MockLogger{}
+
+	// Create a new RedisWrapper instance with the mock logger
 	rw := &RedisWrapper{
 		Client: db,
+		Log:    log,
 	}
 
 	key := "testKey"
@@ -61,9 +69,13 @@ func TestDel(t *testing.T) {
 	ctx := context.Background()
 	db, mock := redismock.NewClientMock()
 
-	// Create a new RedisWrapper instance
+	// Create a mock logger
+	log := &MockLogger{}
+
+	// Create a new RedisWrapper instance with the mock logger
 	rw := &RedisWrapper{
 		Client: db,
+		Log:    log,
 	}
 
 	keys := []string{"key1", "key2"}
@@ -83,13 +95,14 @@ func TestProcess(t *testing.T) {
 	ctx := context.Background()
 	db, mock := redismock.NewClientMock()
 
-	// Create a new RedisWrapper instance
+	// Create a mock logger
+	log := &MockLogger{}
+
+	// Create a new RedisWrapper instance with the mock logger
 	rw := &RedisWrapper{
 		Client: db,
+		Log:    log,
 	}
-
-	// Create a mock logger
-	log := new(MockLogger)
 
 	// Create a slice of XMessage
 	messages := []redis.XMessage{
@@ -110,7 +123,7 @@ func TestProcess(t *testing.T) {
 	mock.ExpectXAck(stream, group, "1").SetVal(1)
 
 	// Call Process method
-	posts := rw.Process(ctx, messages, stream, group, log)
+	posts := rw.Process(ctx, messages, stream, group)
 
 	// Assert the return value is as expected
 	assert.Equal(t, 1, len(posts))
@@ -122,11 +135,14 @@ func TestNewRedisWrapper_Error(t *testing.T) {
 	ctx := context.Background()
 	db, mock := redismock.NewClientMock()
 
+	// Create a mock logger
+	log := &MockLogger{}
+
 	// Expect Ping call and return an error
 	mock.ExpectPing().SetErr(errors.New("Redis server not available"))
 
-	// Call NewRedisWrapper function
-	rw, err := NewRedisWrapper(ctx, db)
+	// Call NewRedisWrapper function with the mock logger
+	rw, err := NewRedisWrapper(ctx, db, log)
 
 	// Assert there was an error and the RedisWrapper was not created
 	assert.Error(t, err)
@@ -137,9 +153,13 @@ func TestSAdd_Error(t *testing.T) {
 	ctx := context.Background()
 	db, mock := redismock.NewClientMock()
 
-	// Create a new RedisWrapper instance
+	// Create a mock logger
+	log := &MockLogger{}
+
+	// Create a new RedisWrapper instance with the mock logger
 	rw := &RedisWrapper{
 		Client: db,
+		Log:    log,
 	}
 
 	key := "testKey"
@@ -160,9 +180,13 @@ func TestDel_Error(t *testing.T) {
 	ctx := context.Background()
 	db, mock := redismock.NewClientMock()
 
-	// Create a new RedisWrapper instance
+	// Create a mock logger
+	log := &MockLogger{}
+
+	// Create a new RedisWrapper instance with the mock logger
 	rw := &RedisWrapper{
 		Client: db,
+		Log:    log,
 	}
 
 	keys := []string{"key1", "key2"}

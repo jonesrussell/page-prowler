@@ -16,7 +16,7 @@ import (
 )
 
 var crawlCmd = &cobra.Command{
-	Use:   "crawl",
+	Use:   "matchterms",
 	Short: "Crawl websites and extract information",
 	Long: `Crawl is a CLI tool designed to perform web scraping and data extraction from websites.
            It allows users to specify parameters such as depth of crawl and target elements to extract.`,
@@ -82,7 +82,7 @@ func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 		LinkStats:   stats.NewStats(),
 		Debug:       debug,
 	}
-	crawlerService.SetupCrawlingLogic(ctx, options)
+	crawlerService.SetupCrawlingLogic(ctx, &options)
 
 	crawlerService.Logger.Info("Crawler started...")
 	if err := collector.Visit(url); err != nil {

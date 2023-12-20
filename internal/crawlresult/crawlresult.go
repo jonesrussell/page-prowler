@@ -2,7 +2,10 @@
 // results of a web crawl operation.
 package crawlresult
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Metadata contains metadata information of a crawled web page.
 type Metadata struct {
@@ -16,15 +19,22 @@ type Content struct {
 	Body  string `json:"body"`  // The body content of the web page
 }
 
-// PageData encapsulates all relevant information gathered from a crawled web page.
 type PageData struct {
-	URL           string    `json:"url"`             // The URL of the web page
-	CrawlTime     time.Time `json:"crawl_time"`      // The timestamp when the crawl was performed
-	StatusCode    int       `json:"status_code"`     // The HTTP status code received for the web page
-	Metadata      *Metadata `json:"metadata"`        // Metadata associated with the web page
-	Content       *Content  `json:"content"`         // Main content extracted from the web page
-	Links         []string  `json:"links"`           // The hyperlinks found on the web page
-	SearchTerms   []string  `json:"search_terms"`    // The search terms used during the crawl
-	MatchingTerms []string  `json:"matching_terms"`  // The terms that matched the search criteria
-	Error         string    `json:"error,omitempty"` // Any error encountered during crawling of this page
+	URL           string    `json:"url,omitempty"`            // The URL of the web page
+	CrawlTime     time.Time `json:"crawl_time,omitempty"`     // The timestamp when the crawl was performed
+	StatusCode    int       `json:"status_code,omitempty"`    // The HTTP status code received for the web page
+	Metadata      *Metadata `json:"metadata,omitempty"`       // Metadata associated with the web page
+	Content       *Content  `json:"content,omitempty"`        // Main content extracted from the web page
+	Links         []string  `json:"links,omitempty"`          // The hyperlinks found on the web page
+	SearchTerms   []string  `json:"search_terms,omitempty"`   // The search terms used during the crawl
+	MatchingTerms []string  `json:"matching_terms,omitempty"` // The terms that matched the search criteria
+	Error         string    `json:"error,omitempty"`          // Any error encountered during crawling of this page
+}
+
+func (pd *PageData) MarshalBinary() ([]byte, error) {
+	return json.Marshal(pd)
+}
+
+func (pd *PageData) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, pd)
 }
