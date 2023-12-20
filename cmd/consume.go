@@ -23,8 +23,6 @@ var consumeCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		initConfig()
-
 		if debug {
 			fmt.Println("All configuration keys and values:")
 			for _, key := range viper.AllKeys() {

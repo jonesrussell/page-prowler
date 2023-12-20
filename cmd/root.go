@@ -30,6 +30,8 @@ func Execute() error {
 }
 
 func init() {
+	cobra.OnInitialize(initConfig)
+
 	rootCmd.PersistentFlags().String("crawlsiteid", "", "CrawlSite ID")
 	rootCmd.PersistentFlags().Bool("debug", false, "Enable debug mode")
 
