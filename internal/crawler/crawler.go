@@ -70,9 +70,9 @@ func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlO
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 
 		options.LinkStatsMu.Lock()
-		defer options.LinkStatsMu.Unlock()
-
 		options.LinkStats.IncrementTotalLinks()
+		options.LinkStatsMu.Unlock()
+
 		cs.Logger.Info("Incremented total links count")
 
 		pageData := crawlresult.PageData{
@@ -81,7 +81,10 @@ func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlO
 		}
 
 		if termmatcher.Related(href, options.SearchTerms) {
+			options.LinkStatsMu.Lock()
 			options.LinkStats.IncrementMatchedLinks()
+			options.LinkStatsMu.Unlock()
+
 			cs.Logger.Info("Incremented matched links count")
 
 			if err := cs.handleMatchingLinks(ctx, options, href); err != nil {
@@ -89,13 +92,18 @@ func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlO
 			}
 			pageData.MatchingTerms = options.SearchTerms
 		} else {
+			options.LinkStatsMu.Lock()
 			options.LinkStats.IncrementNotMatchedLinks()
+			options.LinkStatsMu.Unlock()
+
 			cs.Logger.Info("Incremented not matched links count")
 
 			cs.handleNonMatchingLinks(href)
 		}
 
+		options.LinkStatsMu.Lock()
 		*options.Results = append(*options.Results, pageData)
+		options.LinkStatsMu.Unlock()
 	}
 }
 
@@ -158,9 +166,13 @@ func (cs *CrawlManager) SetupCrawlingLogic(ctx context.Context, options *CrawlOp
 	options.Collector.OnScraped(func(r *colly.Response) {
 		cs.Logger.Info("Start OnScraped callback", "url", r.Request.URL.String())
 		cs.Logger.Info("Finished scraping the page", "url", r.Request.URL.String())
+
+		options.LinkStatsMu.Lock()
 		cs.Logger.Info("Total links found", "total_links", options.LinkStats.TotalLinks)
 		cs.Logger.Info("Matched links", "matched_links", options.LinkStats.MatchedLinks)
 		cs.Logger.Info("Not matched links", "not_matched_links", options.LinkStats.NotMatchedLinks)
+		options.LinkStatsMu.Unlock()
+
 		// Here, you would add code to populate the 'results' slice with data
 		cs.Logger.Info("End OnScraped callback", "url", r.Request.URL.String())
 	})
