@@ -53,7 +53,7 @@ func ConfigureCollector(allowedDomains []string, maxDepth int) *colly.Collector 
 	}
 
 	// Respect robots.txt
-	collector.AllowURLRevisit = true
+	collector.AllowURLRevisit = false
 	collector.IgnoreRobotsTxt = false
 
 	return collector
@@ -70,9 +70,9 @@ func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlO
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 
 		options.LinkStatsMu.Lock()
-		options.LinkStats.IncrementTotalLinks()
-		options.LinkStatsMu.Unlock()
+		defer options.LinkStatsMu.Unlock()
 
+		options.LinkStats.IncrementTotalLinks()
 		cs.Logger.Info("Incremented total links count")
 
 		pageData := crawlresult.PageData{
@@ -81,10 +81,7 @@ func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlO
 		}
 
 		if termmatcher.Related(href, options.SearchTerms) {
-			options.LinkStatsMu.Lock()
 			options.LinkStats.IncrementMatchedLinks()
-			options.LinkStatsMu.Unlock()
-
 			cs.Logger.Info("Incremented matched links count")
 
 			if err := cs.handleMatchingLinks(ctx, options, href); err != nil {
@@ -92,10 +89,7 @@ func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlO
 			}
 			pageData.MatchingTerms = options.SearchTerms
 		} else {
-			options.LinkStatsMu.Lock()
 			options.LinkStats.IncrementNotMatchedLinks()
-			options.LinkStatsMu.Unlock()
-
 			cs.Logger.Info("Incremented not matched links count")
 
 			cs.handleNonMatchingLinks(href)
