@@ -22,8 +22,6 @@ var crawlCmd = &cobra.Command{
 	Long: `Crawl is a CLI tool designed to perform web scraping and data extraction from websites.
            It allows users to specify parameters such as depth of crawl and target elements to extract.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		initConfig()
-
 		if viper.GetBool("debug") {
 			fmt.Println("\nFlags:")
 			cmd.Flags().VisitAll(func(flag *pflag.Flag) {
