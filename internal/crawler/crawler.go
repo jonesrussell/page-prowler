@@ -52,6 +52,10 @@ func ConfigureCollector(allowedDomains []string, maxDepth int) *colly.Collector 
 		return nil
 	}
 
+	// Respect robots.txt
+	collector.AllowURLRevisit = true
+	collector.IgnoreRobotsTxt = false
+
 	return collector
 }
 

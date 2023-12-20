@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -58,18 +59,18 @@ func init() {
 	rootCmd.AddCommand(crawlCmd)
 }
 
-func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool, crawlerService *crawler.CrawlManager) {
+func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool, crawlerService *crawler.CrawlManager) error {
 	splitSearchTerms := strings.Split(searchTerms, ",")
 	host, err := crawler.GetHostFromURL(url, crawlerService.Logger)
 	if err != nil {
 		crawlerService.Logger.Error("Failed to parse URL", "url", url, "error", err)
-		return
+		return err
 	}
 
 	collector := crawler.ConfigureCollector([]string{host}, maxDepth)
 	if collector == nil {
 		crawlerService.Logger.Fatal("Failed to configure collector")
-		return
+		return errors.New("failed to configure collector")
 	}
 
 	var results []crawlresult.PageData
@@ -87,25 +88,31 @@ func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 	crawlerService.Logger.Info("Crawler started...")
 	if err := collector.Visit(url); err != nil {
 		crawlerService.Logger.Error("Error visiting URL", "url", url, "error", err)
-		return
+		return err
 	}
 
 	collector.Wait()
 
 	crawlerService.Logger.Info("Crawling completed.")
 
-	saveResultsToRedis(ctx, crawlerService, results)
+	err = saveResultsToRedis(ctx, crawlerService, results)
+	if err != nil {
+		return err
+	}
 	printResults(crawlerService, results)
+
+	return nil
 }
 
-func saveResultsToRedis(ctx context.Context, crawlerService *crawler.CrawlManager, results []crawlresult.PageData) {
+func saveResultsToRedis(ctx context.Context, crawlerService *crawler.CrawlManager, results []crawlresult.PageData) error {
 	for _, result := range results {
 		_, err := crawlerService.RedisWrapper.SAdd(ctx, "yourKeyHere", result)
 		if err != nil {
 			crawlerService.Logger.Error("Error occurred during saving to Redis", "error", err)
-			return
+			return err
 		}
 	}
+	return nil
 }
 
 func printResults(crawlerService *crawler.CrawlManager, results []crawlresult.PageData) {
