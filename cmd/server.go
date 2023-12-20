@@ -1,7 +1,3 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
-
 package cmd
 
 import (
@@ -11,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// serverCmd represents the server command
 var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start the Fiber server",
@@ -31,7 +26,6 @@ to quickly create a Cobra application.`,
 		})
 
 		app.Post("/start-crawling", func(c *fiber.Ctx) error {
-			// Parse the request body
 			var data struct {
 				URL         string
 				SearchTerms string
@@ -45,7 +39,6 @@ to quickly create a Cobra application.`,
 				})
 			}
 
-			// Initialize the CrawlManager
 			ctx := context.Background()
 			crawlerService, err := initializeManager(ctx, data.Debug)
 			if err != nil {
@@ -54,8 +47,12 @@ to quickly create a Cobra application.`,
 				})
 			}
 
-			// Start crawling
-			startCrawling(ctx, data.URL, data.SearchTerms, data.CrawlSiteID, data.MaxDepth, data.Debug, crawlerService)
+			err = startCrawling(ctx, data.URL, data.SearchTerms, data.CrawlSiteID, data.MaxDepth, data.Debug, crawlerService)
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"error": "Failed to start crawling",
+				})
+			}
 
 			return c.JSON(fiber.Map{
 				"message": "Crawling started",
