@@ -4,11 +4,13 @@ package crawler
 import (
 	"context"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/crawlresult"
 	"github.com/jonesrussell/page-prowler/internal/logger"
+	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
 	"github.com/jonesrussell/page-prowler/internal/rediswrapper"
 	"github.com/jonesrussell/page-prowler/internal/stats"
 	"github.com/jonesrussell/page-prowler/internal/termmatcher"
@@ -16,8 +18,9 @@ import (
 
 // CrawlManager encapsulates shared dependencies for crawler functions.
 type CrawlManager struct {
-	Logger       logger.Logger
-	RedisWrapper *rediswrapper.RedisWrapper
+	Logger         logger.Logger
+	RedisWrapper   *rediswrapper.RedisWrapper
+	MongoDBWrapper *mongodbwrapper.MongoDBWrapper
 }
 
 // CrawlOptions represents the options for configuring and initiating the crawling logic.
@@ -27,6 +30,7 @@ type CrawlOptions struct {
 	SearchTerms []string
 	Results     *[]crawlresult.PageData
 	LinkStats   *stats.Stats
+	LinkStatsMu sync.Mutex // Mutex for LinkStats
 	Debug       bool
 }
 
@@ -52,15 +56,20 @@ func ConfigureCollector(allowedDomains []string, maxDepth int) *colly.Collector 
 }
 
 // HandleHTMLParsing sets up the handler for HTML parsing with gocolly, using the provided parameters.
-func (cs *CrawlManager) HandleHTMLParsing(ctx context.Context, options CrawlOptions) error {
+func (cs *CrawlManager) HandleHTMLParsing(ctx context.Context, options *CrawlOptions) error {
 	options.Collector.OnHTML("a[href]", cs.handleAnchorElement(ctx, options))
 	return nil
 }
 
-func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options CrawlOptions) func(e *colly.HTMLElement) {
+func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlOptions) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
+
+		options.LinkStatsMu.Lock()
 		options.LinkStats.IncrementTotalLinks()
+		options.LinkStatsMu.Unlock()
+
+		cs.Logger.Info("Incremented total links count")
 
 		pageData := crawlresult.PageData{
 			URL: href,
@@ -68,13 +77,23 @@ func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options CrawlOp
 		}
 
 		if termmatcher.Related(href, options.SearchTerms) {
+			options.LinkStatsMu.Lock()
 			options.LinkStats.IncrementMatchedLinks()
+			options.LinkStatsMu.Unlock()
+
+			cs.Logger.Info("Incremented matched links count")
+
 			if err := cs.handleMatchingLinks(ctx, options, href); err != nil {
 				cs.Logger.Error("Error handling matching links", "error", err)
 			}
 			pageData.MatchingTerms = options.SearchTerms
 		} else {
+			options.LinkStatsMu.Lock()
 			options.LinkStats.IncrementNotMatchedLinks()
+			options.LinkStatsMu.Unlock()
+
+			cs.Logger.Info("Incremented not matched links count")
+
 			cs.handleNonMatchingLinks(href)
 		}
 
@@ -85,10 +104,10 @@ func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options CrawlOp
 // handleMatchingLinks is responsible for handling the links that match the search criteria during crawling.
 func (cs *CrawlManager) handleMatchingLinks(
 	ctx context.Context,
-	options CrawlOptions,
+	options *CrawlOptions,
 	href string,
 ) error {
-	cs.Logger.Info("Found URL", "url", href)
+	cs.Logger.Info("Start handling matching links", "url", href)
 
 	err := options.Collector.Visit(href)
 	if err != nil {
@@ -98,10 +117,12 @@ func (cs *CrawlManager) handleMatchingLinks(
 			cs.Logger.Info("Forbidden domain - Skipping visit", "url", href)
 		} else {
 			cs.Logger.Error("Error visiting URL", "url", href, "error", err)
+			cs.Logger.Info("End handling matching links", "url", href)
 			return err
 		}
 	}
 
+	cs.Logger.Info("End handling matching links", "url", href)
 	return nil
 }
 
@@ -122,36 +143,9 @@ func (cs *CrawlManager) handleErrorEvents(collector *colly.Collector) {
 	})
 }
 
-// handleRedisOperations manages the Redis operations after crawling a page.
-func (cs *CrawlManager) handleRedisOperations(ctx context.Context) error {
-	// Retrieve the members of the set from Redis.
-	hrefs, err := cs.RedisWrapper.SMembers(ctx, "yourKeyHere") // Replace "yourKeyHere" with the actual key you're interested in.
-	if err != nil {
-		cs.Logger.Error("Error getting members from Redis error=", err)
-		return err
-	}
-
-	// Iterate over the set members and publish each href to the specified channel.
-	for _, href := range hrefs {
-		err = cs.RedisWrapper.PublishHref(ctx, "streetcode", href)
-		if err != nil {
-			cs.Logger.Error("Error publishing href to Redis href=", href, "error=", err)
-			return err
-		}
-
-		// Delete the href from Redis now that it's been published.
-		if _, err = cs.RedisWrapper.Del(ctx, href); err != nil {
-			cs.Logger.Error("Error deleting href from Redis href=", href, "error=", err)
-			return err
-		}
-	}
-
-	// If no errors occurred, return nil to indicate success.
-	return nil
-}
-
 // SetupCrawlingLogic configures and initiates the crawling logic.
-func (cs *CrawlManager) SetupCrawlingLogic(ctx context.Context, options CrawlOptions) {
+func (cs *CrawlManager) SetupCrawlingLogic(ctx context.Context, options *CrawlOptions) {
+	cs.Logger.Info("Start SetupCrawlingLogic")
 	if options.Debug {
 		cs.Logger.Debug("Setting up crawling logic...")
 	}
@@ -164,16 +158,21 @@ func (cs *CrawlManager) SetupCrawlingLogic(ctx context.Context, options CrawlOpt
 	cs.handleErrorEvents(options.Collector)
 
 	options.Collector.OnScraped(func(r *colly.Response) {
+		cs.Logger.Info("Start OnScraped callback", "url", r.Request.URL.String())
 		cs.Logger.Info("Finished scraping the page", "url", r.Request.URL.String())
 		cs.Logger.Info("Total links found", "total_links", options.LinkStats.TotalLinks)
 		cs.Logger.Info("Matched links", "matched_links", options.LinkStats.MatchedLinks)
 		cs.Logger.Info("Not matched links", "not_matched_links", options.LinkStats.NotMatchedLinks)
 		// Here, you would add code to populate the 'results' slice with data
+		cs.Logger.Info("End OnScraped callback", "url", r.Request.URL.String())
 	})
 
 	options.Collector.OnRequest(func(r *colly.Request) {
+		cs.Logger.Info("Start OnRequest callback", "url", r.URL.String())
 		cs.Logger.Info("Visiting URL", "url", r.URL.String())
+		cs.Logger.Info("End OnRequest callback", "url", r.URL.String())
 	})
+	cs.Logger.Info("End SetupCrawlingLogic")
 }
 
 // GetHostFromURL extracts the host from a given URL string.

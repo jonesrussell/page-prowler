@@ -3,6 +3,7 @@ package rediswrapper
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -21,6 +22,7 @@ type RedisWrapper struct {
 	Client      redis.Cmdable
 	crawlsiteID string
 	mu          sync.Mutex
+	Log         logger.Logger
 }
 
 // Cmdable represents an interface that includes the methods needed for Redis operations.
@@ -30,7 +32,7 @@ type Cmdable interface {
 }
 
 // NewRedisWrapper creates a new RedisWrapper instance and returns an error if the connection to Redis fails.
-func NewRedisWrapper(ctx context.Context, client Cmdable) (*RedisWrapper, error) {
+func NewRedisWrapper(ctx context.Context, client Cmdable, log logger.Logger) (*RedisWrapper, error) {
 	// Test the connection to Redis.
 	_, err := client.Ping(ctx).Result()
 	if err != nil {
@@ -40,18 +42,37 @@ func NewRedisWrapper(ctx context.Context, client Cmdable) (*RedisWrapper, error)
 	// Return the new RedisWrapper instance.
 	return &RedisWrapper{
 		Client: client,
+		Log:    log,
 	}, nil
 }
 
 // SetCrawlsiteID sets the identifier for the current crawl site in the RedisWrapper.
 func (rw *RedisWrapper) SetCrawlsiteID(id string) {
 	rw.mu.Lock()
+	defer rw.mu.Unlock()
 	rw.crawlsiteID = id
-	rw.mu.Unlock()
 }
 
 // SAdd adds one or more values to a set at a given key.
 func (rw *RedisWrapper) SAdd(ctx context.Context, key string, values ...interface{}) (int64, error) {
+	// Convert each value to a JSON string if it's not already a string
+	for i, value := range values {
+		switch v := value.(type) {
+		case string:
+			// If the value is already a string, do nothing
+		default:
+			// If the value is not a string, try to convert it to a JSON string
+			jsonValue, err := json.Marshal(v)
+			if err != nil {
+				rw.Log.Error("Failed to marshal value to JSON", "value", v, "error", err)
+				return 0, err
+			}
+			// Replace the original value with the JSON string
+			values[i] = string(jsonValue)
+		}
+	}
+
+	// Add the values to the Redis set
 	return rw.Client.SAdd(ctx, key, values...).Result()
 }
 
@@ -97,7 +118,7 @@ func Messages(entries []redis.XStream) []redis.XMessage {
 }
 
 // Process takes a slice of XMessage and processes each message accordingly.
-func (rw *RedisWrapper) Process(ctx context.Context, messages []redis.XMessage, stream string, group string, log logger.Logger) []MsgPost {
+func (rw *RedisWrapper) Process(ctx context.Context, messages []redis.XMessage, stream string, group string) []MsgPost {
 	var posts []MsgPost
 	for _, msg := range messages {
 		values := msg.Values
@@ -113,7 +134,7 @@ func (rw *RedisWrapper) Process(ctx context.Context, messages []redis.XMessage, 
 			posts = append(posts, post)
 			// Acknowledge the message so it isn't processed again
 			if err := rw.ackEntry(ctx, stream, group, msg.ID); err != nil {
-				log.Error("Failed to acknowledge message", "ID", msg.ID, "stream", stream, "error", err)
+				rw.Log.Error("Failed to acknowledge message", "ID", msg.ID, "stream", stream, "error", err)
 			}
 		}
 	}
