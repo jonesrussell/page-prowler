@@ -31,8 +31,8 @@ type PageData struct {
 	Error         string    `json:"error,omitempty"`          // Any error encountered during crawling of this page
 }
 
-func (pd *PageData) MarshalBinary() ([]byte, error) {
-	return json.Marshal(pd)
+func (p PageData) MarshalBinary() ([]byte, error) {
+	return json.Marshal(p)
 }
 
 func (pd *PageData) UnmarshalBinary(data []byte) error {

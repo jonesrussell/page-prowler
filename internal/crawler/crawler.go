@@ -1,4 +1,3 @@
-// Package crawler provides the tools and logic needed to perform web crawling and data extraction.
 package crawler
 
 import (
@@ -11,15 +10,15 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/crawlresult"
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
-	"github.com/jonesrussell/page-prowler/internal/rediswrapper"
 	"github.com/jonesrussell/page-prowler/internal/stats"
 	"github.com/jonesrussell/page-prowler/internal/termmatcher"
+	"github.com/jonesrussell/page-prowler/redis"
 )
 
 // CrawlManager encapsulates shared dependencies for crawler functions.
 type CrawlManager struct {
 	Logger         logger.Logger
-	RedisWrapper   *rediswrapper.RedisWrapper
+	RedisClient    redis.RedisInterface
 	MongoDBWrapper *mongodbwrapper.MongoDBWrapper
 }
 
