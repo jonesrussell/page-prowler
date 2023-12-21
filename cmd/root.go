@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
-	"github.com/jonesrussell/page-prowler/internal/rediswrapper"
+	"github.com/jonesrussell/page-prowler/redis"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -17,12 +16,12 @@ var rootCmd = &cobra.Command{
 	Use:   "page-prowler",
 	Short: "A web crawler for data extraction and URL consumption",
 	Long: `Page Prowler is a CLI tool designed for web scraping and data extraction from websites, 
-           as well as consuming URLs from a Redis set. It provides two main functionalities:
+          as well as consuming URLs from a Redis set. It provides two main functionalities:
 
-           1. The 'crawl' command: This command is used to crawl websites and extract information based on specified search terms.
-           2. The 'consume' command: This command fetches URLs from a Redis set.
+          1. The 'crawl' command: This command is used to crawl websites and extract information based on specified search terms.
+          2. The 'consume' command: This command fetches URLs from a Redis set.
 
-           Page Prowler is designed to be flexible and easy to use, making it a powerful tool for any data extraction needs.`,
+          Page Prowler is designed to be flexible and easy to use, making it a powerful tool for any data extraction needs.`,
 }
 
 func Execute() error {
@@ -53,21 +52,15 @@ func initializeLogger(debug bool) logger.Logger {
 	return logger.New(debug)
 }
 
-func initializeRedisClient() *redis.Client {
-	redisHost := viper.GetString("REDIS_HOST")
-	redisPort := viper.GetString("REDIS_PORT")
-	redisAuth := viper.GetString("REDIS_AUTH")
-
-	return redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
-		Password: redisAuth,
-		DB:       0,
-	})
-}
-
 func initializeManager(ctx context.Context, debug bool) (*crawler.CrawlManager, error) {
 	log := initializeLogger(debug)
-	rdb := initializeRedisClient()
+	redisHost := viper.GetString("redis.host")
+	redisPassword := viper.GetString("redis.password")
+	redisClient, err := redis.NewRedisClient(redisHost, redisPassword) // Use the NewRedisClient function from the redis package
+	if err != nil {
+		log.Error("Failed to initialize Redis", "error", err)
+		return nil, err
+	}
 	mongoDBWrapper, err := mongodbwrapper.NewMongoDBWrapper(ctx, "mongodb://localhost:27017")
 
 	if err != nil {
@@ -75,15 +68,9 @@ func initializeManager(ctx context.Context, debug bool) (*crawler.CrawlManager, 
 		return nil, err
 	}
 
-	redisWrapper, err := rediswrapper.NewRedisWrapper(ctx, rdb, log)
-	if err != nil {
-		log.Error("Failed to initialize Redis", "error", err)
-		return nil, err
-	}
-
 	return &crawler.CrawlManager{
 		Logger:         log,
-		RedisWrapper:   redisWrapper,
+		RedisClient:    redisClient, // Use the RedisClient from the redis.RedisClient struct
 		MongoDBWrapper: mongoDBWrapper,
 	}, nil
 }

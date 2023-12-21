@@ -45,7 +45,7 @@ func startConsuming(ctx context.Context, crawlSiteID string, debug bool) {
 		os.Exit(1)
 	}
 
-	urls, err := crawlerService.RedisWrapper.SMembers(ctx, crawlSiteID)
+	urls, err := crawlerService.RedisClient.SMembers(ctx, crawlSiteID) // Use RedisClient instead of RedisWrapper
 	if err != nil {
 		crawlerService.Logger.Error("Error fetching URLs from Redis", "error", err)
 		return

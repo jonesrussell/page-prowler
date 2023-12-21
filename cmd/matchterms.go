@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var crawlCmd = &cobra.Command{
+var matchtermsCmd = &cobra.Command{
 	Use:   "matchterms",
 	Short: "Crawl websites and extract information",
 	Long: `Crawl is a CLI tool designed to perform web scraping and data extraction from websites.
@@ -46,15 +46,15 @@ var crawlCmd = &cobra.Command{
 }
 
 func init() {
-	crawlCmd.Flags().String("url", "", "URL to crawl")
-	crawlCmd.Flags().String("searchterms", "", "Search terms for crawling")
-	crawlCmd.Flags().Int("maxdepth", 1, "Maximum depth for crawling")
+	matchtermsCmd.Flags().String("url", "", "URL to crawl")
+	matchtermsCmd.Flags().String("searchterms", "", "Search terms for crawling")
+	matchtermsCmd.Flags().Int("maxdepth", 1, "Maximum depth for crawling")
 
-	viper.BindPFlag("url", crawlCmd.Flags().Lookup("url"))
-	viper.BindPFlag("searchterms", crawlCmd.Flags().Lookup("searchterms"))
-	viper.BindPFlag("maxdepth", crawlCmd.Flags().Lookup("maxdepth"))
+	viper.BindPFlag("url", matchtermsCmd.Flags().Lookup("url"))
+	viper.BindPFlag("searchterms", matchtermsCmd.Flags().Lookup("searchterms"))
+	viper.BindPFlag("maxdepth", matchtermsCmd.Flags().Lookup("maxdepth"))
 
-	rootCmd.AddCommand(crawlCmd)
+	rootCmd.AddCommand(matchtermsCmd)
 }
 
 func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool, crawlerService *crawler.CrawlManager) error {
@@ -104,7 +104,7 @@ func startCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 
 func saveResultsToRedis(ctx context.Context, crawlerService *crawler.CrawlManager, results []crawlresult.PageData) error {
 	for _, result := range results {
-		_, err := crawlerService.RedisWrapper.SAdd(ctx, "yourKeyHere", result)
+		_, err := crawlerService.RedisClient.SAdd(ctx, "yourKeyHere", result)
 		if err != nil {
 			crawlerService.Logger.Error("Error occurred during saving to Redis", "error", err)
 			return err
