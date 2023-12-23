@@ -18,13 +18,12 @@ The server also includes a '/ping' endpoint for health checks.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		e := echo.New()
 
-		// Initialize your server
-		server := ServerInterfaceWrapper{} // assuming you have a ServerInterfaceWrapper struct in api.gen.go
+		server := &ServerInterfaceWrapper{
+			Handler: &MyServer{},
+		}
 
-		// Register routes
-		RegisterHandlers(e, &server) // assuming you have a RegisterHandlers function in api.gen.go
+		RegisterHandlers(e, server)
 
-		// Start the server
 		e.Start(":3000")
 	},
 }
