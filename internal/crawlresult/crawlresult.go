@@ -35,6 +35,6 @@ func (p PageData) MarshalBinary() ([]byte, error) {
 	return json.Marshal(p)
 }
 
-func (pd *PageData) UnmarshalBinary(data []byte) error {
-	return json.Unmarshal(data, pd)
+func (p *PageData) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, p)
 }
