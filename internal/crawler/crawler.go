@@ -20,7 +20,6 @@ type CrawlManager struct {
 	Logger         logger.Logger
 	RedisClient    redis.RedisInterface
 	MongoDBWrapper *mongodbwrapper.MongoDBWrapper
-	StartTime      time.Time
 }
 
 // CrawlOptions represents the options for configuring and initiating the crawling logic.
@@ -104,7 +103,6 @@ func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlO
 		options.LinkStatsMu.Lock()
 		*options.Results = append(*options.Results, pageData)
 		options.LinkStatsMu.Unlock()
-		cs.Logger.Info("Added page data to results", "url", href)
 	}
 }
 
