@@ -13,8 +13,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-var matchtermsCmd = &cobra.Command{
-	Use:   "matchterms",
+var articlesCmd = &cobra.Command{
+	Use:   "articles",
 	Short: "Crawl websites and extract information",
 	Long: `Crawl is a CLI tool designed to perform web scraping and data extraction from websites.
            It allows users to specify parameters such as depth of crawl and target elements to extract.`,
@@ -43,15 +43,15 @@ var matchtermsCmd = &cobra.Command{
 }
 
 func init() {
-	matchtermsCmd.Flags().String("url", "", "URL to crawl")
-	matchtermsCmd.Flags().String("searchterms", "", "Search terms for crawling")
-	matchtermsCmd.Flags().Int("maxdepth", 1, "Maximum depth for crawling")
+	articlesCmd.Flags().String("url", "", "URL to crawl")
+	articlesCmd.Flags().String("searchterms", "", "Search terms for crawling")
+	articlesCmd.Flags().Int("maxdepth", 1, "Maximum depth for crawling")
 
-	viper.BindPFlag("url", matchtermsCmd.Flags().Lookup("url"))
-	viper.BindPFlag("searchterms", matchtermsCmd.Flags().Lookup("searchterms"))
-	viper.BindPFlag("maxdepth", matchtermsCmd.Flags().Lookup("maxdepth"))
+	viper.BindPFlag("url", articlesCmd.Flags().Lookup("url"))
+	viper.BindPFlag("searchterms", articlesCmd.Flags().Lookup("searchterms"))
+	viper.BindPFlag("maxdepth", articlesCmd.Flags().Lookup("maxdepth"))
 
-	rootCmd.AddCommand(matchtermsCmd)
+	rootCmd.AddCommand(articlesCmd)
 }
 
 func saveResultsToRedis(ctx context.Context, crawlerService *crawler.CrawlManager, results []crawlresult.PageData) error {
