@@ -66,9 +66,10 @@ func initializeManager(ctx context.Context, debug bool) (*crawler.CrawlManager, 
 	var err error
 
 	if !testing.Testing() {
-		redisHost := viper.GetString("redis.host")
-		redisPassword := viper.GetString("redis.password")
-		redisClient, err = redis.NewClient(redisHost, redisPassword) // Use the NewClient function from the redis package
+		redisHost := viper.GetString("REDIS_HOST")
+		redisAuth := viper.GetString("REDIS_AUTH")
+		redisPort := viper.GetString("REDIS_PORT")
+		redisClient, err = redis.NewClient(redisHost, redisAuth, redisPort)
 		if err != nil {
 			log.Error("Failed to initialize Redis", "error", err)
 			return nil, err
