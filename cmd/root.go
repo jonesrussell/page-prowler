@@ -15,14 +15,13 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "page-prowler",
-	Short: "A web crawler for data extraction and URL consumption",
-	Long: `Page Prowler is a CLI tool designed for web scraping and data extraction from websites, 
-          as well as consuming URLs from a Redis set. It provides two main functionalities:
+	Short: "A tool for finding articles from websites",
+	Long: `Page Prowler is a tool that finds articles from websites where the URL matches provided terms. It provides functionalities for:
 
-          1. The 'crawl' command: This command is used to crawl websites and extract information based on specified search terms.
-          2. The 'consume' command: This command fetches URLs from a Redis set.
+	1. Crawling specific websites and extracting articles that match the provided terms ('articles' command)
+	2. Consuming URLs from a Redis set ('consume' command)
 
-          Page Prowler is designed to be flexible and easy to use, making it a powerful tool for any data extraction needs.`,
+	In addition to the command line interface, Page Prowler also provides an HTTP API for interacting with the tool.`,
 }
 
 func Execute() error {
