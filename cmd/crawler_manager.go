@@ -11,7 +11,7 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/stats"
 )
 
-func StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool, crawlerService *crawler.CrawlManager, server *MyServer) error {
+func StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool, crawlerService *crawler.CrawlManager, server *CrawlServer) error {
 	splitSearchTerms := strings.Split(searchTerms, ",")
 	host, err := crawler.GetHostFromURL(url, crawlerService.Logger)
 	if err != nil {

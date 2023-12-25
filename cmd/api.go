@@ -31,7 +31,7 @@ The server also includes a '/ping' endpoint for health checks.`,
 		}
 
 		server := &ServerInterfaceWrapper{
-			Handler: &MyServer{
+			Handler: &CrawlServer{
 				CrawlManager: manager,
 			},
 		}

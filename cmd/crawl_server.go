@@ -9,11 +9,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type MyServer struct {
+type CrawlServer struct {
 	CrawlManager *crawler.CrawlManager
 }
 
-func (s *MyServer) PostArticlesStart(ctx echo.Context) error {
+func (s *CrawlServer) PostArticlesStart(ctx echo.Context) error {
 	var req PostArticlesStartJSONBody
 	if err := ctx.Bind(&req); err != nil {
 		return err
@@ -44,7 +44,7 @@ func (s *MyServer) PostArticlesStart(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, map[string]string{"message": "Crawling started successfully"})
 }
 
-func (s *MyServer) GetPing(ctx echo.Context) error {
+func (s *CrawlServer) GetPing(ctx echo.Context) error {
 	// Implement your logic here
 	return ctx.String(http.StatusOK, "Pong")
 }
