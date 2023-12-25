@@ -18,7 +18,7 @@ import (
 // CrawlManager encapsulates shared dependencies for crawler functions.
 type CrawlManager struct {
 	Logger         logger.Logger
-	RedisClient    redis.RedisInterface
+	Client         redis.Datastore
 	MongoDBWrapper *mongodbwrapper.MongoDBWrapper
 }
 

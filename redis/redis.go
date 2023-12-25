@@ -7,7 +7,8 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-type RedisInterface interface {
+// Datastore represents the interface for interacting with the Redis datastore.
+type Datastore interface {
 	Ping(ctx context.Context) *redis.StatusCmd
 	SAdd(ctx context.Context, key string, values ...interface{}) (int64, error)
 	SMembers(ctx context.Context, key string) ([]string, error)
@@ -17,11 +18,13 @@ type RedisInterface interface {
 	Entries(ctx context.Context, group string, stream string) ([]redis.XStream, error)
 }
 
-type RedisClient struct {
+// Client represents the Redis client.
+type Client struct {
 	Client *redis.Client
 }
 
-func NewRedisClient(address string, password string) (*RedisClient, error) {
+// NewClient creates a new Redis client.
+func NewClient(address string, password string) (*Client, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     address,
 		Password: password, // Use the Redis password
@@ -30,38 +33,44 @@ func NewRedisClient(address string, password string) (*RedisClient, error) {
 	if err := client.Ping(context.Background()).Err(); err != nil {
 		return nil, fmt.Errorf("failed to connect to Redis: %v", err)
 	}
-	return &RedisClient{
+	return &Client{
 		Client: client,
 	}, nil
 }
 
-// Implement the RedisInterface methods
-func (r *RedisClient) Ping(ctx context.Context) *redis.StatusCmd {
+// Ping sends a ping request to the Redis server.
+func (r *Client) Ping(ctx context.Context) *redis.StatusCmd {
 	return r.Client.Ping(ctx)
 }
 
-func (r *RedisClient) SAdd(ctx context.Context, key string, values ...interface{}) (int64, error) {
+// SAdd adds one or more members to a set.
+func (r *Client) SAdd(ctx context.Context, key string, values ...interface{}) (int64, error) {
 	return r.Client.SAdd(ctx, key, values...).Result()
 }
 
-func (r *RedisClient) SMembers(ctx context.Context, key string) ([]string, error) {
+// SMembers returns all the members of the set value stored at key.
+func (r *Client) SMembers(ctx context.Context, key string) ([]string, error) {
 	return r.Client.SMembers(ctx, key).Result()
 }
 
-func (r *RedisClient) PublishHref(ctx context.Context, channel, message string) error {
+// PublishHref publishes a href to the Redis server.
+func (r *Client) PublishHref(ctx context.Context, channel, message string) error {
 	return r.Client.Publish(ctx, channel, message).Err()
 }
 
-func (r *RedisClient) Del(ctx context.Context, keys ...string) (int64, error) {
+// Del deletes one or more keys.
+func (r *Client) Del(ctx context.Context, keys ...string) (int64, error) {
 	return r.Client.Del(ctx, keys...).Result()
 }
 
-func (r *RedisClient) Stream(ctx context.Context, stream string, group string) error {
+// Stream streams data from the Redis server.
+func (r *Client) Stream(ctx context.Context, stream string, group string) error {
 	// Implement this method based on your requirements
 	return nil
 }
 
-func (r *RedisClient) Entries(ctx context.Context, group string, stream string) ([]redis.XStream, error) {
+// Entries returns the entries from the Redis server.
+func (r *Client) Entries(ctx context.Context, group string, stream string) ([]redis.XStream, error) {
 	// Implement this method based on your requirements
 	return nil, nil
 }
