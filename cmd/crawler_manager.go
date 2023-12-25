@@ -1,4 +1,4 @@
-// cmd/crawler_service.go
+// cmd/crawler_manager.go
 package cmd
 
 import (
@@ -11,7 +11,7 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/stats"
 )
 
-func StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool, crawlerService *crawler.CrawlManager) error {
+func StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool, crawlerService *crawler.CrawlManager, server *MyServer) error {
 	splitSearchTerms := strings.Split(searchTerms, ",")
 	host, err := crawler.GetHostFromURL(url, crawlerService.Logger)
 	if err != nil {
@@ -47,7 +47,7 @@ func StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 
 	crawlerService.Logger.Info("Crawling completed.")
 
-	err = saveResultsToRedis(ctx, crawlerService, results)
+	err = server.saveResultsToRedis(ctx, results)
 	if err != nil {
 		return err
 	}

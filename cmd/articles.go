@@ -38,7 +38,11 @@ var articlesCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		StartCrawling(ctx, viper.GetString("url"), viper.GetString("searchterms"), viper.GetString("crawlsiteid"), viper.GetInt("maxdepth"), viper.GetBool("debug"), crawlerService)
+		myServerInstance := &MyServer{
+			CrawlManager: crawlerService,
+		}
+
+		StartCrawling(ctx, viper.GetString("url"), viper.GetString("searchterms"), viper.GetString("crawlsiteid"), viper.GetInt("maxdepth"), viper.GetBool("debug"), crawlerService, myServerInstance)
 	},
 }
 
@@ -54,13 +58,20 @@ func init() {
 	rootCmd.AddCommand(articlesCmd)
 }
 
-func saveResultsToRedis(ctx context.Context, crawlerService *crawler.CrawlManager, results []crawlresult.PageData) error {
+func (s *MyServer) saveResultsToRedis(ctx context.Context, results []crawlresult.PageData) error {
 	for _, result := range results {
-		_, err := crawlerService.RedisClient.SAdd(ctx, "yourKeyHere", result)
+		data, err := result.MarshalBinary()
 		if err != nil {
-			crawlerService.Logger.Error("Error occurred during saving to Redis", "error", err)
+			s.CrawlManager.Logger.Error("Error occurred during marshalling to binary", "error", err)
 			return err
 		}
+		str := string(data)
+		count, err := s.CrawlManager.RedisClient.SAdd(ctx, "yourKeyHere", str)
+		if err != nil {
+			s.CrawlManager.Logger.Error("Error occurred during saving to Redis", "error", err)
+			return err
+		}
+		fmt.Println("Added", count, "elements to the set")
 	}
 	return nil
 }

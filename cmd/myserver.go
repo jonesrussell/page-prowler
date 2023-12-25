@@ -1,18 +1,27 @@
 package cmd
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
+	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/labstack/echo/v4"
 )
 
-type MyServer struct{}
+type MyServer struct {
+	CrawlManager *crawler.CrawlManager
+}
 
 func (s *MyServer) PostArticlesStart(ctx echo.Context) error {
 	var req PostArticlesStartJSONBody
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return err
+	}
+
+	// Ensure the URL is not empty
+	if *req.URL == "" {
+		return errors.New("URL cannot be empty")
 	}
 
 	// Initialize your crawler service here
@@ -27,7 +36,7 @@ func (s *MyServer) PostArticlesStart(ctx echo.Context) error {
 		url = "https://" + url
 	}
 
-	err = StartCrawling(ctx.Request().Context(), url, *req.SearchTerms, *req.CrawlSiteID, *req.MaxDepth, *req.Debug, crawlerService)
+	err = StartCrawling(ctx.Request().Context(), url, *req.SearchTerms, *req.CrawlSiteID, *req.MaxDepth, *req.Debug, crawlerService, s)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}

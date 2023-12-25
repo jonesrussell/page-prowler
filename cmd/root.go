@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"testing"
 
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
@@ -54,13 +55,20 @@ func initializeLogger(debug bool) logger.Logger {
 
 func initializeManager(ctx context.Context, debug bool) (*crawler.CrawlManager, error) {
 	log := initializeLogger(debug)
-	redisHost := viper.GetString("redis.host")
-	redisPassword := viper.GetString("redis.password")
-	redisClient, err := redis.NewRedisClient(redisHost, redisPassword) // Use the NewRedisClient function from the redis package
-	if err != nil {
-		log.Error("Failed to initialize Redis", "error", err)
-		return nil, err
+
+	var redisClient *redis.RedisClient
+	var err error
+
+	if !testing.Testing() {
+		redisHost := viper.GetString("redis.host")
+		redisPassword := viper.GetString("redis.password")
+		redisClient, err = redis.NewRedisClient(redisHost, redisPassword) // Use the NewRedisClient function from the redis package
+		if err != nil {
+			log.Error("Failed to initialize Redis", "error", err)
+			return nil, err
+		}
 	}
+
 	mongoDBWrapper, err := mongodbwrapper.NewMongoDBWrapper(ctx, "mongodb://localhost:27017")
 
 	if err != nil {
@@ -70,7 +78,7 @@ func initializeManager(ctx context.Context, debug bool) (*crawler.CrawlManager, 
 
 	return &crawler.CrawlManager{
 		Logger:         log,
-		RedisClient:    redisClient, // Use the RedisClient from the redis.RedisClient struct
+		RedisClient:    redisClient, // Use the Client field from the RedisClient struct
 		MongoDBWrapper: mongoDBWrapper,
 	}, nil
 }
