@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/jonesrussell/page-prowler/internal/crawler"
@@ -42,7 +43,9 @@ var articlesCmd = &cobra.Command{
 			CrawlManager: crawlerService,
 		}
 
-		StartCrawling(ctx, viper.GetString("url"), viper.GetString("searchterms"), viper.GetString("crawlsiteid"), viper.GetInt("maxdepth"), viper.GetBool("debug"), crawlerService, myServerInstance)
+		if err := StartCrawling(ctx, viper.GetString("url"), viper.GetString("searchterms"), viper.GetString("crawlsiteid"), viper.GetInt("maxdepth"), viper.GetBool("debug"), crawlerService, myServerInstance); err != nil {
+			log.Fatalf("Error starting crawling: %v", err)
+		}
 	},
 }
 
@@ -51,9 +54,17 @@ func init() {
 	articlesCmd.Flags().String("searchterms", "", "Search terms for crawling")
 	articlesCmd.Flags().Int("maxdepth", 1, "Maximum depth for crawling")
 
-	viper.BindPFlag("url", articlesCmd.Flags().Lookup("url"))
-	viper.BindPFlag("searchterms", articlesCmd.Flags().Lookup("searchterms"))
-	viper.BindPFlag("maxdepth", articlesCmd.Flags().Lookup("maxdepth"))
+	if err := viper.BindPFlag("url", articlesCmd.Flags().Lookup("url")); err != nil {
+		log.Fatalf("Error binding url flag: %v", err)
+	}
+
+	if err := viper.BindPFlag("searchterms", articlesCmd.Flags().Lookup("searchterms")); err != nil {
+		log.Fatalf("Error binding searchterms flag: %v", err)
+	}
+
+	if err := viper.BindPFlag("maxdepth", articlesCmd.Flags().Lookup("maxdepth")); err != nil {
+		log.Fatalf("Error binding maxdepth flag: %v", err)
+	}
 
 	rootCmd.AddCommand(articlesCmd)
 }

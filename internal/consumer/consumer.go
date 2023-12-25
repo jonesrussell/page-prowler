@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -86,7 +87,11 @@ func (c *Consumer) Consume(ctx context.Context) error {
 func main() {
 	// Initialize the logger, Redis client, and Colly collector here
 	logger, _ := zap.NewProduction()
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			log.Fatalf("Error syncing logger: %v", err)
+		}
+	}()
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",

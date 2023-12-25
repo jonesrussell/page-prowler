@@ -20,10 +20,16 @@ fmt:
 	$(GO) fmt ./...
 
 lint:
-	golint ./...
+	golangci-lint run
 
 test:
 	$(GO) test ./... -cover
+
+tidy:
+	$(GO) mod tidy
+
+profile:
+	$(GO) test -cpuprofile cpu.pprof -memprofile mem.pprof -bench .
 
 docker-build:
 	docker build -t $(USERNAME)/$(PROJECTNAME):$(VERSION) .

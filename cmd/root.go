@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log"
 	"testing"
 
 	"github.com/jonesrussell/page-prowler/internal/crawler"
@@ -35,8 +36,13 @@ func init() {
 	rootCmd.PersistentFlags().String("crawlsiteid", "", "CrawlSite ID")
 	rootCmd.PersistentFlags().Bool("debug", false, "Enable debug mode")
 
-	viper.BindPFlag("crawlsiteid", rootCmd.PersistentFlags().Lookup("crawlsiteid"))
-	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
+	if err := viper.BindPFlag("crawlsiteid", rootCmd.PersistentFlags().Lookup("crawlsiteid")); err != nil {
+		log.Fatalf("Error binding crawlsiteid flag: %v", err)
+	}
+
+	if err := viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug")); err != nil {
+		log.Fatalf("Error binding debug flag: %v", err)
+	}
 }
 
 func initConfig() {
