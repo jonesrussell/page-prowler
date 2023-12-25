@@ -38,7 +38,7 @@ var articlesCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		myServerInstance := &MyServer{
+		myServerInstance := &CrawlServer{
 			CrawlManager: crawlerService,
 		}
 
@@ -58,7 +58,7 @@ func init() {
 	rootCmd.AddCommand(articlesCmd)
 }
 
-func (s *MyServer) saveResultsToRedis(ctx context.Context, results []crawlresult.PageData) error {
+func (s *CrawlServer) saveResultsToRedis(ctx context.Context, results []crawlresult.PageData) error {
 	for _, result := range results {
 		data, err := result.MarshalBinary()
 		if err != nil {

@@ -40,7 +40,7 @@ func TestGetPing(t *testing.T) {
 	}
 
 	handler := &ServerInterfaceWrapper{
-		Handler: &MyServer{
+		Handler: &CrawlServer{
 			CrawlManager: manager,
 		},
 	}
@@ -72,7 +72,7 @@ func TestPostArticlesStart(t *testing.T) {
 
 	manager, _ := initializeManager(ctx, true)
 	handler := &ServerInterfaceWrapper{
-		Handler: &MyServer{
+		Handler: &CrawlServer{
 			CrawlManager: manager,
 		},
 	}
