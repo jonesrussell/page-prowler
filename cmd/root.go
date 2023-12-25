@@ -18,12 +18,13 @@ var rootCmd = &cobra.Command{
 	Short: "A tool for finding articles from websites",
 	Long: `Page Prowler is a tool that finds articles from websites where the URL matches provided terms. It provides functionalities for:
 
-	1. Crawling specific websites and extracting articles that match the provided terms ('articles' command)
+1. Crawling specific websites and extracting articles that match the provided terms ('articles' command)
 	2. Consuming URLs from a Redis set ('consume' command)
 
 	In addition to the command line interface, Page Prowler also provides an HTTP API for interacting with the tool.`,
 }
 
+// Execute runs the root command.
 func Execute() error {
 	return rootCmd.Execute()
 }
@@ -55,13 +56,13 @@ func initializeLogger(debug bool) logger.Logger {
 func initializeManager(ctx context.Context, debug bool) (*crawler.CrawlManager, error) {
 	log := initializeLogger(debug)
 
-	var redisClient *redis.RedisClient
+	var redisClient *redis.Client
 	var err error
 
 	if !testing.Testing() {
 		redisHost := viper.GetString("redis.host")
 		redisPassword := viper.GetString("redis.password")
-		redisClient, err = redis.NewRedisClient(redisHost, redisPassword) // Use the NewRedisClient function from the redis package
+		redisClient, err = redis.NewClient(redisHost, redisPassword) // Use the NewClient function from the redis package
 		if err != nil {
 			log.Error("Failed to initialize Redis", "error", err)
 			return nil, err
@@ -77,7 +78,7 @@ func initializeManager(ctx context.Context, debug bool) (*crawler.CrawlManager, 
 
 	return &crawler.CrawlManager{
 		Logger:         log,
-		RedisClient:    redisClient, // Use the Client field from the RedisClient struct
+		Client:         redisClient, // Use the Client field from the Client struct
 		MongoDBWrapper: mongoDBWrapper,
 	}, nil
 }

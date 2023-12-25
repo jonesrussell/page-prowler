@@ -66,7 +66,7 @@ func (s *CrawlServer) saveResultsToRedis(ctx context.Context, results []crawlres
 			return err
 		}
 		str := string(data)
-		count, err := s.CrawlManager.RedisClient.SAdd(ctx, "yourKeyHere", str)
+		count, err := s.CrawlManager.Client.SAdd(ctx, "yourKeyHere", str)
 		if err != nil {
 			s.CrawlManager.Logger.Error("Error occurred during saving to Redis", "error", err)
 			return err

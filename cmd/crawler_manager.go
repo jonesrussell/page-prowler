@@ -1,4 +1,4 @@
-// cmd/crawler_manager.go
+// Package cmd provides the command line interface for the Page Prowler tool.
 package cmd
 
 import (
@@ -11,6 +11,7 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/stats"
 )
 
+// StartCrawling starts the crawling process.
 func StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool, crawlerService *crawler.CrawlManager, server *CrawlServer) error {
 	splitSearchTerms := strings.Split(searchTerms, ",")
 	host, err := crawler.GetHostFromURL(url, crawlerService.Logger)

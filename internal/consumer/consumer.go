@@ -14,28 +14,28 @@ import (
 
 // Consumer represents a consumer that processes URLs from a Redis stream.
 type Consumer struct {
-	RedisClient *redis.Client
-	Collector   *colly.Collector
-	Logger      *zap.SugaredLogger
-	Stream      string
-	Group       string
+	Client    *redis.Client
+	Collector *colly.Collector
+	Logger    *zap.SugaredLogger
+	Stream    string
+	Group     string
 }
 
 // NewConsumer creates a new Consumer instance.
 func NewConsumer(redisClient *redis.Client, collector *colly.Collector, logger *zap.SugaredLogger, stream, group string) *Consumer {
 	return &Consumer{
-		RedisClient: redisClient,
-		Collector:   collector,
-		Logger:      logger,
-		Stream:      stream,
-		Group:       group,
+		Client:    redisClient,
+		Collector: collector,
+		Logger:    logger,
+		Stream:    stream,
+		Group:     group,
 	}
 }
 
 // Consume starts listening to the Redis stream and processes URLs.
 func (c *Consumer) Consume(ctx context.Context) error {
 	// Create a consumer group if it doesn't exist
-	if err := c.RedisClient.XGroupCreateMkStream(ctx, c.Stream, c.Group, "$").Err(); err != nil && err != redis.Nil {
+	if err := c.Client.XGroupCreateMkStream(ctx, c.Stream, c.Group, "$").Err(); err != nil && err != redis.Nil {
 		return err
 	}
 
@@ -49,7 +49,7 @@ func (c *Consumer) Consume(ctx context.Context) error {
 			return nil // The context is canceled, so we should stop the consumer gracefully.
 		default:
 			// Read messages from the Redis stream
-			messages, err := c.RedisClient.XReadGroup(ctx, &redis.XReadGroupArgs{
+			messages, err := c.Client.XReadGroup(ctx, &redis.XReadGroupArgs{
 				Group:    c.Group,
 				Consumer: "crawler", // Your consumer name
 				Streams:  []string{c.Stream, ">"},
@@ -71,7 +71,7 @@ func (c *Consumer) Consume(ctx context.Context) error {
 					// For example, you can use c.Collector.Visit(href) to crawl the URL.
 
 					// Acknowledge the message to remove it from the stream
-					if err := c.RedisClient.XAck(ctx, c.Stream, c.Group, xMessage.ID).Err(); err != nil {
+					if err := c.Client.XAck(ctx, c.Stream, c.Group, xMessage.ID).Err(); err != nil {
 						c.Logger.Errorw("Error acknowledging message", "error", err)
 					}
 				}

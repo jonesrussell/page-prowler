@@ -19,6 +19,7 @@ type Content struct {
 	Body  string `json:"body"`  // The body content of the web page
 }
 
+// PageData represents the data of a crawled page.
 type PageData struct {
 	URL           string    `json:"url,omitempty"`            // The URL of the web page
 	CrawlTime     time.Time `json:"crawl_time,omitempty"`     // The timestamp when the crawl was performed
@@ -31,10 +32,12 @@ type PageData struct {
 	Error         string    `json:"error,omitempty"`          // Any error encountered during crawling of this page
 }
 
+// MarshalBinary marshals the PageData into binary form.
 func (p PageData) MarshalBinary() ([]byte, error) {
 	return json.Marshal(p)
 }
 
+// UnmarshalBinary unmarshals binary data into PageData.
 func (p *PageData) UnmarshalBinary(data []byte) error {
 	return json.Unmarshal(data, p)
 }

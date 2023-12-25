@@ -9,10 +9,12 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// CrawlServer represents the server that handles the crawling process.
 type CrawlServer struct {
 	CrawlManager *crawler.CrawlManager
 }
 
+// PostArticlesStart starts the article posting process.
 func (s *CrawlServer) PostArticlesStart(ctx echo.Context) error {
 	var req PostArticlesStartJSONBody
 	if err := ctx.Bind(&req); err != nil {
@@ -44,6 +46,7 @@ func (s *CrawlServer) PostArticlesStart(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, map[string]string{"message": "Crawling started successfully"})
 }
 
+// GetPing handles the ping request.
 func (s *CrawlServer) GetPing(ctx echo.Context) error {
 	// Implement your logic here
 	return ctx.String(http.StatusOK, "Pong")
