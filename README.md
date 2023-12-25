@@ -1,11 +1,17 @@
 # Page Prowler
 
-Page Prowler is a CLI tool designed for web scraping and data extraction from websites, as well as consuming URLs from a Redis set. It provides two main functionalities:
+Page Prowler is a tool for finding articles from websites where the URL matches provided terms. It provides functionalities for crawling specific websites, extracting articles that match the provided terms, and consuming URLs from a Redis set.
 
-1. **The 'crawl' command**: This command is used to crawl websites and extract information based on specified search terms.
-2. **The 'consume' command**: This command fetches URLs from a Redis set.
+## Usage
 
-Page Prowler is designed to be flexible and easy to use, making it a powerful tool for any data extraction needs.
+```page-prowler [command]```
+
+## Commands
+
+- api: Starts the API server.
+- articles: Crawls specific websites and extracts articles that match the provided terms.
+- consume: Consumes URLs from a Redis set.
+- help: Displays help about any command.
 
 ## Installation
 
@@ -16,10 +22,6 @@ git clone https://github.com/jonesrussell/page-prowler.git
 cd page-prowler
 go build
 ```
-
-## Usage
-
-You can use Page Prowler from the command line or through its API.
 
 ### Command Line
 
