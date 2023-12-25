@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"log"
 	"os"
 	"testing"
@@ -80,4 +81,22 @@ func TestInitConfigError(t *testing.T) {
 
 	// Call initConfig and check if it doesn't panic
 	assert.NotPanics(t, func() { initConfig() }, "initConfig should not panic if the config file does not exist")
+}
+
+func TestInitializeManager(t *testing.T) {
+	// Set the environment variables
+	os.Setenv("REDIS_HOST", "172.17.0.1")
+	os.Setenv("REDIS_AUTH", "password")
+	os.Setenv("REDIS_PORT", "6379")
+
+	// Initialize the manager
+	manager, err := initializeManager(context.Background(), false)
+	if err != nil {
+		t.Fatalf("Failed to initialize manager: %v", err)
+	}
+
+	// Add assertions
+	assert.NotNil(t, manager.Client, "Client should not be nil")
+	assert.NotNil(t, manager.MongoDBWrapper, "MongoDBWrapper should not be nil")
+	assert.Equal(t, false, manager.Logger.Debug, "Logger should be in non-debug mode")
 }

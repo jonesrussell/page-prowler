@@ -24,9 +24,9 @@ type Client struct {
 }
 
 // NewClient creates a new Redis client.
-func NewClient(address string, password string) (*Client, error) {
+func NewClient(address string, password string, port string) (*Client, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:     address,
+		Addr:     address + ":" + port,
 		Password: password, // Use the Redis password
 		DB:       0,
 	})
