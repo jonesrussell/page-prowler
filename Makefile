@@ -1,5 +1,8 @@
 .PHONY: all build install clean fmt lint test docker-build docker-push
 
+USERNAME := jonesrussell
+PROJECTNAME := page-prowler
+VERSION := v1.0.0
 GO = go
 GO_LDFLAGS = -ldflags "-s -w"
 BINARY_DIR = bin
