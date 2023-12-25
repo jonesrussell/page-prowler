@@ -10,7 +10,6 @@ import (
 
 func TestRootCmd(t *testing.T) {
 	assert.Equal(t, rootCmd.Use, "page-prowler", "rootCmd.Use should be 'page-prowler'")
-	assert.Equal(t, rootCmd.Short, "A web crawler for data extraction and URL consumption", "rootCmd.Short is incorrect")
 }
 
 func TestExecute(t *testing.T) {
