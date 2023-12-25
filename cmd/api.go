@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/cobra"
@@ -38,7 +39,9 @@ The server also includes a '/ping' endpoint for health checks.`,
 
 		RegisterHandlers(e, server)
 
-		e.Start(":3000")
+		if err := e.Start(":3000"); err != nil {
+			log.Fatalf("Error starting echo server: %v", err)
+		}
 	},
 }
 
