@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var apiCmd = &cobra.Command{
@@ -18,8 +22,18 @@ The server also includes a '/ping' endpoint for health checks.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		e := echo.New()
 
+		ctx := context.Background()
+		debug := viper.GetBool("debug")
+		manager, err := initializeManager(ctx, debug)
+		if err != nil {
+			fmt.Println("Failed to initialize manager", err)
+			return
+		}
+
 		server := &ServerInterfaceWrapper{
-			Handler: &MyServer{},
+			Handler: &MyServer{
+				CrawlManager: manager,
+			},
 		}
 
 		RegisterHandlers(e, server)
