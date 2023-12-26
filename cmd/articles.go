@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/jonesrussell/page-prowler/internal/crawler"
-	"github.com/jonesrussell/page-prowler/internal/crawlresult"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -33,7 +32,7 @@ var articlesCmd = &cobra.Command{
 		}
 
 		ctx := context.Background()
-		crawlerService, err := initializeManager(ctx, viper.GetBool("debug"))
+		crawlerService, err := initializeManager(ctx, viper.GetBool("debug"), nil)
 		if err != nil {
 			fmt.Println("Failed to initialize Crawl Manager", "error", err)
 			os.Exit(1)
@@ -69,7 +68,7 @@ func init() {
 	rootCmd.AddCommand(articlesCmd)
 }
 
-func (s *CrawlServer) saveResultsToRedis(ctx context.Context, results []crawlresult.PageData) error {
+func (s *CrawlServer) saveResultsToRedis(ctx context.Context, results []crawler.PageData) error {
 	for _, result := range results {
 		data, err := result.MarshalBinary()
 		if err != nil {
@@ -87,7 +86,7 @@ func (s *CrawlServer) saveResultsToRedis(ctx context.Context, results []crawlres
 	return nil
 }
 
-func printResults(crawlerService *crawler.CrawlManager, results []crawlresult.PageData) {
+func printResults(crawlerService *crawler.CrawlManager, results []crawler.PageData) {
 	jsonData, err := json.Marshal(results)
 	if err != nil {
 		crawlerService.Logger.Error("Error occurred during marshaling", "error", err)

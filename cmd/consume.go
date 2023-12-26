@@ -39,7 +39,7 @@ func init() {
 }
 
 func startConsuming(ctx context.Context, crawlSiteID string, debug bool) {
-	crawlerService, err := initializeManager(ctx, debug)
+	crawlerService, err := initializeManager(ctx, debug, nil)
 	if err != nil {
 		crawlerService.Logger.Error("Failed to initialize Consume Manager", "error", err)
 		os.Exit(1)

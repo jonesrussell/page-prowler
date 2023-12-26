@@ -12,11 +12,17 @@ type Logger interface {
 	Warn(msg string, keysAndValues ...interface{})
 	Error(msg string, keysAndValues ...interface{})
 	Fatal(msg string, keysAndValues ...interface{})
+	IsDebugEnabled() bool
 }
 
 // zapLogger is an internal struct that will implement the Logger interface using zap.
 type zapLogger struct {
-	sugar *zap.SugaredLogger
+	sugar          *zap.SugaredLogger
+	isDebugEnabled bool
+}
+
+func (l *zapLogger) IsDebugEnabled() bool {
+	return l.isDebugEnabled
 }
 
 // New returns a new Logger instance.
@@ -25,12 +31,10 @@ func New(debug bool) Logger {
 	var err error
 
 	if debug {
-		// Development logger is more verbose and writes to standard output.
 		config := zap.NewDevelopmentConfig()
-		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder // optional, colorizes the output.
+		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 		logger, err = config.Build()
 	} else {
-		// Production logger is less verbose and could be set to log to a file.
 		logger, err = zap.NewProduction()
 	}
 
@@ -38,7 +42,7 @@ func New(debug bool) Logger {
 		panic(err)
 	}
 
-	return &zapLogger{sugar: logger.Sugar()}
+	return &zapLogger{sugar: logger.Sugar(), isDebugEnabled: debug}
 }
 
 // Debug logs a message at the Debug level.

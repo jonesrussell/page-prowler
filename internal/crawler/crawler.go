@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gocolly/colly"
-	"github.com/jonesrussell/page-prowler/internal/crawlresult"
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
 	"github.com/jonesrussell/page-prowler/internal/stats"
@@ -27,10 +26,26 @@ type CrawlOptions struct {
 	CrawlSiteID string
 	Collector   *colly.Collector
 	SearchTerms []string
-	Results     *[]crawlresult.PageData
+	Results     *[]PageData
 	LinkStats   *stats.Stats
 	LinkStatsMu sync.Mutex // Mutex for LinkStats
 	Debug       bool
+}
+
+func (cs *CrawlManager) Crawl(ctx context.Context, url string, options *CrawlOptions) ([]PageData, error) {
+	cs.SetupCrawlingLogic(ctx, options)
+
+	cs.Logger.Info("Crawler started...")
+	if err := options.Collector.Visit(url); err != nil {
+		cs.Logger.Error("Error visiting URL", "url", url, "error", err)
+		return nil, err
+	}
+
+	options.Collector.Wait()
+
+	cs.Logger.Info("Crawling completed.")
+
+	return *options.Results, nil
 }
 
 // ConfigureCollector initializes a new gocolly collector with the specified domains and depth.
@@ -74,7 +89,7 @@ func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlO
 
 		cs.Logger.Info("Incremented total links count")
 
-		pageData := crawlresult.PageData{
+		pageData := PageData{
 			URL: href,
 			// Add other fields as necessary
 		}

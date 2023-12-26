@@ -1,6 +1,6 @@
 // Package crawlresult defines the data structures used for storing
 // results of a web crawl operation.
-package crawlresult
+package crawler
 
 import (
 	"encoding/json"

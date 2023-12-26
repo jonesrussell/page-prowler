@@ -26,7 +26,7 @@ lint:
 	golangci-lint run
 
 test:
-	$(GO) test ./... -cover
+	$(GO) test -v ./... -cover
 
 tidy:
 	$(GO) mod tidy
