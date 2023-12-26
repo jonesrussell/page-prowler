@@ -70,20 +70,20 @@ func initializeManager(ctx context.Context, debug bool, redisClient redis.Datast
 	}
 	log.Printf("redisClient in initializeManager: %v", redisClient)
 
-	log := initializeLogger(debug)
+	appLogger := initializeLogger(debug)
 
 	var err error
 
 	mongoDBWrapper, err := mongodbwrapper.NewMongoDBWrapper(ctx, "mongodb://localhost:27017")
 
 	if err != nil {
-		log.Error("Failed to initialize MongoDB", "error", err)
+		appLogger.Error("Failed to initialize MongoDB", "error", err)
 		return nil, err
 	}
 
 	return &crawler.CrawlManager{
-		Logger:         log,
-		Client:         redisClient, // Use the Client field from the Client struct
+		Logger:         appLogger,
+		Client:         redisClient,
 		MongoDBWrapper: mongoDBWrapper,
 	}, nil
 }
