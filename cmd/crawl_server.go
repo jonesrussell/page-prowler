@@ -32,6 +32,22 @@ func (z *ZapLoggerWrapper) Fatal(msg string, keysAndValues ...interface{}) {
 	z.logger.Fatalw(msg, keysAndValues...)
 }
 
+func (z *ZapLoggerWrapper) Debug(msg string, keysAndValues ...interface{}) {
+	z.logger.Debugw(msg, keysAndValues...)
+}
+
+func (z *ZapLoggerWrapper) Info(msg string, keysAndValues ...interface{}) {
+	z.logger.Infow(msg, keysAndValues...)
+}
+
+func (z *ZapLoggerWrapper) Warn(msg string, keysAndValues ...interface{}) {
+	z.logger.Warnw(msg, keysAndValues...)
+}
+
+func (z *ZapLoggerWrapper) IsDebugEnabled() bool {
+	return z.logger.Desugar().Core().Enabled(zap.DebugLevel)
+}
+
 // PostArticlesStart starts the article posting process.
 func (s *CrawlServer) PostArticlesStart(ctx echo.Context) error {
 	var req PostArticlesStartJSONBody
