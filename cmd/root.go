@@ -59,22 +59,20 @@ func initializeLogger(debug bool) logger.Logger {
 	return logger.New(debug)
 }
 
-func initializeManager(ctx context.Context, debug bool) (*crawler.CrawlManager, error) {
-	log := initializeLogger(debug)
-
-	var redisClient *redis.Client
-	var err error
-
-	if !testing.Testing() {
-		redisHost := viper.GetString("REDIS_HOST")
-		redisAuth := viper.GetString("REDIS_AUTH")
-		redisPort := viper.GetString("REDIS_PORT")
-		redisClient, err = redis.NewClient(redisHost, redisAuth, redisPort)
+func initializeManager(ctx context.Context, debug bool, redisClient redis.Datastore) (*crawler.CrawlManager, error) {
+	log.Printf("Redis client: %v", redisClient)
+	if redisClient == nil && !testing.Testing() {
+		var err error
+		redisClient, err = redis.NewClient(viper.GetString("REDIS_HOST"), viper.GetString("REDIS_AUTH"), viper.GetString("REDIS_PORT"))
 		if err != nil {
-			log.Error("Failed to initialize Redis", "error", err)
 			return nil, err
 		}
 	}
+	log.Printf("redisClient in initializeManager: %v", redisClient)
+
+	log := initializeLogger(debug)
+
+	var err error
 
 	mongoDBWrapper, err := mongodbwrapper.NewMongoDBWrapper(ctx, "mongodb://localhost:27017")
 

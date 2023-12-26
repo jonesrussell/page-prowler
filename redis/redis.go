@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -25,6 +26,7 @@ type Client struct {
 
 // NewClient creates a new Redis client.
 func NewClient(address string, password string, port string) (*Client, error) {
+	log.Printf("Creating new Redis client with address: %s, password: %s, port: %s", address, password, port)
 	client := redis.NewClient(&redis.Options{
 		Addr:     address + ":" + port,
 		Password: password, // Use the Redis password

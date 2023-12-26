@@ -5,6 +5,15 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug TestPostArticlesStart",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}/cmd",
+            "args": ["-test.run", "TestPostArticlesStart"],
+            "env": {"GOFLAGS": "-v"}
+        },
+        {
             "name": "Launch Crawler Mid North Monitor",
             "type": "go",
             "request": "launch",

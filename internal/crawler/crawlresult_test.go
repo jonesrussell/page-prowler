@@ -1,4 +1,4 @@
-package crawlresult
+package crawler
 
 import (
 	"testing"

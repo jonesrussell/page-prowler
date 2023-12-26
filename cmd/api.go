@@ -25,7 +25,7 @@ The server also includes a '/ping' endpoint for health checks.`,
 
 		ctx := context.Background()
 		debug := viper.GetBool("debug")
-		manager, err := initializeManager(ctx, debug)
+		manager, err := initializeManager(ctx, debug, nil)
 		if err != nil {
 			fmt.Println("Failed to initialize manager", err)
 			return

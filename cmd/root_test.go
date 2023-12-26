@@ -89,8 +89,8 @@ func TestInitializeManager(t *testing.T) {
 	os.Setenv("REDIS_AUTH", "password")
 	os.Setenv("REDIS_PORT", "6379")
 
-	// Initialize the manager
-	manager, err := initializeManager(context.Background(), false)
+	// Initialize the manager with a mock Redis client
+	manager, err := initializeManager(context.Background(), false, &mockRedisClient{})
 	if err != nil {
 		t.Fatalf("Failed to initialize manager: %v", err)
 	}
@@ -98,5 +98,5 @@ func TestInitializeManager(t *testing.T) {
 	// Add assertions
 	assert.NotNil(t, manager.Client, "Client should not be nil")
 	assert.NotNil(t, manager.MongoDBWrapper, "MongoDBWrapper should not be nil")
-	assert.Equal(t, false, manager.Logger.Debug, "Logger should be in non-debug mode")
+	assert.Equal(t, false, manager.Logger.IsDebugEnabled(), "Logger should be in non-debug mode")
 }
