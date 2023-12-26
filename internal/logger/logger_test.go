@@ -14,14 +14,14 @@ func TestLogger(t *testing.T) {
 	core, recorded := observer.New(zapcore.DebugLevel)
 
 	// Create a new logger that writes to the buffer
-	logger := New(true)
-	logger.(*zapLogger).sugar = zap.New(core).Sugar()
+	var appLogger Logger = New(true)
+	appLogger.(*ZapLoggerWrapper).Logger = zap.New(core).Sugar()
 
 	// Log a message at each level
-	logger.Debug("debug", "key", "value")
-	logger.Info("info", "key", "value")
-	logger.Warn("warn", "key", "value")
-	logger.Error("error", "key", "value")
+	appLogger.Debug("debug", "key", "value")
+	appLogger.Info("info", "key", "value")
+	appLogger.Warn("warn", "key", "value")
+	appLogger.Error("error", "key", "value")
 
 	// Check the recorded log entries
 	entries := recorded.All()

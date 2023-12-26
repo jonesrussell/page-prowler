@@ -200,10 +200,10 @@ func (cs *CrawlManager) SetupCrawlingLogic(ctx context.Context, options *CrawlOp
 }
 
 // GetHostFromURL extracts the host from a given URL string.
-func GetHostFromURL(inputURL string, log logger.Logger) (string, error) {
+func GetHostFromURL(inputURL string, appLogger logger.Logger) (string, error) {
 	u, err := url.Parse(inputURL)
 	if err != nil {
-		log.Fatal("Failed to parse URL", "url", inputURL, "error", err)
+		appLogger.Fatal("Failed to parse URL", "url", inputURL, "error", err)
 		return "", err // return an empty string and the error
 	}
 	return u.Host, nil // return the host and nil for the error
