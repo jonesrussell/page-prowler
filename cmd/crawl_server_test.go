@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/jonesrussell/page-prowler/internal/crawler"
+	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
 func TestPostArticlesStart(t *testing.T) {
@@ -24,9 +24,7 @@ func TestPostArticlesStart(t *testing.T) {
 	// Create an instance of CrawlServer
 	server := &CrawlServer{
 		CrawlManager: &crawler.CrawlManager{
-			Logger: &ZapLoggerWrapper{
-				logger: zap.NewExample().Sugar(),
-			},
+			Logger: logger.New(true), // create a new ZapLoggerWrapper
 			Client: &mockRedisClient{},
 		},
 	}
