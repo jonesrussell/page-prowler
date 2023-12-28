@@ -90,7 +90,9 @@ func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlO
 		cs.Logger.Info("Incremented total links count")
 
 		pageData := PageData{
-			URL: href,
+			URL:        href,
+			StatusCode: 200,        // Set a default status code
+			CrawlTime:  time.Now(), // Set the current time
 			// Add other fields as necessary
 		}
 
