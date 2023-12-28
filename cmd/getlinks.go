@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/jonesrussell/page-prowler/redis"
@@ -41,9 +40,5 @@ var getLinksCmd = &cobra.Command{
 }
 
 func init() {
-	getLinksCmd.Flags().String("crawlsiteid", "", "CrawlSite ID")
-	if err := viper.BindPFlag("crawlsiteid", getLinksCmd.Flags().Lookup("crawlsiteid")); err != nil {
-		log.Fatalf("Error binding flag: %v", err)
-	}
 	rootCmd.AddCommand(getLinksCmd)
 }
