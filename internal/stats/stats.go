@@ -6,6 +6,7 @@ type Stats struct {
 	TotalLinks      int // TotalLinks is the total number of links processed.
 	MatchedLinks    int // MatchedLinks is the count of links that matched the search criteria.
 	NotMatchedLinks int // NotMatchedLinks is the count of links that did not match the search criteria.
+	Links           []string
 }
 
 // NewStats creates and returns a new Stats instance with all counters set to zero.

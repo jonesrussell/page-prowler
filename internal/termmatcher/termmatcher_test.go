@@ -41,24 +41,26 @@ func TestProcessTitle(t *testing.T) {
 	}
 }
 
-func TestRelated(t *testing.T) {
+func TestGetMatchingTerms(t *testing.T) {
 	// Test with a URL that should match the search terms
-	href := "https://example.com/related-term"
-	searchTerms := []string{"related", "term"}
-	assert.True(t, Related(href, searchTerms))
+	href := "https://example.com/privacy-policy"
+	searchTerms := []string{"privacy", "policy"}
+	expected := []string{"PRIVACI", "POLICI"}
+	assert.Equal(t, expected, GetMatchingTerms(href, searchTerms))
 
 	// Test with a URL that should not match the search terms
 	href = "https://example.com/unrelated-term"
-	assert.True(t, Related(href, searchTerms)) // Change this to True
+	assert.Equal(t, []string{}, GetMatchingTerms(href, searchTerms))
 }
 
-func TestMatchSearchTerms(t *testing.T) {
+func TestFindMatchingTerms(t *testing.T) {
 	// Test with a title that should match the search terms
-	title := "matching title"
-	searchTerms := []string{"matching", "title"}
-	assert.True(t, matchSearchTerms(title, searchTerms))
+	title := "privacy policy"
+	searchTerms := []string{"privacy", "policy"}
+	expected := []string{"PRIVACI", "POLICI"}
+	assert.Equal(t, expected, findMatchingTerms(title, searchTerms))
 
 	// Test with a title that should not match the search terms
-	title = "non-matching title"
-	assert.True(t, matchSearchTerms(title, searchTerms)) // Change this to True
+	title = "unrelated term"
+	assert.Equal(t, []string{}, findMatchingTerms(title, searchTerms))
 }

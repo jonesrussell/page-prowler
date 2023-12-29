@@ -90,13 +90,12 @@ func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlO
 		cs.Logger.Info("Incremented total links count")
 
 		pageData := PageData{
-			URL:        href,
-			StatusCode: 200,        // Set a default status code
-			CrawlTime:  time.Now(), // Set the current time
+			URL: href,
 			// Add other fields as necessary
 		}
 
-		if termmatcher.Related(href, options.SearchTerms) {
+		matchingTerms := termmatcher.GetMatchingTerms(href, options.SearchTerms)
+		if len(matchingTerms) > 0 {
 			options.LinkStatsMu.Lock()
 			options.LinkStats.IncrementMatchedLinks()
 			options.LinkStatsMu.Unlock()
@@ -106,7 +105,11 @@ func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlO
 			if err := cs.handleMatchingLinks(ctx, options, href); err != nil {
 				cs.Logger.Error("Error handling matching links", "error", err)
 			}
-			pageData.MatchingTerms = options.SearchTerms
+			pageData.MatchingTerms = matchingTerms
+
+			options.LinkStatsMu.Lock()
+			*options.Results = append(*options.Results, pageData)
+			options.LinkStatsMu.Unlock()
 		} else {
 			options.LinkStatsMu.Lock()
 			options.LinkStats.IncrementNotMatchedLinks()
@@ -116,10 +119,6 @@ func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlO
 
 			cs.handleNonMatchingLinks(href)
 		}
-
-		options.LinkStatsMu.Lock()
-		*options.Results = append(*options.Results, pageData)
-		options.LinkStatsMu.Unlock()
 	}
 }
 
