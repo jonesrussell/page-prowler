@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
+	"log"
 	"os"
 
-	"github.com/jonesrussell/page-prowler/redis"
+	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -20,14 +20,16 @@ var clearlinksCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		ctx := context.Background()
-		redisClient, err := redis.NewClient(viper.GetString("REDIS_HOST"), viper.GetString("REDIS_AUTH"), viper.GetString("REDIS_PORT"))
-		if err != nil {
-			fmt.Println("Failed to initialize Redis client", "error", err)
-			os.Exit(1)
+		// Get the manager from the context
+		manager, ok := cmd.Context().Value(managerKey).(*crawler.CrawlManager)
+		if !ok || manager == nil {
+			log.Fatalf("CrawlManager is not initialized")
 		}
 
-		_, err = redisClient.Del(ctx, crawlsiteid)
+		// Use the Redis client from the manager
+		redisClient := manager.Client
+
+		_, err := redisClient.Del(cmd.Context(), crawlsiteid)
 		if err != nil {
 			fmt.Println("Failed to clear Redis set", "error", err)
 			os.Exit(1)
