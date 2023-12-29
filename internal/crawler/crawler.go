@@ -33,19 +33,12 @@ type CrawlOptions struct {
 }
 
 func (cs *CrawlManager) Crawl(ctx context.Context, url string, options *CrawlOptions) ([]PageData, error) {
-	cs.SetupCrawlingLogic(ctx, options)
-
-	cs.Logger.Info("Crawler started...")
-	if err := options.Collector.Visit(url); err != nil {
-		cs.Logger.Error("Error visiting URL", "url", url, "error", err)
+	err := cs.setupCrawlingLogic(ctx, options)
+	if err != nil {
 		return nil, err
 	}
-
-	options.Collector.Wait()
-
-	cs.Logger.Info("Crawling completed.")
-
-	return *options.Results, nil
+	cs.visitURL(url, options)
+	return cs.HandleResults(options), nil
 }
 
 // ConfigureCollector initializes a new gocolly collector with the specified domains and depth.
@@ -73,8 +66,8 @@ func ConfigureCollector(allowedDomains []string, maxDepth int) *colly.Collector 
 	return collector
 }
 
-// HandleHTMLParsing sets up the handler for HTML parsing with gocolly, using the provided parameters.
-func (cs *CrawlManager) HandleHTMLParsing(ctx context.Context, options *CrawlOptions) error {
+// handleHTMLParsing sets up the handler for HTML parsing with gocolly, using the provided parameters.
+func (cs *CrawlManager) handleHTMLParsing(ctx context.Context, options *CrawlOptions) error {
 	options.Collector.OnHTML("a[href]", cs.handleAnchorElement(ctx, options))
 	return nil
 }
@@ -82,42 +75,18 @@ func (cs *CrawlManager) HandleHTMLParsing(ctx context.Context, options *CrawlOpt
 func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlOptions) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
-
 		options.LinkStatsMu.Lock()
 		options.LinkStats.IncrementTotalLinks()
 		options.LinkStatsMu.Unlock()
-
 		cs.Logger.Info("Incremented total links count")
-
 		pageData := PageData{
 			URL: href,
-			// Add other fields as necessary
 		}
-
 		matchingTerms := termmatcher.GetMatchingTerms(href, options.SearchTerms)
 		if len(matchingTerms) > 0 {
-			options.LinkStatsMu.Lock()
-			options.LinkStats.IncrementMatchedLinks()
-			options.LinkStatsMu.Unlock()
-
-			cs.Logger.Info("Incremented matched links count")
-
-			if err := cs.handleMatchingLinks(ctx, options, href); err != nil {
-				cs.Logger.Error("Error handling matching links", "error", err)
-			}
-			pageData.MatchingTerms = matchingTerms
-
-			options.LinkStatsMu.Lock()
-			*options.Results = append(*options.Results, pageData)
-			options.LinkStatsMu.Unlock()
+			cs.HandleMatchingLinks(ctx, options, href, pageData, matchingTerms)
 		} else {
-			options.LinkStatsMu.Lock()
-			options.LinkStats.IncrementNotMatchedLinks()
-			options.LinkStatsMu.Unlock()
-
-			cs.Logger.Info("Incremented not matched links count")
-
-			cs.handleNonMatchingLinks(href)
+			cs.HandleNonMatchingLinks(options, href)
 		}
 	}
 }
@@ -164,40 +133,15 @@ func (cs *CrawlManager) handleErrorEvents(collector *colly.Collector) {
 	})
 }
 
-// SetupCrawlingLogic configures and initiates the crawling logic.
-func (cs *CrawlManager) SetupCrawlingLogic(ctx context.Context, options *CrawlOptions) {
-	cs.Logger.Info("Start SetupCrawlingLogic")
-	if options.Debug {
-		cs.Logger.Debug("Setting up crawling logic...")
+// setupCrawlingLogic configures and initiates the crawling logic.
+func (cs *CrawlManager) setupCrawlingLogic(ctx context.Context, options *CrawlOptions) error {
+	err := cs.handleHTMLParsing(ctx, options)
+	if err != nil {
+		return err
 	}
-
-	if err := cs.HandleHTMLParsing(ctx, options); err != nil {
-		cs.Logger.Error("Error during HTML parsing", "error", err)
-		return
-	}
-
-	cs.handleErrorEvents(options.Collector)
-
-	options.Collector.OnScraped(func(r *colly.Response) {
-		cs.Logger.Info("Start OnScraped callback", "url", r.Request.URL.String())
-		cs.Logger.Info("Finished scraping the page", "url", r.Request.URL.String())
-
-		options.LinkStatsMu.Lock()
-		cs.Logger.Info("Total links found", "total_links", options.LinkStats.TotalLinks)
-		cs.Logger.Info("Matched links", "matched_links", options.LinkStats.MatchedLinks)
-		cs.Logger.Info("Not matched links", "not_matched_links", options.LinkStats.NotMatchedLinks)
-		options.LinkStatsMu.Unlock()
-
-		// Here, you would add code to populate the 'results' slice with data
-		cs.Logger.Info("End OnScraped callback", "url", r.Request.URL.String())
-	})
-
-	options.Collector.OnRequest(func(r *colly.Request) {
-		cs.Logger.Info("Start OnRequest callback", "url", r.URL.String())
-		cs.Logger.Info("Visiting URL", "url", r.URL.String())
-		cs.Logger.Info("End OnRequest callback", "url", r.URL.String())
-	})
-	cs.Logger.Info("End SetupCrawlingLogic")
+	cs.HandleErrorEvents(options)
+	cs.HandleRequestEvents(options)
+	return nil
 }
 
 // GetHostFromURL extracts the host from a given URL string.
@@ -207,5 +151,52 @@ func GetHostFromURL(inputURL string, appLogger logger.Logger) (string, error) {
 		appLogger.Fatal("Failed to parse URL", "url", inputURL, "error", err)
 		return "", err // return an empty string and the error
 	}
+
 	return u.Host, nil // return the host and nil for the error
+}
+
+func (cs *CrawlManager) visitURL(url string, options *CrawlOptions) {
+	if err := options.Collector.Visit(url); err != nil {
+		cs.Logger.Error("Error visiting URL", "url", url, "error", err)
+	}
+	options.Collector.Wait()
+	cs.Logger.Info("Crawling completed.")
+}
+
+func (cs *CrawlManager) HandleResults(options *CrawlOptions) []PageData {
+	return *options.Results
+}
+
+func (cs *CrawlManager) HandleMatchingLinks(ctx context.Context, options *CrawlOptions, href string, pageData PageData, matchingTerms []string) {
+	options.LinkStatsMu.Lock()
+	options.LinkStats.IncrementMatchedLinks()
+	options.LinkStatsMu.Unlock()
+	cs.Logger.Info("Incremented matched links count")
+	if err := cs.handleMatchingLinks(ctx, options, href); err != nil {
+		cs.Logger.Error("Error handling matching links", "error", err)
+	}
+	pageData.MatchingTerms = matchingTerms
+	options.LinkStatsMu.Lock()
+	*options.Results = append(*options.Results, pageData)
+	options.LinkStatsMu.Unlock()
+}
+
+func (cs *CrawlManager) HandleNonMatchingLinks(options *CrawlOptions, href string) {
+	options.LinkStatsMu.Lock()
+	options.LinkStats.IncrementNotMatchedLinks()
+	options.LinkStatsMu.Unlock()
+	cs.Logger.Info("Incremented not matched links count")
+	cs.handleNonMatchingLinks(href)
+}
+
+func (cs *CrawlManager) HandleErrorEvents(options *CrawlOptions) {
+	cs.handleErrorEvents(options.Collector)
+}
+
+func (cs *CrawlManager) HandleRequestEvents(options *CrawlOptions) {
+	options.Collector.OnRequest(func(r *colly.Request) {
+		cs.Logger.Info("Start OnRequest callback", "url", r.URL.String())
+		cs.Logger.Info("Visiting URL", "url", r.URL.String())
+		cs.Logger.Info("End OnRequest callback", "url", r.URL.String())
+	})
 }
