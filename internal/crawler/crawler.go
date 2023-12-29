@@ -16,7 +16,7 @@ import (
 type CrawlManager struct {
 	Logger         logger.Logger
 	Client         redis.Datastore
-	MongoDBWrapper *mongodbwrapper.MongoDBWrapper
+	MongoDBWrapper mongodbwrapper.MongoDBWrapperInterface
 }
 
 // CrawlOptions represents the options for configuring and initiating the crawling logic.

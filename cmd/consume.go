@@ -3,8 +3,10 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 
+	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -30,7 +32,12 @@ var consumeCmd = &cobra.Command{
 			}
 		}
 
-		startConsuming(ctx, crawlSiteID, debug)
+		manager := cmd.Context().Value("manager").(*crawler.CrawlManager)
+		if manager == nil {
+			log.Fatalf("CrawlManager is not initialized")
+		}
+
+		startConsuming(ctx, crawlSiteID, debug, manager)
 	},
 }
 
@@ -38,20 +45,14 @@ func init() {
 	rootCmd.AddCommand(consumeCmd)
 }
 
-func startConsuming(ctx context.Context, crawlSiteID string, debug bool) {
-	crawlerService, err := initializeManager(ctx, debug, nil)
+func startConsuming(ctx context.Context, crawlSiteID string, debug bool, manager *crawler.CrawlManager) {
+	urls, err := manager.Client.SMembers(ctx, crawlSiteID) // Use Client instead of RedisWrapper
 	if err != nil {
-		crawlerService.Logger.Error("Failed to initialize Consume Manager", "error", err)
-		os.Exit(1)
-	}
-
-	urls, err := crawlerService.Client.SMembers(ctx, crawlSiteID) // Use Client instead of RedisWrapper
-	if err != nil {
-		crawlerService.Logger.Error("Error fetching URLs from Redis", "error", err)
+		manager.Logger.Error("Error fetching URLs from Redis", "error", err)
 		return
 	}
 
 	for _, url := range urls {
-		crawlerService.Logger.Info("Fetched URL", "url", url)
+		manager.Logger.Info("Fetched URL", "url", url)
 	}
 }

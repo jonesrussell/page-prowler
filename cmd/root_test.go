@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"context"
 	"log"
 	"os"
 	"testing"
 
+	"github.com/jonesrussell/page-prowler/cmd/mocks"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
@@ -90,7 +90,7 @@ func TestInitializeManager(t *testing.T) {
 	os.Setenv("REDIS_PORT", "6379")
 
 	// Initialize the manager with a mock Redis client
-	manager, err := initializeManager(context.Background(), false, &mockRedisClient{})
+	manager, err := initializeManager(&mocks.MockRedisClient{}, &mocks.MockLogger{}, mocks.NewMockMongoDBWrapper())
 	if err != nil {
 		t.Fatalf("Failed to initialize manager: %v", err)
 	}
