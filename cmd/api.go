@@ -8,6 +8,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type echoContextKey string
+
+const (
+	echoManagerKey echoContextKey = "manager"
+)
+
 var apiCmd = &cobra.Command{
 	Use:   "api",
 	Short: "Start the API server",
@@ -18,8 +24,9 @@ var apiCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		e := echo.New()
 
-		manager := cmd.Context().Value("manager").(*crawler.CrawlManager)
-		if manager == nil {
+		// Get the manager from the context
+		manager, ok := cmd.Context().Value(managerKey).(*crawler.CrawlManager)
+		if !ok || manager == nil {
 			log.Fatalf("CrawlManager is not initialized")
 		}
 
@@ -48,7 +55,7 @@ func CrawlManagerMiddleware(manager *crawler.CrawlManager) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			// Set the CrawlManager in the context
-			c.Set("manager", manager)
+			c.Set(string(echoManagerKey), manager)
 			return next(c)
 		}
 	}
