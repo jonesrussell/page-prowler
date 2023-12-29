@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"testing"
 
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
@@ -12,6 +11,12 @@ import (
 	"github.com/jonesrussell/page-prowler/redis"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+)
+
+type key int
+
+const (
+	managerKey key = iota
 )
 
 var rootCmd = &cobra.Command{
@@ -23,6 +28,38 @@ var rootCmd = &cobra.Command{
 	2. Consuming URLs from a Redis set ('consume' command)
 
 	In addition to the command line interface, Page Prowler also provides an HTTP API for interacting with the tool.`,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// Initialize your dependencies here
+		ctx := context.Background()
+		redisClient, err := redis.NewClient(viper.GetString("REDIS_HOST"), viper.GetString("REDIS_AUTH"), viper.GetString("REDIS_PORT"))
+		if err != nil {
+			return fmt.Errorf("Failed to initialize Redis client: %v", err)
+		}
+		appLogger := initializeLogger(viper.GetBool("debug"))
+		mongoDBWrapper, err := mongodbwrapper.NewMongoDBWrapper(ctx, viper.GetString("MONGODB_URI"))
+		if err != nil {
+			return fmt.Errorf("Failed to initialize MongoDB wrapper: %v", err)
+		}
+
+		// Now you can pass them to the initializeManager function
+		manager, err := initializeManager(redisClient, appLogger, mongoDBWrapper)
+		if err != nil {
+			return fmt.Errorf("Failed to initialize manager: %v", err)
+		}
+
+		// Print the manager
+		fmt.Printf("Manager: %+v\n", manager)
+
+		// Set the manager to the context
+		ctx = context.WithValue(ctx, managerKey, manager)
+
+		// Set the context of the command
+		cmd.SetContext(ctx)
+
+		log.Println("rootCmd PersistentPreRunE executed")
+
+		return nil
+	},
 }
 
 // Execute runs the root command.
@@ -59,28 +96,11 @@ func initializeLogger(debug bool) logger.Logger {
 	return logger.New(debug)
 }
 
-func initializeManager(ctx context.Context, debug bool, redisClient redis.Datastore) (*crawler.CrawlManager, error) {
-	log.Printf("Redis client: %v", redisClient)
-	if redisClient == nil && !testing.Testing() {
-		var err error
-		redisClient, err = redis.NewClient(viper.GetString("REDIS_HOST"), viper.GetString("REDIS_AUTH"), viper.GetString("REDIS_PORT"))
-		if err != nil {
-			return nil, err
-		}
-	}
-	log.Printf("redisClient in initializeManager: %v", redisClient)
-
-	appLogger := initializeLogger(debug)
-
-	var err error
-
-	mongoDBWrapper, err := mongodbwrapper.NewMongoDBWrapper(ctx, "mongodb://localhost:27017")
-
-	if err != nil {
-		appLogger.Error("Failed to initialize MongoDB", "error", err)
-		return nil, err
-	}
-
+func initializeManager(
+	redisClient redis.Datastore,
+	appLogger logger.Logger,
+	mongoDBWrapper mongodbwrapper.MongoDBWrapperInterface,
+) (*crawler.CrawlManager, error) {
 	return &crawler.CrawlManager{
 		Logger:         appLogger,
 		Client:         redisClient,

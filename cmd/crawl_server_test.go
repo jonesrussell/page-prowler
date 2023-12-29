@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jonesrussell/page-prowler/cmd/mocks"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/labstack/echo/v4"
@@ -26,10 +27,13 @@ func TestPostArticlesStart(t *testing.T) {
 	// Create an instance of CrawlServer
 	server := &CrawlServer{
 		CrawlManager: &crawler.CrawlManager{
-			Logger: logger.New(true), // create a new ZapLoggerWrapper
-			Client: &mockRedisClient{},
+			Logger: &mocks.MockLogger{}, // use the mockLogger
+			Client: &mocks.MockRedisClient{},
 		},
 	}
+
+	// Set the CrawlManager in the context
+	c.Set("manager", server.CrawlManager)
 
 	// Assertions
 	if assert.NoError(t, server.PostArticlesStart(c)) {

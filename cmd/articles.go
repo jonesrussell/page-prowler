@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
@@ -32,17 +31,16 @@ var articlesCmd = &cobra.Command{
 		}
 
 		ctx := context.Background()
-		crawlerService, err := initializeManager(ctx, viper.GetBool("debug"), nil)
-		if err != nil {
-			fmt.Println("Failed to initialize Crawl Manager", "error", err)
-			os.Exit(1)
+		manager := cmd.Context().Value("manager").(*crawler.CrawlManager)
+		if manager == nil {
+			log.Fatalf("CrawlManager is not initialized")
 		}
 
 		myServerInstance := &CrawlServer{
-			CrawlManager: crawlerService,
+			CrawlManager: manager,
 		}
 
-		if err := StartCrawling(ctx, viper.GetString("url"), viper.GetString("searchterms"), viper.GetString("crawlsiteid"), viper.GetInt("maxdepth"), viper.GetBool("debug"), crawlerService, myServerInstance); err != nil {
+		if err := StartCrawling(ctx, viper.GetString("url"), viper.GetString("searchterms"), viper.GetString("crawlsiteid"), viper.GetInt("maxdepth"), viper.GetBool("debug"), manager, myServerInstance); err != nil {
 			log.Fatalf("Error starting crawling: %v", err)
 		}
 	},

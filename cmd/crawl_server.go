@@ -3,19 +3,17 @@ package cmd
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/stats"
-	"github.com/jonesrussell/page-prowler/redis"
 	"github.com/labstack/echo/v4"
-	"github.com/spf13/viper"
 )
 
 // CrawlServer represents the server that handles the crawling process.
@@ -25,6 +23,12 @@ type CrawlServer struct {
 
 // PostArticlesStart starts the article posting process.
 func (s *CrawlServer) PostArticlesStart(ctx echo.Context) error {
+	// Get the CrawlManager from the context
+	manager := ctx.Get("manager").(*crawler.CrawlManager)
+	if manager == nil {
+		log.Fatalf("CrawlManager is not initialized")
+	}
+
 	var req PostArticlesStartJSONBody
 	if err := ctx.Bind(&req); err != nil {
 		return err
@@ -35,31 +39,13 @@ func (s *CrawlServer) PostArticlesStart(ctx echo.Context) error {
 		return errors.New("URL cannot be empty")
 	}
 
-	// Initialize your Redis client here
-	var redisClient redis.Datastore
-	if testing.Testing() {
-		redisClient = &mockRedisClient{}
-	} else {
-		var err error
-		redisClient, err = redis.NewClient(viper.GetString("REDIS_HOST"), viper.GetString("REDIS_AUTH"), viper.GetString("REDIS_PORT"))
-		if err != nil {
-			return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		}
-	}
-
-	// Initialize your crawler service here
-	crawlerService, err := initializeManager(ctx.Request().Context(), *req.Debug, redisClient)
-	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to initialize CrawlManager or its Client"})
-	}
-
 	// Ensure the URL is correctly formatted
 	url := strings.TrimSpace(*req.URL)
 	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 		url = "https://" + url
 	}
 
-	err = StartCrawling(ctx.Request().Context(), url, *req.SearchTerms, *req.CrawlSiteID, *req.MaxDepth, *req.Debug, crawlerService, s)
+	err := StartCrawling(ctx.Request().Context(), url, *req.SearchTerms, *req.CrawlSiteID, *req.MaxDepth, *req.Debug, manager, s)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
