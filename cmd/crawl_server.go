@@ -4,10 +4,14 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
+	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/stats"
 	"github.com/jonesrussell/page-prowler/redis"
 	"github.com/labstack/echo/v4"
@@ -72,13 +76,13 @@ func (s *CrawlServer) GetPing(ctx echo.Context) error {
 // StartCrawling starts the crawling process.
 func StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool, crawlerService *crawler.CrawlManager, server *CrawlServer) error {
 	splitSearchTerms := strings.Split(searchTerms, ",")
-	host, err := crawler.GetHostFromURL(url, crawlerService.Logger)
+	host, err := getHostFromURL(url, crawlerService.Logger)
 	if err != nil {
 		crawlerService.Logger.Error("Failed to parse URL", "url", url, "error", err)
 		return err
 	}
 
-	collector := crawler.ConfigureCollector([]string{host}, maxDepth)
+	collector := configureCollector([]string{host}, maxDepth)
 	if collector == nil {
 		crawlerService.Logger.Fatal("Failed to configure collector")
 		return errors.New("failed to configure collector")
@@ -108,4 +112,40 @@ func StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 	printResults(crawlerService, results)
 
 	return nil
+}
+
+// getHostFromURL extracts the host from a given URL string.
+func getHostFromURL(inputURL string, appLogger logger.Logger) (string, error) {
+	u, err := url.Parse(inputURL)
+	if err != nil {
+		appLogger.Fatal("Failed to parse URL", "url", inputURL, "error", err)
+		return "", err // return an empty string and the error
+	}
+
+	return u.Host, nil // return the host and nil for the error
+}
+
+// configureCollector initializes a new gocolly collector with the specified domains and depth.
+func configureCollector(allowedDomains []string, maxDepth int) *colly.Collector {
+	collector := colly.NewCollector(
+		colly.Async(true),
+		colly.MaxDepth(maxDepth),
+	)
+
+	collector.AllowedDomains = allowedDomains
+
+	err := collector.Limit(&colly.LimitRule{
+		DomainGlob:  "*",
+		Parallelism: 2,
+		Delay:       3000 * time.Millisecond,
+	})
+	if err != nil {
+		return nil
+	}
+
+	// Respect robots.txt
+	collector.AllowURLRevisit = false
+	collector.IgnoreRobotsTxt = false
+
+	return collector
 }

@@ -2,9 +2,7 @@ package crawler
 
 import (
 	"context"
-	"net/url"
 	"sync"
-	"time"
 
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/logger"
@@ -38,41 +36,16 @@ func (cs *CrawlManager) Crawl(ctx context.Context, url string, options *CrawlOpt
 		return nil, err
 	}
 	cs.visitURL(url, options)
-	return cs.HandleResults(options), nil
+	return cs.handleResults(options), nil
 }
 
-// ConfigureCollector initializes a new gocolly collector with the specified domains and depth.
-func ConfigureCollector(allowedDomains []string, maxDepth int) *colly.Collector {
-	collector := colly.NewCollector(
-		colly.Async(true),
-		colly.MaxDepth(maxDepth),
-	)
-
-	collector.AllowedDomains = allowedDomains
-
-	err := collector.Limit(&colly.LimitRule{
-		DomainGlob:  "*",
-		Parallelism: 2,
-		Delay:       3000 * time.Millisecond,
-	})
-	if err != nil {
-		return nil
-	}
-
-	// Respect robots.txt
-	collector.AllowURLRevisit = false
-	collector.IgnoreRobotsTxt = false
-
-	return collector
-}
-
-// handleHTMLParsing sets up the handler for HTML parsing with gocolly, using the provided parameters.
-func (cs *CrawlManager) handleHTMLParsing(ctx context.Context, options *CrawlOptions) error {
-	options.Collector.OnHTML("a[href]", cs.handleAnchorElement(ctx, options))
+// setupHTMLParsingHandler sets up the handler for HTML parsing with gocolly, using the provided parameters.
+func (cs *CrawlManager) setupHTMLParsingHandler(ctx context.Context, options *CrawlOptions) error {
+	options.Collector.OnHTML("a[href]", cs.getAnchorElementHandler(ctx, options))
 	return nil
 }
 
-func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlOptions) func(e *colly.HTMLElement) {
+func (cs *CrawlManager) getAnchorElementHandler(ctx context.Context, options *CrawlOptions) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 		options.LinkStatsMu.Lock()
@@ -84,9 +57,9 @@ func (cs *CrawlManager) handleAnchorElement(ctx context.Context, options *CrawlO
 		}
 		matchingTerms := termmatcher.GetMatchingTerms(href, options.SearchTerms)
 		if len(matchingTerms) > 0 {
-			cs.HandleMatchingLinks(ctx, options, href, pageData, matchingTerms)
+			cs.processMatchingLinkAndUpdateStats(ctx, options, href, pageData, matchingTerms)
 		} else {
-			cs.HandleNonMatchingLinks(options, href)
+			cs.incrementNonMatchedLinkCount(options, href)
 		}
 	}
 }
@@ -121,8 +94,8 @@ func (cs *CrawlManager) handleNonMatchingLinks(href string) {
 	cs.Logger.Info("Non-matching link", "url", href)
 }
 
-// handleErrorEvents sets up the error handling for the colly collector.
-func (cs *CrawlManager) handleErrorEvents(collector *colly.Collector) {
+// setupErrorEventHandler sets up the error handling for the colly collector.
+func (cs *CrawlManager) setupErrorEventHandler(collector *colly.Collector) {
 	collector.OnError(func(r *colly.Response, err error) {
 		statusCode := r.StatusCode
 		requestURL := r.Request.URL.String()
@@ -135,24 +108,13 @@ func (cs *CrawlManager) handleErrorEvents(collector *colly.Collector) {
 
 // setupCrawlingLogic configures and initiates the crawling logic.
 func (cs *CrawlManager) setupCrawlingLogic(ctx context.Context, options *CrawlOptions) error {
-	err := cs.handleHTMLParsing(ctx, options)
+	err := cs.setupHTMLParsingHandler(ctx, options)
 	if err != nil {
 		return err
 	}
-	cs.HandleErrorEvents(options)
-	cs.HandleRequestEvents(options)
+	cs.setupErrorEventHandler(options.Collector)
+	cs.handleRequestEvents(options)
 	return nil
-}
-
-// GetHostFromURL extracts the host from a given URL string.
-func GetHostFromURL(inputURL string, appLogger logger.Logger) (string, error) {
-	u, err := url.Parse(inputURL)
-	if err != nil {
-		appLogger.Fatal("Failed to parse URL", "url", inputURL, "error", err)
-		return "", err // return an empty string and the error
-	}
-
-	return u.Host, nil // return the host and nil for the error
 }
 
 func (cs *CrawlManager) visitURL(url string, options *CrawlOptions) {
@@ -163,11 +125,11 @@ func (cs *CrawlManager) visitURL(url string, options *CrawlOptions) {
 	cs.Logger.Info("Crawling completed.")
 }
 
-func (cs *CrawlManager) HandleResults(options *CrawlOptions) []PageData {
+func (cs *CrawlManager) handleResults(options *CrawlOptions) []PageData {
 	return *options.Results
 }
 
-func (cs *CrawlManager) HandleMatchingLinks(ctx context.Context, options *CrawlOptions, href string, pageData PageData, matchingTerms []string) {
+func (cs *CrawlManager) processMatchingLinkAndUpdateStats(ctx context.Context, options *CrawlOptions, href string, pageData PageData, matchingTerms []string) {
 	options.LinkStatsMu.Lock()
 	options.LinkStats.IncrementMatchedLinks()
 	options.LinkStatsMu.Unlock()
@@ -181,7 +143,7 @@ func (cs *CrawlManager) HandleMatchingLinks(ctx context.Context, options *CrawlO
 	options.LinkStatsMu.Unlock()
 }
 
-func (cs *CrawlManager) HandleNonMatchingLinks(options *CrawlOptions, href string) {
+func (cs *CrawlManager) incrementNonMatchedLinkCount(options *CrawlOptions, href string) {
 	options.LinkStatsMu.Lock()
 	options.LinkStats.IncrementNotMatchedLinks()
 	options.LinkStatsMu.Unlock()
@@ -189,11 +151,7 @@ func (cs *CrawlManager) HandleNonMatchingLinks(options *CrawlOptions, href strin
 	cs.handleNonMatchingLinks(href)
 }
 
-func (cs *CrawlManager) HandleErrorEvents(options *CrawlOptions) {
-	cs.handleErrorEvents(options.Collector)
-}
-
-func (cs *CrawlManager) HandleRequestEvents(options *CrawlOptions) {
+func (cs *CrawlManager) handleRequestEvents(options *CrawlOptions) {
 	options.Collector.OnRequest(func(r *colly.Request) {
 		cs.Logger.Info("Start OnRequest callback", "url", r.URL.String())
 		cs.Logger.Info("Visiting URL", "url", r.URL.String())
