@@ -31,11 +31,14 @@ var rootCmd = &cobra.Command{
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Initialize your dependencies here
 		ctx := context.Background()
+
 		redisClient, err := redis.NewClient(viper.GetString("REDIS_HOST"), viper.GetString("REDIS_AUTH"), viper.GetString("REDIS_PORT"))
 		if err != nil {
 			return fmt.Errorf("Failed to initialize Redis client: %v", err)
 		}
+
 		appLogger := initializeLogger(viper.GetBool("debug"))
+
 		mongoDBWrapper, err := mongodbwrapper.NewMongoDBWrapper(ctx, viper.GetString("MONGODB_URI"))
 		if err != nil {
 			return fmt.Errorf("Failed to initialize MongoDB wrapper: %v", err)
@@ -47,16 +50,11 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("Failed to initialize manager: %v", err)
 		}
 
-		// Print the manager
-		fmt.Printf("Manager: %+v\n", manager)
-
 		// Set the manager to the context
 		ctx = context.WithValue(ctx, managerKey, manager)
 
 		// Set the context of the command
 		cmd.SetContext(ctx)
-
-		log.Println("rootCmd PersistentPreRunE executed")
 
 		return nil
 	},

@@ -24,7 +24,7 @@ type CrawlServer struct {
 // PostArticlesStart starts the article posting process.
 func (s *CrawlServer) PostArticlesStart(ctx echo.Context) error {
 	// Get the CrawlManager from the context
-	manager := ctx.Get("manager").(*crawler.CrawlManager)
+	manager := ctx.Get(string(echoManagerKey)).(*crawler.CrawlManager)
 	if manager == nil {
 		log.Fatalf("CrawlManager is not initialized")
 	}
