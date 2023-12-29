@@ -100,7 +100,7 @@ func StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 		return err
 	}
 
-	err = server.saveResultsToRedis(ctx, results)
+	err = server.saveResultsToRedis(ctx, results, crawlSiteID)
 	if err != nil {
 		return err
 	}
