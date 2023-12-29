@@ -13,6 +13,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	Crawlsiteid string
+	Debug       bool
+)
+
 type key int
 
 const (
@@ -28,6 +33,7 @@ var rootCmd = &cobra.Command{
 	2. Consuming URLs from a Redis set ('consume' command)
 
 	In addition to the command line interface, Page Prowler also provides an HTTP API for interacting with the tool.`,
+	SilenceErrors: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Initialize your dependencies here
 		ctx := context.Background()
@@ -68,12 +74,7 @@ func Execute() error {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().String("crawlsiteid", "", "CrawlSite ID")
-	rootCmd.PersistentFlags().Bool("debug", false, "Enable debug mode")
-
-	if err := viper.BindPFlag("crawlsiteid", rootCmd.PersistentFlags().Lookup("crawlsiteid")); err != nil {
-		log.Fatalf("Error binding crawlsiteid flag: %v", err)
-	}
+	rootCmd.PersistentFlags().BoolVar(&Debug, "debug", false, "Enable debug mode")
 
 	if err := viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug")); err != nil {
 		log.Fatalf("Error binding debug flag: %v", err)

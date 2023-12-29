@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
@@ -13,32 +12,33 @@ import (
 var clearlinksCmd = &cobra.Command{
 	Use:   "clearlinks",
 	Short: "Clear the Redis set for a given crawlsiteid",
-	Run: func(cmd *cobra.Command, args []string) {
-		crawlsiteid := viper.GetString("crawlsiteid")
-		if crawlsiteid == "" {
-			fmt.Println("crawlsiteid is required")
-			os.Exit(1)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if Crawlsiteid == "" {
+			return fmt.Errorf("crawlsiteid is required")
 		}
 
-		// Get the manager from the context
 		manager, ok := cmd.Context().Value(managerKey).(*crawler.CrawlManager)
 		if !ok || manager == nil {
-			log.Fatalf("CrawlManager is not initialized")
+			return fmt.Errorf("CrawlManager is not initialized")
 		}
 
-		// Use the Redis client from the manager
 		redisClient := manager.Client
 
-		_, err := redisClient.Del(cmd.Context(), crawlsiteid)
+		_, err := redisClient.Del(cmd.Context(), Crawlsiteid)
 		if err != nil {
-			fmt.Println("Failed to clear Redis set", "error", err)
-			os.Exit(1)
+			return fmt.Errorf("Failed to clear Redis set: %v", err)
 		}
 
 		fmt.Println("Redis set cleared successfully")
+
+		return nil
 	},
 }
 
 func init() {
+	clearlinksCmd.Flags().StringVarP(&Crawlsiteid, "crawlsiteid", "s", "", "CrawlSite ID")
+	if err := viper.BindPFlag("crawlsiteid", clearlinksCmd.Flags().Lookup("crawlsiteid")); err != nil {
+		log.Fatalf("Error binding flag: %v", err)
+	}
 	rootCmd.AddCommand(clearlinksCmd)
 }

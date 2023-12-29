@@ -60,16 +60,11 @@ func TestExecuteError(t *testing.T) {
 
 func TestPersistentFlags(t *testing.T) {
 	// Set the flags
-	if err := rootCmd.PersistentFlags().Set("crawlsiteid", "123"); err != nil {
-		log.Fatalf("Error setting crawlsiteid flag: %v", err)
-	}
-
 	if err := rootCmd.PersistentFlags().Set("debug", "true"); err != nil {
 		log.Fatalf("Error setting debug flag: %v", err)
 	}
 
 	// Check if the flags are correctly set
-	assert.Equal(t, "123", viper.GetString("crawlsiteid"))
 	assert.True(t, viper.GetBool("debug"))
 }
 

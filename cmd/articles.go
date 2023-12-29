@@ -12,13 +12,31 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	MaxDepth    int
+	SearchTerms string
+	URL         string
+)
+
 var articlesCmd = &cobra.Command{
 	Use:   "articles",
 	Short: "Crawl websites and extract information",
 	Long: `Crawl is a CLI tool designed to perform web scraping and data extraction from websites.
            It allows users to specify parameters such as depth of crawl and target elements to extract.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if viper.GetBool("debug") {
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if Crawlsiteid == "" {
+			return fmt.Errorf("crawlsiteid is required")
+		}
+
+		if SearchTerms == "" {
+			return fmt.Errorf("searchterms is required")
+		}
+
+		if URL == "" {
+			return fmt.Errorf("url is required")
+		}
+
+		if Debug {
 			fmt.Println("\nFlags:")
 			cmd.Flags().VisitAll(func(flag *pflag.Flag) {
 				fmt.Printf("  %-12s : %v\n", flag.Name, flag.Value)
@@ -40,27 +58,33 @@ var articlesCmd = &cobra.Command{
 			CrawlManager: manager,
 		}
 
-		if err := StartCrawling(ctx, viper.GetString("url"), viper.GetString("searchterms"), viper.GetString("crawlsiteid"), viper.GetInt("maxdepth"), viper.GetBool("debug"), manager, myServerInstance); err != nil {
+		if err := StartCrawling(ctx, URL, SearchTerms, Crawlsiteid, MaxDepth, Debug, manager, myServerInstance); err != nil {
 			log.Fatalf("Error starting crawling: %v", err)
 		}
+
+		return nil
 	},
 }
 
 func init() {
-	articlesCmd.Flags().String("url", "", "URL to crawl")
-	articlesCmd.Flags().String("searchterms", "", "Search terms for crawling")
-	articlesCmd.Flags().Int("maxdepth", 1, "Maximum depth for crawling")
+	articlesCmd.Flags().StringVarP(&Crawlsiteid, "crawlsiteid", "s", "", "CrawlSite ID")
+	if err := viper.BindPFlag("crawlsiteid", articlesCmd.Flags().Lookup("crawlsiteid")); err != nil {
+		log.Fatalf("Error binding flag: %v", err)
+	}
 
+	articlesCmd.Flags().StringVarP(&URL, "url", "u", "", "URL to crawl")
 	if err := viper.BindPFlag("url", articlesCmd.Flags().Lookup("url")); err != nil {
-		log.Fatalf("Error binding url flag: %v", err)
+		log.Fatalf("Error binding flag: %v", err)
 	}
 
+	articlesCmd.Flags().StringVarP(&SearchTerms, "searchterms", "t", "", "Search terms for crawling")
 	if err := viper.BindPFlag("searchterms", articlesCmd.Flags().Lookup("searchterms")); err != nil {
-		log.Fatalf("Error binding searchterms flag: %v", err)
+		log.Fatalf("Error binding flag: %v", err)
 	}
 
+	articlesCmd.Flags().IntVarP(&MaxDepth, "maxdepth", "m", 1, "Max depth for crawling")
 	if err := viper.BindPFlag("maxdepth", articlesCmd.Flags().Lookup("maxdepth")); err != nil {
-		log.Fatalf("Error binding maxdepth flag: %v", err)
+		log.Fatalf("Error binding flag: %v", err)
 	}
 
 	rootCmd.AddCommand(articlesCmd)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
@@ -15,15 +14,13 @@ var consumeCmd = &cobra.Command{
 	Use:   "consume",
 	Short: "Consume URLs from Redis",
 	Long:  `Consume is a CLI tool designed to fetch URLs from a Redis set.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		ctx := context.Background()
-		crawlSiteID := viper.GetString("crawlsiteid")
-		debug := viper.GetBool("debug")
-
-		if crawlSiteID == "" {
-			fmt.Println("CrawlSiteId is required")
-			os.Exit(1)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if Crawlsiteid == "" {
+			return fmt.Errorf("crawlsiteid is required")
 		}
+
+		ctx := context.Background()
+		debug := viper.GetBool("debug")
 
 		if debug {
 			fmt.Println("All configuration keys and values:")
@@ -38,11 +35,15 @@ var consumeCmd = &cobra.Command{
 			log.Fatalf("CrawlManager is not initialized")
 		}
 
-		startConsuming(ctx, crawlSiteID, debug, manager)
+		startConsuming(ctx, Crawlsiteid, debug, manager)
+
+		return nil
 	},
 }
 
 func init() {
+	consumeCmd.Flags().StringVarP(&Crawlsiteid, "crawlsiteid", "s", "", "CrawlSite ID")
+
 	rootCmd.AddCommand(consumeCmd)
 }
 
