@@ -40,7 +40,7 @@ func TestHandleHTMLParsing(t *testing.T) {
 	}
 
 	// Call the function with the mock parameters
-	err := cs.HandleHTMLParsing(context.Background(), options)
+	err := cs.handleHTMLParsing(context.Background(), options)
 
 	// Check that no error was returned
 	if err != nil {
@@ -85,7 +85,10 @@ func TestSetupCrawlingLogic(t *testing.T) {
 	}
 
 	// Call the function with the mock parameters
-	cs.SetupCrawlingLogic(context.Background(), options)
+	err := cs.setupCrawlingLogic(context.Background(), options)
+	if err != nil {
+		t.Errorf("Expected no error, but got %v", err)
+	}
 
 	// TODO: Add more checks here to verify that the OnHTML, OnError, OnScraped, and OnRequest methods were called correctly
 }
