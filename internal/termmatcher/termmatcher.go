@@ -13,36 +13,6 @@ import (
 
 const minTitleLength = 5 // Set the minimum character limit as needed
 
-// Related checks if the URL title matches any of the provided search terms.
-func Related(href string, searchTerms []string) bool {
-	title := extractTitleFromURL(href)
-	if title == "" {
-		log.Println("Title is empty for URL:", href)
-		return false
-	}
-
-	processedTitle := processTitle(title)
-	if processedTitle == "" {
-		log.Println("Processed title is empty for URL:", href)
-		return false
-	}
-
-	// Check if the title meets the minimum character limit
-	if len(processedTitle) < minTitleLength {
-		log.Println("Processed title is shorter than minimum length for URL:", href)
-		return false
-	}
-
-	isMatch := matchSearchTerms(processedTitle, searchTerms)
-	if isMatch {
-		log.Println("Match found for URL:", href)
-	} else {
-		log.Println("No match found for URL:", href)
-	}
-
-	return isMatch
-}
-
 // extractTitleFromURL extracts the title part from a URL.
 func extractTitleFromURL(urlString string) string {
 	u, err := url.Parse(urlString)
@@ -83,8 +53,32 @@ func processTitle(title string) string {
 	return processedTitle
 }
 
-// matchSearchTerms checks if the processed title matches any of the search terms.
-func matchSearchTerms(title string, searchTerms []string) bool {
+// GetMatchingTerms checks if the URL title matches any of the provided search terms and returns the matching terms.
+func GetMatchingTerms(href string, searchTerms []string) []string {
+	title := extractTitleFromURL(href)
+	if title == "" {
+		log.Println("Title is empty for URL:", href)
+		return nil
+	}
+
+	processedTitle := processTitle(title)
+	if processedTitle == "" {
+		log.Println("Processed title is empty for URL:", href)
+		return nil
+	}
+
+	// Check if the title meets the minimum character limit
+	if len(processedTitle) < minTitleLength {
+		log.Println("Processed title is shorter than minimum length for URL:", href)
+		return nil
+	}
+
+	return findMatchingTerms(processedTitle, searchTerms)
+}
+
+// findMatchingTerms finds the search terms that match the given title.
+func findMatchingTerms(title string, searchTerms []string) []string {
+	matchingTerms := []string{}
 	swg := metrics.NewSmithWatermanGotoh()
 	swg.CaseSensitive = false
 	swg.GapPenalty = -0.1
@@ -99,10 +93,10 @@ func matchSearchTerms(title string, searchTerms []string) bool {
 		term = strings.ToLower(term)
 		term = stemmer.Stem(term)
 		similarity := strutil.Similarity(term, title, swg)
-		if similarity == 1 {
-			return true
+		if similarity >= 0.8 { // Adjust the threshold as needed
+			matchingTerms = append(matchingTerms, term)
 		}
 	}
 
-	return false
+	return matchingTerms
 }
