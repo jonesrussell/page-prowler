@@ -31,8 +31,8 @@ var articlesCmd = &cobra.Command{
 		}
 
 		ctx := context.Background()
-		manager := cmd.Context().Value("manager").(*crawler.CrawlManager)
-		if manager == nil {
+		manager, ok := cmd.Context().Value(managerKey).(*crawler.CrawlManager)
+		if !ok || manager == nil {
 			log.Fatalf("CrawlManager is not initialized")
 		}
 
