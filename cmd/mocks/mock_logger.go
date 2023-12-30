@@ -1,28 +1,31 @@
 package mocks
 
+import (
+	"fmt"
+)
+
 type MockLogger struct{}
 
 func (m *MockLogger) Info(msg string, keysAndValues ...interface{}) {
-	// Implement your mock logic here
+	fmt.Println("Info: ", msg, keysAndValues)
 }
 
 func (m *MockLogger) Debug(msg string, keysAndValues ...interface{}) {
-	// Implement your mock logic here
+	fmt.Println("Debug: ", msg, keysAndValues)
 }
 
 func (m *MockLogger) Error(msg string, keysAndValues ...interface{}) {
-	// Implement your mock logic here
+	fmt.Println("Error: ", msg, keysAndValues)
 }
 
 func (m *MockLogger) Fatal(msg string, keysAndValues ...interface{}) {
-	// Implement your mock logic here
+	fmt.Println("Fatal: ", msg, keysAndValues)
 }
 
 func (m *MockLogger) IsDebugEnabled() bool {
-	// Implement your mock logic here
-	return false
+	return true
 }
 
 func (m *MockLogger) Warn(msg string, keysAndValues ...interface{}) {
-	// Implement your mock logic here
+	fmt.Println("Warn: ", msg, keysAndValues)
 }

@@ -42,7 +42,10 @@ func TestFlagValues(t *testing.T) {
 
 func TestEnvironmentVariables(t *testing.T) {
 	// Set an environment variable
-	os.Setenv("REDIS_HOST", "localhost")
+	err := os.Setenv("REDIS_HOST", "localhost")
+	if err != nil {
+		log.Fatalf("Failed to set environment variable: %v", err)
+	}
 	initConfig()
 
 	// Check if the environment variable is correctly set
@@ -80,9 +83,18 @@ func TestInitConfigError(t *testing.T) {
 
 func TestInitializeManager(t *testing.T) {
 	// Set the environment variables
-	os.Setenv("REDIS_HOST", "172.17.0.1")
-	os.Setenv("REDIS_AUTH", "password")
-	os.Setenv("REDIS_PORT", "6379")
+	err := os.Setenv("REDIS_HOST", "172.17.0.1")
+	if err != nil {
+		log.Fatalf("Failed to set environment variable: %v", err)
+	}
+	err = os.Setenv("REDIS_AUTH", "password")
+	if err != nil {
+		log.Fatalf("Failed to set environment variable: %v", err)
+	}
+	err = os.Setenv("REDIS_PORT", "6379")
+	if err != nil {
+		log.Fatalf("Failed to set environment variable: %v", err)
+	}
 
 	// Initialize the manager with a mock Redis client
 	manager, err := initializeManager(&mocks.MockRedisClient{}, &mocks.MockLogger{}, mocks.NewMockMongoDBWrapper())
@@ -93,5 +105,5 @@ func TestInitializeManager(t *testing.T) {
 	// Add assertions
 	assert.NotNil(t, manager.Client, "Client should not be nil")
 	assert.NotNil(t, manager.MongoDBWrapper, "MongoDBWrapper should not be nil")
-	assert.Equal(t, false, manager.Logger.IsDebugEnabled(), "Logger should be in non-debug mode")
+	assert.Equal(t, Debug, manager.Logger.IsDebugEnabled(), "Logger should be in debug mode if Debug is true")
 }

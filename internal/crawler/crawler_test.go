@@ -48,14 +48,41 @@ func TestHandleErrorEvents(t *testing.T) {
 	})
 }
 
+func TestGetHostFromURL(t *testing.T) {
+	// Create a mock Logger
+	zapLogger, _ := zap.NewDevelopment()
+	log := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
+
+	// Define test cases
+	testCases := []struct {
+		url      string
+		expected string
+	}{
+		{"http://example.com/path", "example.com"},
+		{"https://www.example.com", "www.example.com"},
+		// add more test cases here
+	}
+
+	// Run test cases
+	for _, tc := range testCases {
+		host, err := GetHostFromURL(tc.url, log)
+		if err != nil {
+			t.Errorf("Expected no error, but got %v", err)
+		}
+		if host != tc.expected {
+			t.Errorf("Expected host %v, but got %v", tc.expected, host)
+		}
+	}
+}
+
 func TestSetupCrawlingLogic(t *testing.T) {
 	// Create a mock Logger
 	zapLogger, _ := zap.NewDevelopment()
-	logger := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
+	log := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
 
 	// Create a mock CrawlManager with the Logger
 	cs := &CrawlManager{
-		Logger: logger,
+		Logger: log,
 	}
 
 	// Create a mock CrawlOptions with a mock Collector

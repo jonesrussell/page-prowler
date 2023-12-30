@@ -35,7 +35,7 @@ var consumeCmd = &cobra.Command{
 			log.Fatalf("CrawlManager is not initialized")
 		}
 
-		startConsuming(ctx, Crawlsiteid, debug, manager)
+		startConsuming(ctx, Crawlsiteid, manager)
 
 		return nil
 	},
@@ -47,7 +47,7 @@ func init() {
 	rootCmd.AddCommand(consumeCmd)
 }
 
-func startConsuming(ctx context.Context, crawlSiteID string, debug bool, manager *crawler.CrawlManager) {
+func startConsuming(ctx context.Context, crawlSiteID string, manager *crawler.CrawlManager) {
 	urls, err := manager.Client.SMembers(ctx, crawlSiteID) // Use Client instead of RedisWrapper
 	if err != nil {
 		manager.Logger.Error("Error fetching URLs from Redis", "error", err)

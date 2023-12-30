@@ -24,7 +24,7 @@ const (
 type CrawlManager struct {
 	Logger         logger.Logger
 	Client         redis.Datastore
-	MongoDBWrapper mongodbwrapper.MongoDBWrapperInterface
+	MongoDBWrapper mongodbwrapper.MongoDBInterface
 }
 
 // CrawlOptions represents the options for configuring and initiating the crawling logic.

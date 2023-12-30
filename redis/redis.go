@@ -14,8 +14,6 @@ type Datastore interface {
 	SMembers(ctx context.Context, key string) ([]string, error)
 	PublishHref(ctx context.Context, channel, message string) error
 	Del(ctx context.Context, keys ...string) (int64, error)
-	Stream(ctx context.Context, stream string, group string) error
-	Entries(ctx context.Context, group string, stream string) ([]redis.XStream, error)
 }
 
 // Client represents the Redis client.
@@ -61,16 +59,4 @@ func (r *Client) PublishHref(ctx context.Context, channel, message string) error
 // Del deletes one or more keys.
 func (r *Client) Del(ctx context.Context, keys ...string) (int64, error) {
 	return r.Client.Del(ctx, keys...).Result()
-}
-
-// Stream streams data from the Redis server.
-func (r *Client) Stream(ctx context.Context, stream string, group string) error {
-	// Implement this method based on your requirements
-	return nil
-}
-
-// Entries returns the entries from the Redis server.
-func (r *Client) Entries(ctx context.Context, group string, stream string) ([]redis.XStream, error) {
-	// Implement this method based on your requirements
-	return nil, nil
 }

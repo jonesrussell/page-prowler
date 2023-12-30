@@ -63,7 +63,7 @@ func TestGetPing(t *testing.T) {
 func TestGetHostFromURL(t *testing.T) {
 	// Create a mock Logger
 	zapLogger, _ := zap.NewDevelopment()
-	logger := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
+	logWrapper := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
 
 	// Define test cases
 	testCases := []struct {
@@ -77,7 +77,7 @@ func TestGetHostFromURL(t *testing.T) {
 
 	// Run test cases
 	for _, tc := range testCases {
-		host, err := crawler.GetHostFromURL(tc.url, logger)
+		host, err := crawler.GetHostFromURL(tc.url, logWrapper)
 		if err != nil {
 			t.Errorf("Expected no error, but got %v", err)
 		}

@@ -44,16 +44,36 @@ func (z *ZapLoggerWrapper) IsDebugEnabled() bool {
 }
 
 // New returns a new Logger instance.
-func New(debug bool) *ZapLoggerWrapper {
+func New(debug bool, level zapcore.Level) *ZapLoggerWrapper {
 	var logger *zap.Logger
 	var err error
 
+	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+
+	atomicLevel := zap.NewAtomicLevel()
+	atomicLevel.SetLevel(level)
+
 	if debug {
-		config := zap.NewDevelopmentConfig()
-		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		config := zap.Config{
+			Level:            atomicLevel,
+			Development:      true,
+			Encoding:         "console",
+			EncoderConfig:    encoderConfig,
+			OutputPaths:      []string{"stderr"},
+			ErrorOutputPaths: []string{"stderr"},
+		}
 		logger, err = config.Build()
 	} else {
-		logger, err = zap.NewProduction()
+		config := zap.Config{
+			Level:            atomicLevel,
+			Development:      false,
+			Encoding:         "json",
+			EncoderConfig:    encoderConfig,
+			OutputPaths:      []string{"stderr"},
+			ErrorOutputPaths: []string{"stderr"},
+		}
+		logger, err = config.Build()
 	}
 
 	if err != nil {
