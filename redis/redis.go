@@ -26,7 +26,7 @@ type ClientWrapper struct {
 }
 
 // NewClient creates a new Redis client.
-func NewClient(address string, password string, port string) (*Client, error) {
+func NewClient(address string, password string, port string) (*ClientWrapper, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     address + ":" + port,
 		Password: password, // Use the Redis password
@@ -35,9 +35,7 @@ func NewClient(address string, password string, port string) (*Client, error) {
 	if err := client.Ping(context.Background()).Err(); err != nil {
 		return nil, fmt.Errorf("failed to connect to Redis: %v", err)
 	}
-	return &Client{
-		&ClientWrapper{client},
-	}, nil
+	return &ClientWrapper{client}, nil
 }
 
 // Ping sends a ping request to the Redis server.
