@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-redis/redis/v8"
+	goredis "github.com/go-redis/redis/v8"
 )
 
 // ClientInterface represents the interface for interacting with the Redis datastore.
 type ClientInterface interface {
-	Ping(ctx context.Context) *redis.StatusCmd
-	SAdd(ctx context.Context, key string, members ...interface{}) *redis.IntCmd
-	Del(ctx context.Context, keys ...string) *redis.IntCmd
-	SMembers(ctx context.Context, key string) *redis.StringSliceCmd
+	Ping(ctx context.Context) *goredis.StatusCmd
+	SAdd(ctx context.Context, key string, members ...interface{}) *goredis.IntCmd
+	Del(ctx context.Context, keys ...string) *goredis.IntCmd
+	SMembers(ctx context.Context, key string) *goredis.StringSliceCmd
 }
 
 // Client represents the Redis client.
@@ -22,7 +22,7 @@ type Client struct {
 
 // NewClient creates a new Redis client.
 func NewClient(address string, password string, port string) (*Client, error) {
-	client := redis.NewClient(&redis.Options{
+	client := goredis.NewClient(&goredis.Options{
 		Addr:     address + ":" + port,
 		Password: password, // Use the Redis password
 		DB:       0,
