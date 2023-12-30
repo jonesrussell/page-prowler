@@ -41,20 +41,20 @@ var rootCmd = &cobra.Command{
 
 		redisWrapper, err := redis.NewClient(viper.GetString("REDIS_HOST"), viper.GetString("REDIS_AUTH"), viper.GetString("REDIS_PORT"))
 		if err != nil {
-			return fmt.Errorf("Failed to initialize Redis client: %v", err)
+			return fmt.Errorf("failed to initialize Redis client: %v", err)
 		}
 
 		appLogger := initializeLogger(viper.GetBool("debug"))
 
 		mongoDBWrapper, err := mongodbwrapper.NewMongoDB(ctx, viper.GetString("MONGODB_URI"))
 		if err != nil {
-			return fmt.Errorf("Failed to initialize MongoDB wrapper: %v", err)
+			return fmt.Errorf("failed to initialize MongoDB wrapper: %v", err)
 		}
 
 		// Now you can pass them to the initializeManager function
 		manager, err := initializeManager(redisWrapper, appLogger, mongoDBWrapper)
 		if err != nil {
-			return fmt.Errorf("Failed to initialize manager: %v", err)
+			return fmt.Errorf("failed to initialize manager: %v", err)
 		}
 
 		// Set the manager to the context
