@@ -33,13 +33,13 @@ var apiCmd = &cobra.Command{
 		// Add the middleware to the Echo instance
 		e.Use(CrawlManagerMiddleware(manager))
 
-		server := &ServerInterfaceWrapper{
-			Handler: &CrawlServer{
+		server := &crawler.ServerInterfaceWrapper{
+			Handler: &crawler.CrawlServer{
 				CrawlManager: manager,
 			},
 		}
 
-		RegisterHandlers(e, server)
+		crawler.RegisterHandlers(e, server)
 
 		if err := e.Start(":3000"); err != nil {
 			log.Fatalf("Error starting echo server: %v", err)

@@ -25,7 +25,7 @@ func TestPostArticlesStart(t *testing.T) {
 	c.SetPath("/articles/start")
 
 	// Create an instance of CrawlServer
-	server := &CrawlServer{
+	server := &crawler.CrawlServer{
 		CrawlManager: &crawler.CrawlManager{
 			Logger: &mocks.MockLogger{}, // use the mockLogger
 			Client: &mocks.MockRedisClient{},
@@ -51,7 +51,7 @@ func TestGetPing(t *testing.T) {
 	c.SetPath("/ping")
 
 	// Create an instance of CrawlServer
-	server := &CrawlServer{}
+	server := &crawler.CrawlServer{}
 
 	// Assertions
 	if assert.NoError(t, server.GetPing(c)) {
@@ -77,7 +77,7 @@ func TestGetHostFromURL(t *testing.T) {
 
 	// Run test cases
 	for _, tc := range testCases {
-		host, err := getHostFromURL(tc.url, logger)
+		host, err := crawler.GetHostFromURL(tc.url, logger)
 		if err != nil {
 			t.Errorf("Expected no error, but got %v", err)
 		}
@@ -91,7 +91,10 @@ func TestConfigureCollector(t *testing.T) {
 	allowedDomains := []string{"test.com"}
 	maxDepth := 2
 
-	collector := configureCollector(allowedDomains, maxDepth)
+	collector, err := crawler.ConfigureCollector(allowedDomains, maxDepth)
+	if err != nil {
+		t.Fatalf("Failed to configure collector: %v", err)
+	}
 
 	if collector == nil {
 		t.Errorf("Expected collector to be not nil")
