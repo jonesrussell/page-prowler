@@ -39,7 +39,11 @@ var rootCmd = &cobra.Command{
 		// Initialize your dependencies here
 		ctx := context.Background()
 
-		redisWrapper, err := redis.NewClient(viper.GetString("REDIS_HOST"), viper.GetString("REDIS_AUTH"), viper.GetString("REDIS_PORT"))
+		redisClient, err := redis.NewClient(
+			viper.GetString("REDIS_HOST"),
+			viper.GetString("REDIS_AUTH"),
+			viper.GetString("REDIS_PORT"),
+		)
 		if err != nil {
 			return fmt.Errorf("failed to initialize Redis client: %v", err)
 		}
@@ -52,7 +56,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Now you can pass them to the initializeManager function
-		manager, err := initializeManager(redisWrapper, appLogger, mongoDBWrapper)
+		manager, err := initializeManager(redisClient, appLogger, mongoDBWrapper)
 		if err != nil {
 			return fmt.Errorf("failed to initialize manager: %v", err)
 		}
@@ -97,13 +101,13 @@ func initializeLogger(_ bool) logger.Logger {
 }
 
 func initializeManager(
-	redisWrapper *redis.ClientWrapper,
+	redisClient redis.ClientInterface,
 	appLogger logger.Logger,
 	mongoDBWrapper mongodbwrapper.MongoDBInterface,
 ) (*crawler.CrawlManager, error) {
 	return &crawler.CrawlManager{
 		Logger:         appLogger,
-		Client:         redisWrapper,
+		Client:         redisClient,
 		MongoDBWrapper: mongoDBWrapper,
 	}, nil
 }

@@ -24,9 +24,10 @@ var clearlinksCmd = &cobra.Command{
 
 		redisClient := manager.Client
 
-		_, err := redisClient.Del(cmd.Context(), Crawlsiteid)
+		delCmd := redisClient.Del(cmd.Context(), Crawlsiteid)
+		_, err := delCmd.Result()
 		if err != nil {
-			return fmt.Errorf("Failed to clear Redis set: %v", err)
+			return fmt.Errorf("failed to clear Redis set: %v", err)
 		}
 
 		fmt.Println("Redis set cleared successfully")

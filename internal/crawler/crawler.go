@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"context"
+	"errors"
 	"log"
 	"strings"
 	"sync"
@@ -23,7 +24,7 @@ const (
 // CrawlManager encapsulates shared dependencies for crawler functions.
 type CrawlManager struct {
 	Logger         logger.Logger
-	Client         *redis.ClientWrapper
+	Client         redis.ClientInterface
 	MongoDBWrapper mongodbwrapper.MongoDBInterface
 }
 
@@ -162,9 +163,9 @@ func (cs *CrawlManager) handleMatchingLinks(
 
 	err := options.Collector.Visit(href)
 	if err != nil {
-		if err == colly.ErrAlreadyVisited {
+		if errors.Is(err, colly.ErrAlreadyVisited) {
 			cs.Logger.Info("URL already visited", "url", href)
-		} else if err == colly.ErrForbiddenDomain {
+		} else if errors.Is(err, colly.ErrForbiddenDomain) {
 			cs.Logger.Info("Forbidden domain - Skipping visit", "url", href)
 		} else {
 			cs.Logger.Error("Error visiting URL", "url", href, "error", err)

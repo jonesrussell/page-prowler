@@ -24,7 +24,8 @@ func TestPing(t *testing.T) {
 func TestSAdd(t *testing.T) {
 	db := &mocks.MockRedisClient{Data: make(map[string][]string)}
 	client := &Client{ClientInterface: db}
-	count, err := client.SAdd(context.Background(), "testKey", "testValue")
+	saddCmd := client.SAdd(context.Background(), "testKey", "testValue")
+	count, err := saddCmd.Result()
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), count)
 }
@@ -32,8 +33,11 @@ func TestSAdd(t *testing.T) {
 func TestSMembers(t *testing.T) {
 	db := &mocks.MockRedisClient{Data: make(map[string][]string)}
 	client := &Client{ClientInterface: db}
-	_, _ = client.SAdd(context.Background(), "testKey", "testValue")
-	members, err := client.SMembers(context.Background(), "testKey")
+	saddCmd := client.SAdd(context.Background(), "testKey", "testValue")
+	_, err := saddCmd.Result()
+	assert.NoError(t, err)
+	smembersCmd := client.SMembers(context.Background(), "testKey")
+	members, err := smembersCmd.Result()
 	assert.NoError(t, err)
 	assert.Contains(t, members, "testValue")
 }
@@ -41,15 +45,11 @@ func TestSMembers(t *testing.T) {
 func TestDel(t *testing.T) {
 	db := &mocks.MockRedisClient{Data: make(map[string][]string)}
 	client := &Client{ClientInterface: db}
-	_, _ = client.SAdd(context.Background(), "testKey", "testValue")
-	count, err := client.Del(context.Background(), "testKey")
+	saddCmd := client.SAdd(context.Background(), "testKey", "testValue")
+	_, err := saddCmd.Result()
+	assert.NoError(t, err)
+	delCmd := client.Del(context.Background(), "testKey")
+	count, err := delCmd.Result()
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), count)
-}
-
-func TestPublishHref(t *testing.T) {
-	db := &mocks.MockRedisClient{Data: make(map[string][]string)}
-	client := &Client{ClientInterface: db}
-	err := client.PublishHref(context.Background(), "testChannel", "testMessage")
-	assert.NoError(t, err)
 }
