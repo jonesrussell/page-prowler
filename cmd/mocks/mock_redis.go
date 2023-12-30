@@ -6,37 +6,31 @@ import (
 )
 
 type MockRedisClient struct {
-	data map[string][]string
+	Data map[string][]string
 }
 
-func (m *MockRedisClient) SAdd(ctx context.Context, key string, values ...interface{}) (int64, error) {
+func (m *MockRedisClient) Ping(_ context.Context) *redis.StatusCmd {
+	return redis.NewStatusResult("PONG", nil)
+}
+
+func (m *MockRedisClient) SMembers(_ context.Context, key string) ([]string, error) {
+	return m.Data[key], nil
+}
+
+func (m *MockRedisClient) Del(_ context.Context, keys ...string) (int64, error) {
+	for _, key := range keys {
+		delete(m.Data, key)
+	}
+	return int64(len(keys)), nil
+}
+
+func (m *MockRedisClient) SAdd(_ context.Context, key string, values ...interface{}) (int64, error) {
 	for _, value := range values {
-		m.data[key] = append(m.data[key], value.(string))
+		m.Data[key] = append(m.Data[key], value.(string))
 	}
 	return int64(len(values)), nil
 }
 
-func (m *MockRedisClient) SMembers(ctx context.Context, key string) ([]string, error) {
-	return m.data[key], nil
-}
-
-func (m *MockRedisClient) Ping(ctx context.Context) *redis.StatusCmd {
-	// Implement your test logic here
-	return &redis.StatusCmd{}
-}
-
-func (m *MockRedisClient) Del(ctx context.Context, keys ...string) (int64, error) {
-	count := 0
-	for _, key := range keys {
-		if _, ok := m.data[key]; ok {
-			delete(m.data, key)
-			count++
-		}
-	}
-	return int64(count), nil
-}
-
-func (m *MockRedisClient) PublishHref(ctx context.Context, channel string, message string) error {
-	// Implement your test logic here
+func (m *MockRedisClient) PublishHref(_ context.Context, _, _ string) error {
 	return nil
 }
