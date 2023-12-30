@@ -1,12 +1,11 @@
 package cmd
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 
-	"github.com/jonesrussell/page-prowler/internal/crawler"
+	"github.com/hibiken/asynq"
+	"github.com/jonesrussell/page-prowler/internal/tasks"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -48,18 +47,17 @@ var articlesCmd = &cobra.Command{
 			fmt.Printf("  %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH"))
 		}
 
-		ctx := context.Background()
-		manager, ok := cmd.Context().Value(managerKey).(*crawler.CrawlManager)
-		if !ok || manager == nil {
-			log.Fatalf("CrawlManager is not initialized")
+		client := asynq.NewClient(asynq.RedisClientOpt{Addr: "localhost:6379"}) // replace with your Redis server address
+		payload := &tasks.CrawlTaskPayload{
+			URL:         URL,
+			SearchTerms: SearchTerms,
+			CrawlSiteID: Crawlsiteid,
+			MaxDepth:    MaxDepth,
+			Debug:       Debug,
 		}
-
-		myServerInstance := &CrawlServer{
-			CrawlManager: manager,
-		}
-
-		if err := StartCrawling(ctx, URL, SearchTerms, Crawlsiteid, MaxDepth, Debug, manager, myServerInstance); err != nil {
-			log.Fatalf("Error starting crawling: %v", err)
+		err := enqueueCrawlTask(client, payload)
+		if err != nil {
+			log.Fatalf("Error enqueuing crawl task: %v", err)
 		}
 
 		return nil
@@ -88,32 +86,4 @@ func init() {
 	}
 
 	rootCmd.AddCommand(articlesCmd)
-}
-
-func (s *CrawlServer) saveResultsToRedis(ctx context.Context, results []crawler.PageData, key string) error {
-	for _, result := range results {
-		data, err := result.MarshalBinary()
-		if err != nil {
-			s.CrawlManager.Logger.Error("Error occurred during marshalling to binary", "error", err)
-			return err
-		}
-		str := string(data)
-		count, err := s.CrawlManager.Client.SAdd(ctx, key, str)
-		if err != nil {
-			s.CrawlManager.Logger.Error("Error occurred during saving to Redis", "error", err)
-			return err
-		}
-		fmt.Println("Added", count, "elements to the set")
-	}
-	return nil
-}
-
-func printResults(crawlerService *crawler.CrawlManager, results []crawler.PageData) {
-	jsonData, err := json.Marshal(results)
-	if err != nil {
-		crawlerService.Logger.Error("Error occurred during marshaling", "error", err)
-		return
-	}
-
-	fmt.Println(string(jsonData))
 }

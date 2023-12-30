@@ -1,10 +1,10 @@
-// Package crawlresult defines the data structures used for storing
-// results of a web crawl operation.
 package crawler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/url"
 )
 
@@ -42,4 +42,41 @@ func (p *PageData) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	return p.Validate()
+}
+
+// printResults prints the results of the crawl.
+func printResults(crawlerService *CrawlManager, results []PageData) {
+	jsonData, err := json.Marshal(results)
+	if err != nil {
+		crawlerService.Logger.Error("Error occurred during marshaling", "error", err)
+		return
+	}
+
+	fmt.Println(string(jsonData))
+}
+
+// SaveResultsToRedis saves the results of the crawl to Redis.
+func (s *CrawlServer) SaveResultsToRedis(ctx context.Context, results []PageData, key string) error {
+	// Debugging statement
+	if ctx.Err() != nil {
+		log.Println("Crawl: context error:", ctx.Err())
+	} else {
+		log.Println("Crawl: context is not done")
+	}
+
+	for _, result := range results {
+		data, err := result.MarshalBinary()
+		if err != nil {
+			s.CrawlManager.Logger.Error("Error occurred during marshalling to binary", "error", err)
+			return err
+		}
+		str := string(data)
+		count, err := s.CrawlManager.Client.SAdd(ctx, key, str)
+		if err != nil {
+			s.CrawlManager.Logger.Error("Error occurred during saving to Redis", "error", err)
+			return err
+		}
+		fmt.Println("Added", count, "elements to the set")
+	}
+	return nil
 }
