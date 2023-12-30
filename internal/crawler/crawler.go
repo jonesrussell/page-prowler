@@ -23,7 +23,7 @@ const (
 // CrawlManager encapsulates shared dependencies for crawler functions.
 type CrawlManager struct {
 	Logger         logger.Logger
-	Client         redis.Datastore
+	Client         *redis.ClientWrapper
 	MongoDBWrapper mongodbwrapper.MongoDBInterface
 }
 
