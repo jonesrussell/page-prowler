@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap/zapcore"
 	"log"
 
 	"github.com/jonesrussell/page-prowler/internal/crawler"
@@ -45,7 +46,7 @@ var rootCmd = &cobra.Command{
 
 		appLogger := initializeLogger(viper.GetBool("debug"))
 
-		mongoDBWrapper, err := mongodbwrapper.NewMongoDBWrapper(ctx, viper.GetString("MONGODB_URI"))
+		mongoDBWrapper, err := mongodbwrapper.NewMongoDB(ctx, viper.GetString("MONGODB_URI"))
 		if err != nil {
 			return fmt.Errorf("Failed to initialize MongoDB wrapper: %v", err)
 		}
@@ -91,14 +92,14 @@ func initConfig() {
 	}
 }
 
-func initializeLogger(debug bool) logger.Logger {
-	return logger.New(debug)
+func initializeLogger(_ bool) logger.Logger {
+	return logger.New(false, zapcore.InfoLevel)
 }
 
 func initializeManager(
 	redisClient redis.Datastore,
 	appLogger logger.Logger,
-	mongoDBWrapper mongodbwrapper.MongoDBWrapperInterface,
+	mongoDBWrapper mongodbwrapper.MongoDBInterface,
 ) (*crawler.CrawlManager, error) {
 	return &crawler.CrawlManager{
 		Logger:         appLogger,

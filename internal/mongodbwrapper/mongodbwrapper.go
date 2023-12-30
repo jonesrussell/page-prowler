@@ -8,27 +8,27 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type MongoDBWrapperInterface interface {
-	// Add all methods that you use from MongoDBWrapper in your code
-	// For example, if you use a Connect method, you would add:
+type MongoDBInterface interface {
 	Connect(ctx context.Context) error
 }
 
-type MongoDBWrapper struct {
+type MongoDB struct {
 	Client *mongo.Client
 }
 
-func NewMongoDBWrapper(ctx context.Context, uri string) (*MongoDBWrapper, error) {
+func NewMongoDB(ctx context.Context, uri string) (*MongoDB, error) {
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to MongoDB: %w", err)
 	}
 
-	return &MongoDBWrapper{Client: client}, nil
+	return &MongoDB{Client: client}, nil
 }
 
-func (m *MongoDBWrapper) Connect(ctx context.Context) error {
-	// Your existing implementation
-	// Make sure to return an error at the end
+func (m *MongoDB) Connect(ctx context.Context) error {
+	err := m.Client.Ping(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to ping MongoDB: %w", err)
+	}
 	return nil
 }
