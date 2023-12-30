@@ -25,7 +25,6 @@ require (
 	github.com/bbalet/stopwords v1.0.0
 	github.com/caneroj1/stemmer v0.0.0-20170128035808-c9f2ce1504d5
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/go-redis/redismock/v8 v8.11.5
 	github.com/hibiken/asynq v0.24.1
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/spf13/cobra v1.8.0

@@ -48,7 +48,8 @@ func init() {
 }
 
 func startConsuming(ctx context.Context, crawlSiteID string, manager *crawler.CrawlManager) {
-	urls, err := manager.Client.SMembers(ctx, crawlSiteID) // Use Client instead of RedisWrapper
+	smembersCmd := manager.Client.SMembers(ctx, crawlSiteID)
+	urls, err := smembersCmd.Result()
 	if err != nil {
 		manager.Logger.Error("Error fetching URLs from Redis", "error", err)
 		return
