@@ -29,7 +29,7 @@ func (p *PageData) Validate() error {
 }
 
 // MarshalBinary marshals the PageData into binary form.
-func (p PageData) MarshalBinary() ([]byte, error) {
+func (p *PageData) MarshalBinary() ([]byte, error) {
 	if err := p.Validate(); err != nil {
 		return nil, err
 	}

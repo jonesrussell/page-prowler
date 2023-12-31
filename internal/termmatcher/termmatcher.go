@@ -78,7 +78,7 @@ func GetMatchingTerms(href string, searchTerms []string) []string {
 
 // findMatchingTerms finds the search terms that match the given title.
 func findMatchingTerms(title string, searchTerms []string) []string {
-	matchingTerms := []string{}
+	var matchingTerms []string
 	swg := metrics.NewSmithWatermanGotoh()
 	swg.CaseSensitive = false
 	swg.GapPenalty = -0.1

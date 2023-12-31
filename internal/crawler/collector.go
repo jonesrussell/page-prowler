@@ -10,7 +10,7 @@ import (
 // ConfigureCollector initializes a new gocolly collector with the specified domains and depth.
 func ConfigureCollector(allowedDomains []string, maxDepth int) (*colly.Collector, error) {
 	collector := colly.NewCollector(
-		colly.Async(true),
+		colly.Async(false),
 		colly.MaxDepth(maxDepth),
 	)
 
