@@ -9,7 +9,7 @@ func NewMockMongoDBWrapper() *MockMongoDBWrapper {
 	return &MockMongoDBWrapper{}
 }
 
-func (m *MockMongoDBWrapper) Connect(ctx context.Context) error {
+func (m *MockMongoDBWrapper) Connect(_ context.Context) error {
 	// Implement your mock logic here
 	return nil
 }

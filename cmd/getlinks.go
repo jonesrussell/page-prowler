@@ -27,7 +27,7 @@ var getLinksCmd = &cobra.Command{
 		smembersCmd := redisClient.SMembers(cmd.Context(), Crawlsiteid)
 		links, err := smembersCmd.Result()
 		if err != nil {
-			return fmt.Errorf("Failed to get links from Redis: %v", err)
+			return fmt.Errorf("failed to get links from Redis: %v", err)
 		}
 
 		if len(links) == 0 {

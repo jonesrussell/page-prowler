@@ -47,7 +47,17 @@ var articlesCmd = &cobra.Command{
 			fmt.Printf("  %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH"))
 		}
 
-		client := asynq.NewClient(asynq.RedisClientOpt{Addr: "localhost:6379"}) // replace with your Redis server address
+		// Retrieve the Redis connection details
+		redisHost := viper.GetString("REDIS_HOST")
+		redisPort := viper.GetString("REDIS_PORT")
+		redisAuth := viper.GetString("REDIS_AUTH")
+
+		// Create a new asynq.Client using the same Redis connection details
+		client := asynq.NewClient(asynq.RedisClientOpt{
+			Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
+			Password: redisAuth,
+		})
+
 		payload := &tasks.CrawlTaskPayload{
 			URL:         URL,
 			SearchTerms: SearchTerms,
@@ -55,6 +65,7 @@ var articlesCmd = &cobra.Command{
 			MaxDepth:    MaxDepth,
 			Debug:       Debug,
 		}
+
 		err := enqueueCrawlTask(client, payload)
 		if err != nil {
 			log.Fatalf("Error enqueuing crawl task: %v", err)
