@@ -1,0 +1,6 @@
+{
+    "go.lintOnSave": "workspace",
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit"
+    }      
+}
