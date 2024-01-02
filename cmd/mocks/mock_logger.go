@@ -1,31 +1,54 @@
 package mocks
 
 import (
-	"fmt"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
 )
 
-type MockLogger struct{}
+type MockLogger struct {
+	observer *observer.ObservedLogs
+	Logger   *zap.SugaredLogger
+}
+
+func NewMockLogger() *MockLogger {
+	core, observed := observer.New(zapcore.DebugLevel)
+	logger := zap.New(core).Sugar()
+	return &MockLogger{
+		observer: observed,
+		Logger:   logger,
+	}
+}
 
 func (m *MockLogger) Info(msg string, keysAndValues ...interface{}) {
-	fmt.Println("Info: ", msg, keysAndValues)
+	m.Logger.Infow(msg, keysAndValues...)
+}
+
+func (m *MockLogger) Infof(format string, args ...interface{}) {
+	m.Logger.Infof(format, args...)
 }
 
 func (m *MockLogger) Debug(msg string, keysAndValues ...interface{}) {
-	fmt.Println("Debug: ", msg, keysAndValues)
+	m.Logger.Debugw(msg, keysAndValues...)
 }
 
 func (m *MockLogger) Error(msg string, keysAndValues ...interface{}) {
-	fmt.Println("Error: ", msg, keysAndValues)
+	m.Logger.Errorw(msg, keysAndValues...)
 }
 
 func (m *MockLogger) Fatal(msg string, keysAndValues ...interface{}) {
-	fmt.Println("Fatal: ", msg, keysAndValues)
-}
-
-func (m *MockLogger) IsDebugEnabled() bool {
-	return true
+	m.Logger.Fatalw(msg, keysAndValues...)
 }
 
 func (m *MockLogger) Warn(msg string, keysAndValues ...interface{}) {
-	fmt.Println("Warn: ", msg, keysAndValues)
+	m.Logger.Warnw(msg, keysAndValues...)
+}
+
+func (m *MockLogger) AllEntries() []observer.LoggedEntry {
+	return m.observer.AllUntimed()
+}
+
+func (m *MockLogger) IsDebugEnabled() bool {
+	// Implement the method according to your needs
+	return true
 }

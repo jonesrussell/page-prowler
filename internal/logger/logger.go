@@ -13,6 +13,7 @@ type Logger interface {
 	Debug(msg string, keysAndValues ...interface{})
 	Warn(msg string, keysAndValues ...interface{})
 	IsDebugEnabled() bool
+	Infof(format string, args ...interface{})
 }
 
 type ZapLoggerWrapper struct {
@@ -49,6 +50,10 @@ func (z *ZapLoggerWrapper) Warn(msg string, keysAndValues ...interface{}) {
 
 func (z *ZapLoggerWrapper) IsDebugEnabled() bool {
 	return z.Logger.Desugar().Core().Enabled(zap.DebugLevel)
+}
+
+func (z *ZapLoggerWrapper) Infof(format string, args ...interface{}) {
+	z.Logger.Infof(format, args...)
 }
 
 // New returns a new Logger instance.

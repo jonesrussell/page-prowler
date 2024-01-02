@@ -30,7 +30,7 @@ var clearlinksCmd = &cobra.Command{
 			return fmt.Errorf("failed to clear Redis set: %v", err)
 		}
 
-		fmt.Println("Redis set cleared successfully")
+		manager.Logger.Info("Redis set cleared successfully")
 
 		return nil
 	},
