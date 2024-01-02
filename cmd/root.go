@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap/zapcore"
 	"log"
 
 	"github.com/jonesrussell/page-prowler/internal/crawler"
@@ -48,7 +47,7 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("failed to initialize Redis client: %v", err)
 		}
 
-		appLogger := initializeLogger(viper.GetBool("debug"))
+		appLogger := initializeLogger(viper.GetBool("debug"), logger.DefaultLogLevel)
 
 		mongoDBWrapper, err := mongodbwrapper.NewMongoDB(ctx, viper.GetString("MONGODB_URI"))
 		if err != nil {
@@ -96,8 +95,8 @@ func initConfig() {
 	}
 }
 
-func initializeLogger(_ bool) logger.Logger {
-	return logger.New(false, zapcore.InfoLevel)
+func initializeLogger(debug bool, level logger.LogLevel) logger.Logger {
+	return logger.New(debug, level)
 }
 
 func initializeManager(

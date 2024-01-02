@@ -19,6 +19,14 @@ type ZapLoggerWrapper struct {
 	Logger *zap.SugaredLogger
 }
 
+type LogLevel int
+
+const (
+	Info LogLevel = iota
+)
+
+const DefaultLogLevel LogLevel = Info
+
 func (z *ZapLoggerWrapper) Info(msg string, keysAndValues ...interface{}) {
 	z.Logger.Infow(msg, keysAndValues...)
 }
@@ -44,7 +52,7 @@ func (z *ZapLoggerWrapper) IsDebugEnabled() bool {
 }
 
 // New returns a new Logger instance.
-func New(debug bool, level zapcore.Level) *ZapLoggerWrapper {
+func New(debug bool, level LogLevel) *ZapLoggerWrapper {
 	var logger *zap.Logger
 	var err error
 
@@ -52,7 +60,7 @@ func New(debug bool, level zapcore.Level) *ZapLoggerWrapper {
 	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 
 	atomicLevel := zap.NewAtomicLevel()
-	atomicLevel.SetLevel(level)
+	atomicLevel.SetLevel(zapcore.Level(level))
 
 	if debug {
 		config := zap.Config{
