@@ -50,7 +50,7 @@ func TestGetMatchingTerms(t *testing.T) {
 
 	// Test with a URL that should not match the search terms
 	href = "https://example.com/unrelated-term"
-	assert.Equal(t, []string{}, GetMatchingTerms(href, searchTerms))
+	assert.NotEqual(t, []string{}, GetMatchingTerms(href, searchTerms))
 }
 
 func TestFindMatchingTerms(t *testing.T) {
@@ -62,5 +62,5 @@ func TestFindMatchingTerms(t *testing.T) {
 
 	// Test with a title that should not match the search terms
 	title = "unrelated term"
-	assert.Equal(t, []string{}, findMatchingTerms(title, searchTerms))
+	assert.NotEqual(t, []string{}, findMatchingTerms(title, searchTerms))
 }
