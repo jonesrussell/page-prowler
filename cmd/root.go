@@ -90,8 +90,9 @@ func initConfig() {
 	viper.SetConfigType("env")
 	viper.AutomaticEnv() // Automatically override values from the .env file with those from the environment.
 
-	if err := viper.ReadInConfig(); err != nil {
-		fmt.Println("Error while reading config file", err)
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Fatalf("Error while reading config file: %v", err)
 	}
 }
 

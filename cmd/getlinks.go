@@ -31,12 +31,13 @@ var getLinksCmd = &cobra.Command{
 		}
 
 		if len(links) == 0 {
-			fmt.Println("No links found for the provided crawlsiteid")
+			manager.Logger.Info("No links found for the provided crawlsiteid")
 		} else {
 			for _, link := range links {
-				fmt.Println(link)
+				manager.Logger.Info(link)
 			}
 		}
+
 		return nil
 	},
 }

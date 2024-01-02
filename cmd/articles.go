@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/hibiken/asynq"
+	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/tasks"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -23,6 +24,9 @@ var articlesCmd = &cobra.Command{
 	Long: `Crawl is a CLI tool designed to perform web scraping and data extraction from websites.
            It allows users to specify parameters such as depth of crawl and target elements to extract.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Access the CrawlManager from the context
+		manager := cmd.Context().Value("manager").(*crawler.CrawlManager)
+
 		if Crawlsiteid == "" {
 			return fmt.Errorf("crawlsiteid is required")
 		}
@@ -36,15 +40,15 @@ var articlesCmd = &cobra.Command{
 		}
 
 		if Debug {
-			fmt.Println("\nFlags:")
+			manager.Logger.Info("\nFlags:")
 			cmd.Flags().VisitAll(func(flag *pflag.Flag) {
-				fmt.Printf("  %-12s : %v\n", flag.Name, flag.Value)
+				manager.Logger.Infof(" %-12s : %v\n", flag.Name, flag.Value)
 			})
 
-			fmt.Println("\nRedis Environment Variables:")
-			fmt.Printf("  %-12s : %s\n", "REDIS_HOST", viper.GetString("REDIS_HOST"))
-			fmt.Printf("  %-12s : %s\n", "REDIS_PORT", viper.GetString("REDIS_PORT"))
-			fmt.Printf("  %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH"))
+			manager.Logger.Info("\nRedis Environment Variables:")
+			manager.Logger.Infof(" %-12s : %s\n", "REDIS_HOST", viper.GetString("REDIS_HOST"))
+			manager.Logger.Infof(" %-12s : %s\n", "REDIS_PORT", viper.GetString("REDIS_PORT"))
+			manager.Logger.Infof(" %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH"))
 		}
 
 		// Retrieve the Redis connection details

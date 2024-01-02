@@ -2,11 +2,18 @@ package mocks
 
 import (
 	"context"
+
 	goredis "github.com/go-redis/redis/v8"
 )
 
 type MockRedisClient struct {
 	Data map[string][]string
+}
+
+func NewMockRedisClient() *MockRedisClient {
+	return &MockRedisClient{
+		Data: make(map[string][]string),
+	}
 }
 
 func (m *MockRedisClient) Ping(_ context.Context) *goredis.StatusCmd {

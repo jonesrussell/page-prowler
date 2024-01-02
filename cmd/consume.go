@@ -22,17 +22,17 @@ var consumeCmd = &cobra.Command{
 		ctx := context.Background()
 		debug := viper.GetBool("debug")
 
-		if debug {
-			fmt.Println("All configuration keys and values:")
-			for _, key := range viper.AllKeys() {
-				fmt.Printf("%s: %v\n", key, viper.Get(key))
-			}
-		}
-
 		// Get the manager from the context
 		manager, ok := cmd.Context().Value(managerKey).(*crawler.CrawlManager)
 		if !ok || manager == nil {
 			log.Fatalf("CrawlManager is not initialized")
+		}
+
+		if debug {
+			manager.Logger.Info("All configuration keys and values:")
+			for _, key := range viper.AllKeys() {
+				manager.Logger.Info(fmt.Sprintf("%s: %v\n", key, viper.Get(key)))
+			}
 		}
 
 		startConsuming(ctx, Crawlsiteid, manager)

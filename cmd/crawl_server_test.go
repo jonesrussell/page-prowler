@@ -27,7 +27,7 @@ func TestPostArticlesStart(t *testing.T) {
 	// Create an instance of CrawlServer
 	server := &crawler.CrawlServer{
 		CrawlManager: &crawler.CrawlManager{
-			Logger: &mocks.MockLogger{}, // use the mockLogger
+			Logger: mocks.NewMockLogger(), // use the NewMockLogger function
 			Client: &mocks.MockRedisClient{},
 		},
 	}

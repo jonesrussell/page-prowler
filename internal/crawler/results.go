@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/url"
 )
 
@@ -52,16 +51,16 @@ func printResults(crawlerService *CrawlManager, results []PageData) {
 		return
 	}
 
-	fmt.Println(string(jsonData))
+	crawlerService.Logger.Info(string(jsonData))
 }
 
 // SaveResultsToRedis saves the results of the crawl to Redis.
 func (s *CrawlServer) SaveResultsToRedis(ctx context.Context, results []PageData, key string) error {
 	// Debugging statement
 	if ctx.Err() != nil {
-		log.Println("Crawl: context error:", ctx.Err())
+		s.CrawlManager.Logger.Error("Crawl: context error:", ctx.Err())
 	} else {
-		log.Println("Crawl: context is not done")
+		s.CrawlManager.Logger.Info("Crawl: context is not done")
 	}
 
 	for _, result := range results {
@@ -78,7 +77,7 @@ func (s *CrawlServer) SaveResultsToRedis(ctx context.Context, results []PageData
 			s.CrawlManager.Logger.Error("Error occurred during saving to Redis", "error", err)
 			return err
 		}
-		fmt.Println("Added", count, "elements to the set")
+		s.CrawlManager.Logger.Info("Added", count, "elements to the set")
 	}
 	return nil
 }
