@@ -25,6 +25,9 @@ fmt:
 lint:
 	golangci-lint run
 
+vet:
+	$(GO) vet ./...
+
 test:
 	$(GO) test -v -race ./... -cover
 
