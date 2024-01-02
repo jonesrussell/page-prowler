@@ -4,7 +4,13 @@
 	"name": "Go & Redis",
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "app",
-	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}"
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"features": {
+		"ghcr.io/guiyomh/features/golangci-lint:0": {},
+		"ghcr.io/guiyomh/features/gomarkdoc:0": {},
+		"ghcr.io/guiyomh/features/goreleaser:0": {},
+		"ghcr.io/guiyomh/features/gotestsum:0": {}
+	}
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
