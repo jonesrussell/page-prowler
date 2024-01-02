@@ -10,6 +10,13 @@
 		"ghcr.io/guiyomh/features/gomarkdoc:0": {},
 		"ghcr.io/guiyomh/features/goreleaser:0": {},
 		"ghcr.io/guiyomh/features/gotestsum:0": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"phind.phind"
+			]
+		}
 	}
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
