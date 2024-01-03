@@ -18,13 +18,6 @@ func handleCrawlTask(ctx context.Context, task *asynq.Task, crawlerService *craw
 		return err
 	}
 
-	// Debugging statements
-	log.Println("Payload URL:", payload.URL)
-	log.Println("Payload SearchTerms:", payload.SearchTerms)
-	log.Println("Payload CrawlSiteID:", payload.CrawlSiteID)
-	log.Println("Payload MaxDepth:", payload.MaxDepth)
-	log.Println("Payload Debug:", payload.Debug)
-
 	server := &crawler.CrawlServer{} // Initialize your CrawlServer
 
 	return crawler.StartCrawling(ctx, payload.URL, payload.SearchTerms, payload.CrawlSiteID, payload.MaxDepth, payload.Debug, crawlerService, server)
@@ -54,8 +47,6 @@ func StartWorker(concurrency int, crawlerService *crawler.CrawlManager) {
 	// mux maps a task type to a handler
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(tasks.CrawlTaskType, func(ctx context.Context, task *asynq.Task) error {
-		// Debugging statement
-		log.Println("Task payload:", string(task.Payload()))
 		return handleCrawlTask(ctx, task, crawlerService)
 	})
 

@@ -35,7 +35,6 @@ var rootCmd = &cobra.Command{
 	In addition to the command line interface, Page Prowler also provides an HTTP API for interacting with the tool.`,
 	SilenceErrors: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		log.Println("PersistentPreRunE started")
 		// Initialize your dependencies here
 		ctx := context.Background()
 
@@ -62,7 +61,6 @@ var rootCmd = &cobra.Command{
 			log.Println("Error initializing manager:", err)
 			return err
 		}
-		log.Println("Manager initialized successfully")
 
 		// Set the manager to the context
 		ctx = context.WithValue(ctx, managerKey, manager)
@@ -70,7 +68,6 @@ var rootCmd = &cobra.Command{
 		// Set the context of the command
 		cmd.SetContext(ctx)
 
-		log.Println("PersistentPreRunE finished")
 		return nil
 	},
 }
