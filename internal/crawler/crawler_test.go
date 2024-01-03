@@ -11,12 +11,12 @@ import (
 
 func TestHandleHTMLParsing(t *testing.T) {
 	// Create a mock CrawlManager
-	cs := &CrawlManager{}
-
-	// Create a mock CrawlOptions with a mock Collector
-	options := &CrawlOptions{
+	cs := &CrawlManager{
 		Collector: colly.NewCollector(),
 	}
+
+	// Create a mock CrawlOptions
+	options := &CrawlOptions{}
 
 	// Call the function with the mock parameters
 	err := cs.setupHTMLParsingHandler(context.Background(), options)
@@ -31,16 +31,15 @@ func TestHandleHTMLParsing(t *testing.T) {
 
 func TestHandleErrorEvents(t *testing.T) {
 	// Create a mock CrawlManager
-	cs := &CrawlManager{}
-
-	// Create a mock Collector
-	collector := colly.NewCollector()
+	cs := &CrawlManager{
+		Collector: colly.NewCollector(),
+	}
 
 	// Call the function with the mock parameters
-	cs.setupErrorEventHandler(collector)
+	cs.setupErrorEventHandler(cs.Collector)
 
 	// Trigger an error in the collector
-	collector.OnError(func(r *colly.Response, err error) {
+	cs.Collector.OnError(func(r *colly.Response, err error) {
 		// Check that the error handling function was called with the correct parameters
 		if r.StatusCode != 404 {
 			t.Errorf("Expected status code to be 404, but got %d", r.StatusCode)
@@ -82,13 +81,12 @@ func TestSetupCrawlingLogic(t *testing.T) {
 
 	// Create a mock CrawlManager with the Logger
 	cs := &CrawlManager{
-		Logger: log,
-	}
-
-	// Create a mock CrawlOptions with a mock Collector
-	options := &CrawlOptions{
+		Logger:    log,
 		Collector: colly.NewCollector(),
 	}
+
+	// Create a mock CrawlOptions
+	options := &CrawlOptions{}
 
 	// Call the function with the mock parameters
 	err := cs.setupCrawlingLogic(context.Background(), options)

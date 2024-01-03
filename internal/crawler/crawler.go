@@ -3,6 +3,7 @@ package crawler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -117,20 +118,6 @@ func (cs *CrawlManager) setupHTMLParsingHandler(ctx context.Context, options *Cr
 
 func (cs *CrawlManager) getAnchorElementHandler(ctx context.Context, options *CrawlOptions) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
-		// Debugging statement
-		if ctx.Err() != nil {
-			log.Println("Crawl: context error:", ctx.Err())
-		} else {
-			log.Println("Crawl: context is not done")
-		}
-
-		// Debugging statement
-		if cs.Collector == nil {
-			log.Println("getAnchorElementHandler: cs.Collector is nil")
-		} else {
-			log.Println("getAnchorElementHandler: cs.Collector is not nil")
-		}
-
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 		options.LinkStatsMu.Lock()
 		options.LinkStats.IncrementTotalLinks()
@@ -139,18 +126,12 @@ func (cs *CrawlManager) getAnchorElementHandler(ctx context.Context, options *Cr
 		pageData := PageData{
 			URL: href,
 		}
+		log.Println("Search terms:", options.SearchTerms) // Debugging statement
 		matchingTerms := termmatcher.GetMatchingTerms(href, options.SearchTerms)
 		if len(matchingTerms) > 0 {
 			cs.processMatchingLinkAndUpdateStats(ctx, options, href, pageData, matchingTerms)
 		} else {
 			cs.incrementNonMatchedLinkCount(options, href)
-		}
-
-		// Debugging statement
-		if cs.Collector == nil {
-			log.Println("getAnchorElementHandler after processing: cs.Collector is nil")
-		} else {
-			log.Println("getAnchorElementHandler after processing: cs.Collector is not nil")
 		}
 	}
 }
@@ -226,7 +207,7 @@ func (cs *CrawlManager) setupCrawlingLogic(ctx context.Context, options *CrawlOp
 	}
 
 	cs.setupErrorEventHandler(cs.Collector)
-	cs.handleRequestEvents(options)
+	cs.handleRequestEvents()
 
 	// Debugging statement
 	if cs.Collector == nil {
@@ -337,20 +318,33 @@ func (cs *CrawlManager) incrementNonMatchedLinkCount(options *CrawlOptions, href
 	}
 }
 
-func (cs *CrawlManager) handleRequestEvents(options *CrawlOptions) {
-	// Create a local copy of Collector
-	collector := cs.Collector
-
-	// Debugging statement
-	if collector == nil {
+func (cs *CrawlManager) handleRequestEvents() {
+	if cs.Collector == nil {
 		log.Println("handleRequestEvents: collector is nil")
 	} else {
 		log.Println("handleRequestEvents: collector is not nil")
 	}
 
-	collector.OnRequest(func(r *colly.Request) {
-		// Debugging statement
-		if collector == nil {
+	if cs.Logger == nil {
+		log.Println("handleRequestEvents: Logger is nil")
+	} else {
+		log.Println("handleRequestEvents: Logger is not nil")
+	}
+
+	if cs.Client == nil {
+		log.Println("handleRequestEvents: Client is nil")
+	} else {
+		log.Println("handleRequestEvents: Client is not nil")
+	}
+
+	if cs.MongoDBWrapper == nil {
+		log.Println("handleRequestEvents: MongoDBWrapper is nil")
+	} else {
+		log.Println("handleRequestEvents: MongoDBWrapper is not nil")
+	}
+
+	cs.Collector.OnRequest(func(r *colly.Request) {
+		if cs.Collector == nil {
 			log.Println("handleRequestEvents OnRequest callback: collector is nil")
 		} else {
 			log.Println("handleRequestEvents OnRequest callback: collector is not nil")
@@ -371,11 +365,15 @@ func (cs *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 
 	collector.AllowedDomains = allowedDomains
 
-	collector.Limit(&colly.LimitRule{
+	limitRule := &colly.LimitRule{
 		DomainGlob:  "*",
 		Parallelism: 2,
 		Delay:       3000 * time.Millisecond,
-	})
+	}
+
+	if err := collector.Limit(limitRule); err != nil {
+		return fmt.Errorf("failed to set limit rule: %w", err)
+	}
 
 	cs.Collector = collector
 
@@ -433,14 +431,7 @@ func StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 		return err
 	}
 
-	// Debugging statement
-	if crawlerService.Collector == nil {
-		log.Println("StartCrawling after Crawl: cs.Collector is nil")
-	} else {
-		log.Println("StartCrawling after Crawl: cs.Collector is not nil")
-	}
-
-	err = server.SaveResultsToRedis(ctx, results, crawlSiteID)
+	err = crawlerService.SaveResultsToRedis(ctx, results, crawlSiteID)
 	if err != nil {
 		return err
 	}
