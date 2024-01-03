@@ -1,7 +1,6 @@
 package termmatcher
 
 import (
-	"log"
 	"net/url"
 	"strings"
 
@@ -35,41 +34,43 @@ func extractTitleFromURL(urlString string) string {
 }
 
 // processTitle processes the title by removing '-', stopwords, and stemming.
-func processTitle(title string) string {
-	log.Println("Original title:", title)
-	title = strings.ReplaceAll(title, "-", " ")
-	title = stopwords.CleanString(title, "en", false)
-	title = strings.TrimSpace(title)
+func removeHyphens(title string) string {
+	return strings.ReplaceAll(title, "-", " ")
+}
 
-	words := strings.Split(title, " ")
+func removeStopwords(title string) string {
+	return strings.TrimSpace(stopwords.CleanString(title, "en", true))
+}
+
+func stemTitle(title string) string {
+	title = strings.ToLower(title)
+	words := strings.Fields(title)
 	words = stemmer.StemMultiple(words)
+	return strings.ToLower(strings.Join(words, " "))
+}
 
-	// Lemmatize (if needed)
-	// ...
-
-	processedTitle := strings.Join(words, " ")
-	log.Println("Processed title:", processedTitle)
-
-	return processedTitle
+func processTitle(title string) string {
+	title = removeHyphens(title)
+	title = removeStopwords(title)
+	title = stemTitle(title)
+	title = strings.ToLower(title)
+	return title
 }
 
 // GetMatchingTerms checks if the URL title matches any of the provided search terms and returns the matching terms.
 func GetMatchingTerms(href string, searchTerms []string) []string {
 	title := extractTitleFromURL(href)
 	if title == "" {
-		log.Println("Title is empty for URL:", href)
 		return nil
 	}
 
 	processedTitle := processTitle(title)
 	if processedTitle == "" {
-		log.Println("Processed title is empty for URL:", href)
 		return nil
 	}
 
 	// Check if the title meets the minimum character limit
 	if len(processedTitle) < minTitleLength {
-		log.Println("Processed title is shorter than minimum length for URL:", href)
 		return nil
 	}
 
@@ -88,15 +89,14 @@ func findMatchingTerms(title string, searchTerms []string) []string {
 	}
 
 	title = strings.ToLower(title)
+	titleStemmed := stemmer.Stem(title)
 
 	for _, term := range searchTerms {
 		originalTerm := term
 		term = strings.ToLower(term)
-		term = stemmer.Stem(term)
-		log.Println("Original term:", originalTerm, "Stemmed term:", term) // Debugging statement
-		similarity := strutil.Similarity(term, title, swg)
-		log.Println("Similarity between", term, "and", title, ":", similarity) // Debugging statement
-		if similarity >= 0.8 {                                                 // Adjust the threshold as needed
+		termStemmed := stemmer.Stem(term)
+		similarity := strutil.Similarity(termStemmed, titleStemmed, swg)
+		if similarity >= 0.8 { // Adjust the threshold as needed
 			matchingTerms = append(matchingTerms, originalTerm)
 		}
 	}
