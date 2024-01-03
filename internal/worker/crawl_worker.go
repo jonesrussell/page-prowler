@@ -18,9 +18,7 @@ func handleCrawlTask(ctx context.Context, task *asynq.Task, crawlerService *craw
 		return err
 	}
 
-	server := &crawler.CrawlServer{} // Initialize your CrawlServer
-
-	return crawler.StartCrawling(ctx, payload.URL, payload.SearchTerms, payload.CrawlSiteID, payload.MaxDepth, payload.Debug, crawlerService, server)
+	return crawler.StartCrawling(ctx, payload.URL, payload.SearchTerms, payload.CrawlSiteID, payload.MaxDepth, payload.Debug, crawlerService)
 }
 
 func StartWorker(concurrency int, crawlerService *crawler.CrawlManager) {

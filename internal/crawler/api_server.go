@@ -9,13 +9,8 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// CrawlServer represents the server that handles the crawling process.
-type CrawlServer struct {
-	CrawlManager *CrawlManager
-}
-
 // PostArticlesStart starts the article posting process.
-func (s *CrawlServer) PostArticlesStart(ctx echo.Context) error {
+func PostArticlesStart(ctx echo.Context) error {
 	// Get the CrawlManager from the context
 	manager := ctx.Get(string(echoManagerKey)).(*CrawlManager)
 	if manager == nil {
@@ -38,7 +33,15 @@ func (s *CrawlServer) PostArticlesStart(ctx echo.Context) error {
 		url = "https://" + url
 	}
 
-	err := StartCrawling(ctx.Request().Context(), url, *req.SearchTerms, *req.CrawlSiteID, *req.MaxDepth, *req.Debug, manager, s)
+	err := StartCrawling(
+		ctx.Request().Context(),
+		url,
+		*req.SearchTerms,
+		*req.CrawlSiteID,
+		*req.MaxDepth,
+		*req.Debug,
+		manager,
+	)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
@@ -47,7 +50,7 @@ func (s *CrawlServer) PostArticlesStart(ctx echo.Context) error {
 }
 
 // GetPing handles the ping request.
-func (s *CrawlServer) GetPing(ctx echo.Context) error {
+func GetPing(ctx echo.Context) error {
 	// Implement your logic here
 	return ctx.String(http.StatusOK, "Pong")
 }

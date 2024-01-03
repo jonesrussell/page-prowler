@@ -214,7 +214,7 @@ func (cs *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 }
 
 // StartCrawling starts the crawling process.
-func StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool, crawlerService *CrawlManager, server *CrawlServer) error {
+func StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool, crawlerService *CrawlManager) error {
 	splitSearchTerms := strings.Split(searchTerms, ",")
 	host, err := GetHostFromURL(url, crawlerService.Logger)
 	if err != nil {

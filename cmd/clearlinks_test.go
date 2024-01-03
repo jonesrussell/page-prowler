@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/jonesrussell/page-prowler/cmd/mocks"
-	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -15,8 +14,8 @@ import (
 func TestClearlinksCmd(t *testing.T) {
 	viper.Set("crawlsiteid", "testsite")
 
-	mockRedisClient := &mocks.MockRedisClient{}
-	ctx := context.WithValue(context.Background(), managerKey, &crawler.CrawlManager{Client: mockRedisClient})
+	mockRedisClient := mocks.NewMockRedisClient()
+	ctx := context.WithValue(context.Background(), managerKey, mockRedisClient)
 
 	// Create a new Cobra command for testing
 	cmd := &cobra.Command{

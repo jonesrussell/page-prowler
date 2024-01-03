@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/labstack/echo/v4"
@@ -18,9 +19,9 @@ var apiCmd = &cobra.Command{
 	Use:   "api",
 	Short: "Start the API server",
 	Long: `The 'api' command starts the API server. This server handles various requests related to articles and crawling jobs.
-    For example, you can start a new article matching job with the '/articles/start' endpoint, or retrieve the status of a job with the '/articles/info/{id}' endpoint.
-    Similarly, you can start a new crawling job with the '/crawling/start' endpoint, or retrieve the status of a crawling job with the '/crawling/info/{id}' endpoint.
-    The server also includes a '/ping' endpoint for health checks.`,
+		For example, you can start a new article matching job with the '/articles/start' endpoint, or retrieve the status of a job with the '/articles/info/{id}' endpoint.
+		Similarly, you can start a new crawling job with the '/crawling/start' endpoint, or retrieve the status of a crawling job with the '/crawling/info/{id}' endpoint.
+		The server also includes a '/ping' endpoint for health checks.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		e := echo.New()
 
@@ -33,13 +34,12 @@ var apiCmd = &cobra.Command{
 		// Add the middleware to the Echo instance
 		e.Use(CrawlManagerMiddleware(manager))
 
-		server := &crawler.ServerInterfaceWrapper{
-			Handler: &crawler.CrawlServer{
-				CrawlManager: manager,
-			},
-		}
+		// Register handlers
+		e.GET("/ping", func(c echo.Context) error {
+			return c.String(http.StatusOK, "Pong")
+		})
 
-		crawler.RegisterHandlers(e, server)
+		e.POST("/articles/start", crawler.PostArticlesStart)
 
 		if err := e.Start(":3000"); err != nil {
 			log.Fatalf("Error starting echo server: %v", err)
