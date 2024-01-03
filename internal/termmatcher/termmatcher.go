@@ -90,11 +90,14 @@ func findMatchingTerms(title string, searchTerms []string) []string {
 	title = strings.ToLower(title)
 
 	for _, term := range searchTerms {
+		originalTerm := term
 		term = strings.ToLower(term)
 		term = stemmer.Stem(term)
+		log.Println("Original term:", originalTerm, "Stemmed term:", term) // Debugging statement
 		similarity := strutil.Similarity(term, title, swg)
-		if similarity >= 0.8 { // Adjust the threshold as needed
-			matchingTerms = append(matchingTerms, term)
+		log.Println("Similarity between", term, "and", title, ":", similarity) // Debugging statement
+		if similarity >= 0.8 {                                                 // Adjust the threshold as needed
+			matchingTerms = append(matchingTerms, originalTerm)
 		}
 	}
 

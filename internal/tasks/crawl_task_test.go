@@ -1,4 +1,4 @@
-package cmd
+package tasks
 
 import (
 	"net/http"
@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/cmd/mocks"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
@@ -91,21 +92,27 @@ func TestConfigureCollector(t *testing.T) {
 	allowedDomains := []string{"test.com"}
 	maxDepth := 2
 
-	collector, err := crawler.ConfigureCollector(allowedDomains, maxDepth)
+	// Create a mock CrawlManager
+	cs := &crawler.CrawlManager{
+		Collector: colly.NewCollector(),
+	}
+
+	// Call the function with the mock parameters
+	err := cs.ConfigureCollector(allowedDomains, maxDepth)
 	if err != nil {
 		t.Fatalf("Failed to configure collector: %v", err)
 	}
 
-	if collector == nil {
+	if cs.Collector == nil {
 		t.Errorf("Expected collector to be not nil")
 		return
 	}
 
-	if !reflect.DeepEqual(collector.AllowedDomains, allowedDomains) {
-		t.Errorf("Expected allowed domains to be %v, but got %v", allowedDomains, collector.AllowedDomains)
+	if !reflect.DeepEqual(cs.Collector.AllowedDomains, allowedDomains) {
+		t.Errorf("Expected allowed domains to be %v, but got %v", allowedDomains, cs.Collector.AllowedDomains)
 	}
 
-	if collector.MaxDepth != maxDepth {
-		t.Errorf("Expected max depth to be %d, but got %d", maxDepth, collector.MaxDepth)
+	if cs.Collector.MaxDepth != maxDepth {
+		t.Errorf("Expected max depth to be %d, but got %d", maxDepth, cs.Collector.MaxDepth)
 	}
 }

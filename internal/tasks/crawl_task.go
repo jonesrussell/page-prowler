@@ -11,11 +11,21 @@ const (
 )
 
 type CrawlTaskPayload struct {
-	URL         string
-	SearchTerms string
-	CrawlSiteID string
-	MaxDepth    int
-	Debug       bool
+	URL         string `json:"url"`
+	SearchTerms string `json:"search_terms"`
+	CrawlSiteID string `json:"crawl_site_id"`
+	MaxDepth    int    `json:"max_depth"`
+	Debug       bool   `json:"debug"`
+}
+
+// Create asynq task
+func EnqueueCrawlTask(client *asynq.Client, payload *CrawlTaskPayload) error {
+	task, err := NewCrawlTask(payload)
+	if err != nil {
+		return err
+	}
+	_, err = client.Enqueue(task)
+	return err
 }
 
 func NewCrawlTask(payload *CrawlTaskPayload) (*asynq.Task, error) {
