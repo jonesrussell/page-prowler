@@ -3,8 +3,6 @@ package crawler
 import (
 	"context"
 	"errors"
-	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -50,68 +48,19 @@ func NewCrawlManager(logger logger.Logger, client redis.ClientInterface, mongoDB
 }
 
 func (cs *CrawlManager) Crawl(ctx context.Context, url string, options *CrawlOptions) ([]PageData, error) {
-	// Debugging statement
-	if ctx.Err() != nil {
-		log.Println("Crawl: context error:", ctx.Err())
-	} else {
-		log.Println("Crawl: context is not done")
-	}
-
-	// Debugging statement
-	if cs.Collector == nil {
-		log.Println("Crawl: cs.Collector is nil")
-	} else {
-		log.Println("Crawl: cs.Collector is not nil")
-	}
-
 	err := cs.setupCrawlingLogic(ctx, options)
 	if err != nil {
 		return nil, err
 	}
 
-	// Debugging statement
-	if cs.Collector == nil {
-		log.Println("Crawl after setupCrawlingLogic: cs.Collector is nil")
-	} else {
-		log.Println("Crawl after setupCrawlingLogic: cs.Collector is not nil")
-	}
-
 	cs.visitURL(url, options)
-
-	// Debugging statement
-	if cs.Collector == nil {
-		log.Println("Crawl after visitURL: cs.Collector is nil")
-	} else {
-		log.Println("Crawl after visitURL: cs.Collector is not nil")
-	}
 
 	return cs.handleResults(options), nil
 }
 
 // setupHTMLParsingHandler sets up the handler for HTML parsing with gocolly, using the provided parameters.
 func (cs *CrawlManager) setupHTMLParsingHandler(ctx context.Context, options *CrawlOptions) error {
-	// Debugging statement
-	if ctx.Err() != nil {
-		log.Println("Crawl: context error:", ctx.Err())
-	} else {
-		log.Println("Crawl: context is not done")
-	}
-
-	// Debugging statement
-	if cs.Collector == nil {
-		log.Println("setupHTMLParsingHandler: cs.Collector is nil")
-	} else {
-		log.Println("setupHTMLParsingHandler: cs.Collector is not nil")
-	}
-
 	cs.Collector.OnHTML("a[href]", cs.getAnchorElementHandler(ctx, options))
-
-	// Debugging statement
-	if cs.Collector == nil {
-		log.Println("setupHTMLParsingHandler after OnHTML: cs.Collector is nil")
-	} else {
-		log.Println("setupHTMLParsingHandler after OnHTML: cs.Collector is not nil")
-	}
 
 	return nil
 }
@@ -122,11 +71,11 @@ func (cs *CrawlManager) getAnchorElementHandler(ctx context.Context, options *Cr
 		options.LinkStatsMu.Lock()
 		options.LinkStats.IncrementTotalLinks()
 		options.LinkStatsMu.Unlock()
-		cs.Logger.Info("Incremented total links count")
+		cs.Logger.Debug("Incremented total links count")
 		pageData := PageData{
 			URL: href,
 		}
-		log.Println("Search terms:", options.SearchTerms) // Debugging statement
+		cs.Logger.Debug("Search terms: %v", options.SearchTerms)
 		matchingTerms := termmatcher.GetMatchingTerms(href, options.SearchTerms)
 		if len(matchingTerms) > 0 {
 			cs.processMatchingLinkAndUpdateStats(ctx, options, href, pageData, matchingTerms)
@@ -142,35 +91,28 @@ func (cs *CrawlManager) handleMatchingLinks(
 	options *CrawlOptions,
 	href string,
 ) error {
-	// Debugging statement
-	if ctx.Err() != nil {
-		log.Println("Crawl: context error:", ctx.Err())
-	} else {
-		log.Println("Crawl: context is not done")
-	}
-
-	cs.Logger.Info("Start handling matching links", "url", href)
+	cs.Logger.Debug("Start handling matching links", "url", href)
 
 	err := cs.Collector.Visit(href)
 	if err != nil {
 		if errors.Is(err, colly.ErrAlreadyVisited) {
-			cs.Logger.Info("URL already visited", "url", href)
+			cs.Logger.Debug("URL already visited", "url", href)
 		} else if errors.Is(err, colly.ErrForbiddenDomain) {
-			cs.Logger.Info("Forbidden domain - Skipping visit", "url", href)
+			cs.Logger.Debug("Forbidden domain - Skipping visit", "url", href)
 		} else {
 			cs.Logger.Error("Error visiting URL", "url", href, "error", err)
-			cs.Logger.Info("End handling matching links", "url", href)
+			cs.Logger.Debug("End handling matching links", "url", href)
 			return err
 		}
 	}
 
-	cs.Logger.Info("End handling matching links", "url", href)
+	cs.Logger.Debug("End handling matching links", "url", href)
 	return nil
 }
 
 // handleNonMatchingLinks logs the occurrence of a non-matching link.
 func (cs *CrawlManager) handleNonMatchingLinks(href string) {
-	cs.Logger.Info("Non-matching link", "url", href)
+	cs.Logger.Debug("Non-matching link", "url", href)
 }
 
 // setupErrorEventHandler sets up the error handling for the colly collector.
@@ -187,20 +129,6 @@ func (cs *CrawlManager) setupErrorEventHandler(collector *colly.Collector) {
 
 // setupCrawlingLogic configures and initiates the crawling logic.
 func (cs *CrawlManager) setupCrawlingLogic(ctx context.Context, options *CrawlOptions) error {
-	// Debugging statement
-	if ctx.Err() != nil {
-		log.Println("Crawl: context error:", ctx.Err())
-	} else {
-		log.Println("Crawl: context is not done")
-	}
-
-	// Debugging statement
-	if cs.Collector == nil {
-		log.Println("setupCrawlingLogic: cs.Collector is nil")
-	} else {
-		log.Println("setupCrawlingLogic: cs.Collector is not nil")
-	}
-
 	err := cs.setupHTMLParsingHandler(ctx, options)
 	if err != nil {
 		return err
@@ -209,77 +137,28 @@ func (cs *CrawlManager) setupCrawlingLogic(ctx context.Context, options *CrawlOp
 	cs.setupErrorEventHandler(cs.Collector)
 	cs.handleRequestEvents()
 
-	// Debugging statement
-	if cs.Collector == nil {
-		log.Println("setupCrawlingLogic after handleRequestEvents: cs.Collector is nil")
-	} else {
-		log.Println("setupCrawlingLogic after handleRequestEvents: cs.Collector is not nil")
-	}
-
 	return nil
 }
 
 func (cs *CrawlManager) visitURL(url string, options *CrawlOptions) {
-	// Debugging statement
-	if cs.Collector == nil {
-		log.Println("visitURL: cs.Collector is nil")
-	} else {
-		log.Println("visitURL: cs.Collector is not nil")
-	}
-
 	if err := cs.Collector.Visit(url); err != nil {
 		cs.Logger.Error("Error visiting URL", "url", url, "error", err)
 	}
 	cs.Collector.Wait()
 	cs.Logger.Info("Crawling completed.")
-
-	// Debugging statement
-	if cs.Collector == nil {
-		log.Println("visitURL after Wait: cs.Collector is nil")
-	} else {
-		log.Println("visitURL after Wait: cs.Collector is not nil")
-	}
 }
 
 func (cs *CrawlManager) handleResults(options *CrawlOptions) []PageData {
-	// Debugging statement
-	if cs.Collector == nil {
-		log.Println("handleResults: cs.Collector is nil")
-	} else {
-		log.Println("handleResults: cs.Collector is not nil")
-	}
-
 	results := *options.Results
-
-	// Debugging statement
-	if cs.Collector == nil {
-		log.Println("handleResults after getting results: cs.Collector is nil")
-	} else {
-		log.Println("handleResults after getting results: cs.Collector is not nil")
-	}
 
 	return results
 }
 
 func (cs *CrawlManager) processMatchingLinkAndUpdateStats(ctx context.Context, options *CrawlOptions, href string, pageData PageData, matchingTerms []string) {
-	// Debugging statement
-	if ctx.Err() != nil {
-		log.Println("Crawl: context error:", ctx.Err())
-	} else {
-		log.Println("Crawl: context is not done")
-	}
-
-	// Debugging statement
-	if cs.Collector == nil {
-		log.Println("processMatchingLinkAndUpdateStats: cs.Collector is nil")
-	} else {
-		log.Println("processMatchingLinkAndUpdateStats: cs.Collector is not nil")
-	}
-
 	options.LinkStatsMu.Lock()
 	options.LinkStats.IncrementMatchedLinks()
 	options.LinkStatsMu.Unlock()
-	cs.Logger.Info("Incremented matched links count")
+	cs.Logger.Debug("Incremented matched links count")
 	if err := cs.handleMatchingLinks(ctx, options, href); err != nil {
 		cs.Logger.Error("Error handling matching links", "error", err)
 	}
@@ -287,72 +166,21 @@ func (cs *CrawlManager) processMatchingLinkAndUpdateStats(ctx context.Context, o
 	options.LinkStatsMu.Lock()
 	*options.Results = append(*options.Results, pageData)
 	options.LinkStatsMu.Unlock()
-
-	// Debugging statement
-	if cs.Collector == nil {
-		log.Println("processMatchingLinkAndUpdateStats after appending results: cs.Collector is nil")
-	} else {
-		log.Println("processMatchingLinkAndUpdateStats after appending results: cs.Collector is not nil")
-	}
 }
 
 func (cs *CrawlManager) incrementNonMatchedLinkCount(options *CrawlOptions, href string) {
-	// Debugging statement
-	if cs.Collector == nil {
-		log.Println("incrementNonMatchedLinkCount: cs.Collector is nil")
-	} else {
-		log.Println("incrementNonMatchedLinkCount: cs.Collector is not nil")
-	}
-
 	options.LinkStatsMu.Lock()
 	options.LinkStats.IncrementNotMatchedLinks()
 	options.LinkStatsMu.Unlock()
-	cs.Logger.Info("Incremented not matched links count")
+	cs.Logger.Debug("Incremented not matched links count")
 	cs.handleNonMatchingLinks(href)
-
-	// Debugging statement
-	if cs.Collector == nil {
-		log.Println("incrementNonMatchedLinkCount after handleNonMatchingLinks: cs.Collector is nil")
-	} else {
-		log.Println("incrementNonMatchedLinkCount after handleNonMatchingLinks: cs.Collector is not nil")
-	}
 }
 
 func (cs *CrawlManager) handleRequestEvents() {
-	if cs.Collector == nil {
-		log.Println("handleRequestEvents: collector is nil")
-	} else {
-		log.Println("handleRequestEvents: collector is not nil")
-	}
-
-	if cs.Logger == nil {
-		log.Println("handleRequestEvents: Logger is nil")
-	} else {
-		log.Println("handleRequestEvents: Logger is not nil")
-	}
-
-	if cs.Client == nil {
-		log.Println("handleRequestEvents: Client is nil")
-	} else {
-		log.Println("handleRequestEvents: Client is not nil")
-	}
-
-	if cs.MongoDBWrapper == nil {
-		log.Println("handleRequestEvents: MongoDBWrapper is nil")
-	} else {
-		log.Println("handleRequestEvents: MongoDBWrapper is not nil")
-	}
-
 	cs.Collector.OnRequest(func(r *colly.Request) {
-		if cs.Collector == nil {
-			log.Println("handleRequestEvents OnRequest callback: collector is nil")
-		} else {
-			log.Println("handleRequestEvents OnRequest callback: collector is not nil")
-		}
-
-		cs.Logger.Info("Start OnRequest callback", "url", r.URL.String())
-		cs.Logger.Info("Visiting URL", "url", r.URL.String())
-		cs.Logger.Info("End OnRequest callback", "url", r.URL.String())
+		cs.Logger.Debug("Start OnRequest callback", "url", r.URL.String())
+		cs.Logger.Debug("Visiting URL", "url", r.URL.String())
+		cs.Logger.Debug("End OnRequest callback", "url", r.URL.String())
 	})
 }
 
@@ -372,7 +200,8 @@ func (cs *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 	}
 
 	if err := collector.Limit(limitRule); err != nil {
-		return fmt.Errorf("failed to set limit rule: %w", err)
+		cs.Logger.Errorf("Failed to set limit rule: %v", err)
+		return err
 	}
 
 	cs.Collector = collector
@@ -386,13 +215,6 @@ func (cs *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 
 // StartCrawling starts the crawling process.
 func StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool, crawlerService *CrawlManager, server *CrawlServer) error {
-	// Debugging statement
-	if ctx.Err() != nil {
-		log.Println("Crawl: context error:", ctx.Err())
-	} else {
-		log.Println("Crawl: context is not done")
-	}
-
 	splitSearchTerms := strings.Split(searchTerms, ",")
 	host, err := GetHostFromURL(url, crawlerService.Logger)
 	if err != nil {
@@ -406,9 +228,6 @@ func StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 		return err
 	}
 
-	// Debugging statement
-	log.Println("StartCrawling: collector is not nil")
-
 	var results []PageData
 
 	options := CrawlOptions{
@@ -417,13 +236,6 @@ func StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, ma
 		Results:     &results,
 		LinkStats:   stats.NewStats(),
 		Debug:       debug,
-	}
-
-	// Debugging statement
-	if crawlerService.Collector == nil {
-		log.Println("StartCrawling before Crawl: cs.Collector is nil")
-	} else {
-		log.Println("StartCrawling before Crawl: cs.Collector is not nil")
 	}
 
 	results, err = crawlerService.Crawl(ctx, url, &options)

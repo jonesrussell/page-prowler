@@ -24,8 +24,6 @@ var articlesCmd = &cobra.Command{
 	Long: `Crawl is a CLI tool designed to perform web scraping and data extraction from websites.
            It allows users to specify parameters such as depth of crawl and target elements to extract.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		log.Println("Manager initialized successfully")
-
 		// Access the CrawlManager from the context
 		value := cmd.Context().Value(managerKey)
 		if value == nil {
@@ -87,7 +85,6 @@ var articlesCmd = &cobra.Command{
 			log.Fatalf("Error enqueuing crawl task: %v", err)
 		}
 
-		log.Println("RunE finished")
 		return nil
 	},
 }

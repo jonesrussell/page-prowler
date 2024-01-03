@@ -72,7 +72,7 @@ func (cs *CrawlManager) SaveResultsToRedis(ctx context.Context, results []PageDa
 			cs.Logger.Error("Error occurred during saving to Redis", "error", err)
 			return err
 		}
-		cs.Logger.Info("Added elements to the set")
+		cs.Logger.Debug("Added elements to the set")
 
 		// Debugging: Verify that the result was saved correctly
 		isMember, err := cs.Client.SIsMember(ctx, key, str)
@@ -83,7 +83,7 @@ func (cs *CrawlManager) SaveResultsToRedis(ctx context.Context, results []PageDa
 		if !isMember {
 			cs.Logger.Error("Result was not saved correctly in Redis set", "result", str)
 		} else {
-			cs.Logger.Info("Result was saved correctly in Redis set", "result", str)
+			cs.Logger.Debug("Result was saved correctly in Redis set", "result", str)
 		}
 	}
 	return nil

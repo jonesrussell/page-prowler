@@ -52,3 +52,7 @@ func (m *MockLogger) IsDebugEnabled() bool {
 	// Implement the method according to your needs
 	return true
 }
+
+func (m *MockLogger) Errorf(format string, args ...interface{}) {
+	m.Logger.Errorf(format, args...)
+}
