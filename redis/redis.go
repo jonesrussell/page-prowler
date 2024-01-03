@@ -43,7 +43,8 @@ func (c *RedisClient) SAdd(ctx context.Context, key string, members ...interface
 }
 
 func (c *RedisClient) Del(ctx context.Context, keys ...string) error {
-	return c.Client.Del(ctx, keys...).Err()
+	cmd := c.Client.Del(ctx, keys...)
+	return cmd.Err()
 }
 
 func (c *RedisClient) SMembers(ctx context.Context, key string) ([]string, error) {

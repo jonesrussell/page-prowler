@@ -24,6 +24,7 @@ require (
 	github.com/adrg/strutil v0.3.1
 	github.com/bbalet/stopwords v1.0.0
 	github.com/caneroj1/stemmer v0.0.0-20170128035808-c9f2ce1504d5
+	github.com/go-redis/redismock/v9 v9.2.0
 	github.com/hibiken/asynq v0.24.1
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/redis/go-redis/v9 v9.3.1
