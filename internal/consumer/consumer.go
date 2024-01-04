@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	goredis "github.com/go-redis/redis/v8"
 	"github.com/gocolly/colly"
+	goredis "github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 

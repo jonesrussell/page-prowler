@@ -33,14 +33,13 @@ func PostMatchlinksStart(ctx echo.Context) error {
 		url = "https://" + url
 	}
 
-	err := StartCrawling(
+	err := manager.StartCrawling(
 		ctx.Request().Context(),
 		url,
 		*req.SearchTerms,
 		*req.CrawlSiteID,
 		*req.MaxDepth,
 		*req.Debug,
-		manager,
 	)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})

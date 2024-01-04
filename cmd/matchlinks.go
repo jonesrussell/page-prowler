@@ -12,12 +12,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-var (
-	MaxDepth    int
-	SearchTerms string
-	URL         string
-)
-
 var matchlinksCmd = &cobra.Command{
 	Use:   "matchlinks",
 	Short: "Crawl websites and extract information",
@@ -37,15 +31,18 @@ var matchlinksCmd = &cobra.Command{
 			log.Fatalf("manager is nil")
 		}
 
-		if Crawlsiteid == "" {
+		crawlsiteid := viper.GetString("crawlsiteid")
+		if crawlsiteid == "" {
 			return fmt.Errorf("crawlsiteid is required")
 		}
 
-		if SearchTerms == "" {
+		searchterms := viper.GetString("searchterms")
+		if searchterms == "" {
 			return fmt.Errorf("searchterms is required")
 		}
 
-		if URL == "" {
+		url := viper.GetString("url")
+		if url == "" {
 			return fmt.Errorf("url is required")
 		}
 
@@ -73,10 +70,10 @@ var matchlinksCmd = &cobra.Command{
 		})
 
 		payload := &tasks.CrawlTaskPayload{
-			URL:         URL,
-			SearchTerms: SearchTerms,
-			CrawlSiteID: Crawlsiteid,
-			MaxDepth:    MaxDepth,
+			URL:         url,
+			SearchTerms: searchterms,
+			CrawlSiteID: crawlsiteid,
+			MaxDepth:    viper.GetInt("maxdepth"),
 			Debug:       Debug,
 		}
 
@@ -90,22 +87,22 @@ var matchlinksCmd = &cobra.Command{
 }
 
 func init() {
-	matchlinksCmd.Flags().StringVarP(&Crawlsiteid, "crawlsiteid", "s", "", "CrawlSite ID")
+	matchlinksCmd.Flags().StringP("crawlsiteid", "s", "", "CrawlSite ID")
 	if err := viper.BindPFlag("crawlsiteid", matchlinksCmd.Flags().Lookup("crawlsiteid")); err != nil {
 		log.Fatalf("Error binding flag: %v", err)
 	}
 
-	matchlinksCmd.Flags().StringVarP(&URL, "url", "u", "", "URL to crawl")
+	matchlinksCmd.Flags().StringP("url", "u", "", "URL to crawl")
 	if err := viper.BindPFlag("url", matchlinksCmd.Flags().Lookup("url")); err != nil {
 		log.Fatalf("Error binding flag: %v", err)
 	}
 
-	matchlinksCmd.Flags().StringVarP(&SearchTerms, "searchterms", "t", "", "Search terms for crawling")
+	matchlinksCmd.Flags().StringP("searchterms", "t", "", "Search terms for crawling")
 	if err := viper.BindPFlag("searchterms", matchlinksCmd.Flags().Lookup("searchterms")); err != nil {
 		log.Fatalf("Error binding flag: %v", err)
 	}
 
-	matchlinksCmd.Flags().IntVarP(&MaxDepth, "maxdepth", "m", 1, "Max depth for crawling")
+	matchlinksCmd.Flags().IntP("maxdepth", "m", 1, "Max depth for crawling")
 	if err := viper.BindPFlag("maxdepth", matchlinksCmd.Flags().Lookup("maxdepth")); err != nil {
 		log.Fatalf("Error binding flag: %v", err)
 	}

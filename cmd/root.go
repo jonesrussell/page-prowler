@@ -38,19 +38,38 @@ var rootCmd = &cobra.Command{
 		// Initialize your dependencies here
 		ctx := context.Background()
 
+		appLogger := initializeLogger(viper.GetBool("debug"), logger.DefaultLogLevel)
+
+		redisHost := viper.GetString("REDIS_HOST")
+		redisPort := viper.GetString("REDIS_PORT")
+		mongodbUri := viper.GetString("MONGODB_URI")
+
+		if redisHost == "" {
+			log.Println("REDIS_HOST is not set but is required")
+			return fmt.Errorf("REDIS_HOST is not set but is required")
+		}
+
+		if redisPort == "" {
+			log.Println("REDIS_PORT is not set but is required")
+			return fmt.Errorf("REDIS_PORT is not set but is required")
+		}
+
+		if mongodbUri == "" {
+			log.Println("MONGODB_URI is not set but is required")
+			return fmt.Errorf("MONGODB_URI is not set but is required")
+		}
+
 		redisClient, err := redis.NewClient(
 			ctx,
-			viper.GetString("REDIS_HOST"),
-			viper.GetString("REDIS_AUTH"),
-			viper.GetString("REDIS_PORT"),
+			redisHost,
+			"", // No auth needed
+			redisPort,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to initialize Redis client: %v", err)
 		}
 
-		appLogger := initializeLogger(viper.GetBool("debug"), logger.DefaultLogLevel)
-
-		mongoDBWrapper, err := mongodbwrapper.NewMongoDB(ctx, viper.GetString("MONGODB_URI"))
+		mongoDBWrapper, err := mongodbwrapper.NewMongoDB(ctx, mongodbUri)
 		if err != nil {
 			return fmt.Errorf("failed to initialize MongoDB wrapper: %v", err)
 		}
@@ -92,10 +111,7 @@ func initConfig() {
 	viper.SetConfigType("env")
 	viper.AutomaticEnv() // Automatically override values from the .env file with those from the environment.
 
-	err := viper.ReadInConfig()
-	if err != nil {
-		log.Fatalf("Error while reading config file: %v", err)
-	}
+	_ = viper.ReadInConfig()
 }
 
 func initializeLogger(debug bool, level logger.LogLevel) logger.Logger {
@@ -107,9 +123,5 @@ func initializeManager(
 	appLogger logger.Logger,
 	mongoDBWrapper mongodbwrapper.MongoDBInterface,
 ) (*crawler.CrawlManager, error) {
-	return &crawler.CrawlManager{
-		Logger:         appLogger,
-		Client:         redisClient,
-		MongoDBWrapper: mongoDBWrapper,
-	}, nil
+	return crawler.NewCrawlManager(appLogger, redisClient, mongoDBWrapper), nil
 }
