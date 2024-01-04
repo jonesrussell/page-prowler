@@ -7,8 +7,8 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// PostArticlesStartJSONBody defines parameters for PostArticlesStart.
-type PostArticlesStartJSONBody struct {
+// PostMatchlinksStartJSONBody defines parameters for PostMatchlinksStart.
+type PostMatchlinksStartJSONBody struct {
 	CrawlSiteID *string `json:"CrawlSiteID,omitempty"`
 	Debug       *bool   `json:"Debug,omitempty"`
 	MaxDepth    *int    `json:"MaxDepth,omitempty"`
@@ -16,14 +16,14 @@ type PostArticlesStartJSONBody struct {
 	URL         *string `json:"URL,omitempty"`
 }
 
-// PostArticlesStartJSONRequestBody defines body for PostArticlesStart for application/json ContentType.
-type PostArticlesStartJSONRequestBody PostArticlesStartJSONBody
+// PostMatchlinksStartJSONRequestBody defines body for PostMatchlinksStart for application/json ContentType.
+type PostMatchlinksStartJSONRequestBody PostMatchlinksStartJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Start the matching process
-	// (POST /articles/start)
-	PostArticlesStart(ctx echo.Context) error
+	// (POST /matchlinks/start)
+	PostMatchlinksStart(ctx echo.Context) error
 	// Ping the server
 	// (GET /ping)
 	GetPing(ctx echo.Context) error
@@ -34,12 +34,12 @@ type ServerInterfaceWrapper struct {
 	Handler ServerInterface
 }
 
-// PostArticlesStart converts echo context to params.
-func (w *ServerInterfaceWrapper) PostArticlesStart(ctx echo.Context) error {
+// PostMatchlinksStart converts echo context to params.
+func (w *ServerInterfaceWrapper) PostMatchlinksStart(ctx echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.PostArticlesStart(ctx)
+	err = w.Handler.PostMatchlinksStart(ctx)
 	return err
 }
 
@@ -80,7 +80,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
-	router.POST(baseURL+"/articles/start", wrapper.PostArticlesStart)
+	router.POST(baseURL+"/matchlinks/start", wrapper.PostMatchlinksStart)
 	router.GET(baseURL+"/ping", wrapper.GetPing)
 
 }

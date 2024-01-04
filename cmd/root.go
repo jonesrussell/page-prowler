@@ -26,10 +26,10 @@ const (
 
 var rootCmd = &cobra.Command{
 	Use:   "page-prowler",
-	Short: "A tool for finding articles from websites",
-	Long: `Page Prowler is a tool that finds articles from websites where the URL matches provided terms. It provides functionalities for:
+	Short: "A tool for finding matchlinks from websites",
+	Long: `Page Prowler is a tool that finds matchlinks from websites where the URL matches provided terms. It provides functionalities for:
 
-1. Crawling specific websites and extracting articles that match the provided terms ('articles' command)
+1. Crawling specific websites and extracting matchlinks that match the provided terms ('matchlinks' command)
 	2. Consuming URLs from a Redis set ('consume' command)
 
 	In addition to the command line interface, Page Prowler also provides an HTTP API for interacting with the tool.`,
