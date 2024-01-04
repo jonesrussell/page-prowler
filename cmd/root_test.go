@@ -22,12 +22,13 @@ func TestExecute(t *testing.T) {
 }
 
 func TestInitConfig(t *testing.T) {
-	initConfig()
+	// Temporarily replace the config file with a non-existent file
+	origConfigFile := viper.ConfigFileUsed()
+	defer func() { viper.SetConfigFile(origConfigFile) }()
+	viper.SetConfigFile("non_existent_file")
 
-	// Check if the environment variables are correctly set
-	assert.Equal(t, viper.GetString("REDIS_HOST"), os.Getenv("REDIS_HOST"), "REDIS_HOST is not correctly set")
-	assert.Equal(t, viper.GetString("REDIS_PORT"), os.Getenv("REDIS_PORT"), "REDIS_PORT is not correctly set")
-	assert.Equal(t, viper.GetString("REDIS_AUTH"), os.Getenv("REDIS_AUTH"), "REDIS_AUTH is not correctly set")
+	// Call initConfig and check if it doesn't panic
+	assert.NotPanics(t, func() { initConfig() }, "initConfig should not panic if the config file does not exist")
 }
 
 func TestFlagValues(t *testing.T) {

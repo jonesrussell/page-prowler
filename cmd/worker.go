@@ -12,7 +12,7 @@ var workerCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		concurrency := 10 // Replace with the concurrency level you want
 		manager := cmd.Context().Value(managerKey).(*crawler.CrawlManager)
-		worker.StartWorker(concurrency, manager)
+		worker.StartWorker(concurrency, manager, Debug)
 	},
 }
 
