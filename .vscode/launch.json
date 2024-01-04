@@ -20,12 +20,12 @@
             }
         },
         {
-            "name": "Debug TestPostArticlesStart",
+            "name": "Debug TestPostMatchlinksStart",
             "type": "go",
             "request": "launch",
             "mode": "test",
             "program": "${workspaceFolder}/cmd",
-            "args": ["-test.run", "TestPostArticlesStart"],
+            "args": ["-test.run", "TestPostMatchlinksStart"],
             "env": {"GOFLAGS": "-v"}
         },
         {

@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestArticlesCmd(t *testing.T) {
+func TestMatchlinksCmd(t *testing.T) {
 	if matchlinksCmd == nil {
 		t.Errorf("matchlinksCmd is not initialized")
 	}
 }
 
-func TestArticlesCmdFlags(t *testing.T) {
+func TestMatchlinksCmdFlags(t *testing.T) {
 	// Set the flags
 	if err := matchlinksCmd.Flags().Set("crawlsiteid", "test"); err != nil {
 		t.Fatalf("Error setting crawlsiteid flag: %v", err)
