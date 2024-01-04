@@ -39,7 +39,7 @@ var apiCmd = &cobra.Command{
 			return c.String(http.StatusOK, "Pong")
 		})
 
-		e.POST("/matchlinks/start", crawler.PostArticlesStart)
+		e.POST("/matchlinks/start", crawler.PostMatchlinksStart)
 
 		if err := e.Start(":3000"); err != nil {
 			log.Fatalf("Error starting echo server: %v", err)

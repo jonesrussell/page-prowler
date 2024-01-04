@@ -9,15 +9,15 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// PostArticlesStart starts the article posting process.
-func PostArticlesStart(ctx echo.Context) error {
+// PostMatchlinksStart starts the article posting process.
+func PostMatchlinksStart(ctx echo.Context) error {
 	// Get the CrawlManager from the context
 	manager := ctx.Get(string(echoManagerKey)).(*CrawlManager)
 	if manager == nil {
 		log.Fatalf("CrawlManager is not initialized")
 	}
 
-	var req PostArticlesStartJSONBody
+	var req PostMatchlinksStartJSONBody
 	if err := ctx.Bind(&req); err != nil {
 		return err
 	}
