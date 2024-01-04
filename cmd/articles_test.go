@@ -8,20 +8,20 @@ import (
 )
 
 func TestArticlesCmd(t *testing.T) {
-	if articlesCmd == nil {
-		t.Errorf("articlesCmd is not initialized")
+	if matchlinksCmd == nil {
+		t.Errorf("matchlinksCmd is not initialized")
 	}
 }
 
 func TestArticlesCmdFlags(t *testing.T) {
 	// Set the flags
-	if err := articlesCmd.Flags().Set("crawlsiteid", "test"); err != nil {
+	if err := matchlinksCmd.Flags().Set("crawlsiteid", "test"); err != nil {
 		t.Fatalf("Error setting crawlsiteid flag: %v", err)
 	}
-	if err := articlesCmd.Flags().Set("searchterms", "test"); err != nil {
+	if err := matchlinksCmd.Flags().Set("searchterms", "test"); err != nil {
 		t.Fatalf("Error setting searchterms flag: %v", err)
 	}
-	if err := articlesCmd.Flags().Set("url", "test"); err != nil {
+	if err := matchlinksCmd.Flags().Set("url", "test"); err != nil {
 		t.Fatalf("Error setting url flag: %v", err)
 	}
 

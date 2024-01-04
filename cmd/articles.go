@@ -18,8 +18,8 @@ var (
 	URL         string
 )
 
-var articlesCmd = &cobra.Command{
-	Use:   "articles",
+var matchlinksCmd = &cobra.Command{
+	Use:   "matchlinks",
 	Short: "Crawl websites and extract information",
 	Long: `Crawl is a CLI tool designed to perform web scraping and data extraction from websites.
            It allows users to specify parameters such as depth of crawl and target elements to extract.`,
@@ -90,25 +90,25 @@ var articlesCmd = &cobra.Command{
 }
 
 func init() {
-	articlesCmd.Flags().StringVarP(&Crawlsiteid, "crawlsiteid", "s", "", "CrawlSite ID")
-	if err := viper.BindPFlag("crawlsiteid", articlesCmd.Flags().Lookup("crawlsiteid")); err != nil {
+	matchlinksCmd.Flags().StringVarP(&Crawlsiteid, "crawlsiteid", "s", "", "CrawlSite ID")
+	if err := viper.BindPFlag("crawlsiteid", matchlinksCmd.Flags().Lookup("crawlsiteid")); err != nil {
 		log.Fatalf("Error binding flag: %v", err)
 	}
 
-	articlesCmd.Flags().StringVarP(&URL, "url", "u", "", "URL to crawl")
-	if err := viper.BindPFlag("url", articlesCmd.Flags().Lookup("url")); err != nil {
+	matchlinksCmd.Flags().StringVarP(&URL, "url", "u", "", "URL to crawl")
+	if err := viper.BindPFlag("url", matchlinksCmd.Flags().Lookup("url")); err != nil {
 		log.Fatalf("Error binding flag: %v", err)
 	}
 
-	articlesCmd.Flags().StringVarP(&SearchTerms, "searchterms", "t", "", "Search terms for crawling")
-	if err := viper.BindPFlag("searchterms", articlesCmd.Flags().Lookup("searchterms")); err != nil {
+	matchlinksCmd.Flags().StringVarP(&SearchTerms, "searchterms", "t", "", "Search terms for crawling")
+	if err := viper.BindPFlag("searchterms", matchlinksCmd.Flags().Lookup("searchterms")); err != nil {
 		log.Fatalf("Error binding flag: %v", err)
 	}
 
-	articlesCmd.Flags().IntVarP(&MaxDepth, "maxdepth", "m", 1, "Max depth for crawling")
-	if err := viper.BindPFlag("maxdepth", articlesCmd.Flags().Lookup("maxdepth")); err != nil {
+	matchlinksCmd.Flags().IntVarP(&MaxDepth, "maxdepth", "m", 1, "Max depth for crawling")
+	if err := viper.BindPFlag("maxdepth", matchlinksCmd.Flags().Lookup("maxdepth")); err != nil {
 		log.Fatalf("Error binding flag: %v", err)
 	}
 
-	rootCmd.AddCommand(articlesCmd)
+	rootCmd.AddCommand(matchlinksCmd)
 }

@@ -1,6 +1,6 @@
 # Page Prowler
 
-Page Prowler is a tool for finding articles from websites where the URL matches provided terms. It provides functionalities for crawling specific websites, extracting articles that match the provided terms, and consuming URLs from a Redis set.
+Page Prowler is a tool for finding matchlinks from websites where the URL matches provided terms. It provides functionalities for crawling specific websites, extracting matchlinks that match the provided terms, and consuming URLs from a Redis set.
 
 ## Usage
 
@@ -9,7 +9,7 @@ Page Prowler is a tool for finding articles from websites where the URL matches 
 ## Commands
 
 - api: Starts the API server.
-- articles: Crawls specific websites and extracts articles that match the provided terms.
+- matchlinks: Crawls specific websites and extracts matchlinks that match the provided terms.
 - consume: Consumes URLs from a Redis set.
 - help: Displays help about any command.
 
@@ -25,10 +25,10 @@ go build
 
 ### Command Line
 
-To search for articles from the command line, use the following command:
+To search for matchlinks from the command line, use the following command:
 
 ```bash
-./page-prowler articles --url="https://www.example.com" --searchterms="keyword1,keyword2" --crawlsiteid=siteID --maxdepth=1 --debug
+./page-prowler matchlinks --url="https://www.example.com" --searchterms="keyword1,keyword2" --crawlsiteid=siteID --maxdepth=1 --debug
 ```
 
 Replace `"https://www.example.com"` with the URL you want to crawl, `"keyword1,keyword2"` with the search terms you want to look for, `siteID` with your site ID, and `1` with the maximum depth of the crawl.
@@ -50,7 +50,7 @@ curl -X POST -H "Content-Type: application/json" -d '{
  "CrawlSiteID": "siteID",
  "MaxDepth": 3,
  "Debug": true
-}' http://localhost:3000/articles/start
+}' http://localhost:3000/matchlinks/start
 ```
 
 Again, replace `"https://www.example.com"` with the URL you want to crawl, `"keyword1,keyword2"` with the search terms you want to look for, `siteID` with your site ID, and `3` with the maximum depth of the crawl.

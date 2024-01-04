@@ -18,7 +18,7 @@ paths:
                 properties:
                   message:
                     type: string
-  /articles/start:
+  /matchlinks/start:
     post:
       summary: Start the matching process
       requestBody:
