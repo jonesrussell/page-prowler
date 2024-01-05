@@ -59,7 +59,7 @@ func (cs *CrawlManager) Crawl(url string, options *CrawlOptions) ([]PageData, er
 		return nil, err
 	}
 
-	cs.visitURL(url, options)
+	cs.visitURL(url)
 
 	return cs.handleResults(options), nil
 }
@@ -86,16 +86,13 @@ func (cs *CrawlManager) getAnchorElementHandler(options *CrawlOptions) func(e *c
 		if len(matchingTerms) > 0 {
 			cs.processMatchingLinkAndUpdateStats(options, href, pageData, matchingTerms)
 		} else {
-			cs.incrementNonMatchedLinkCount(options, href)
+			cs.incrementNonMatchedLinkCount(options)
 		}
 	}
 }
 
 // handleMatchingLinks is responsible for handling the links that match the search criteria during crawling.
-func (cs *CrawlManager) handleMatchingLinks(
-	options *CrawlOptions,
-	href string,
-) error {
+func (cs *CrawlManager) handleMatchingLinks(href string) error {
 	cs.Logger.Debug("Start handling matching links", "url", href)
 
 	err := cs.visit(href)
@@ -132,7 +129,7 @@ func (cs *CrawlManager) setupCrawlingLogic(options *CrawlOptions) error {
 	return nil
 }
 
-func (cs *CrawlManager) visitURL(url string, options *CrawlOptions) {
+func (cs *CrawlManager) visitURL(url string) {
 	err := cs.visit(url)
 	if err != nil {
 		cs.Logger.Error("Error visiting URL", "url", url, "error", err)
@@ -153,7 +150,7 @@ func (cs *CrawlManager) processMatchingLinkAndUpdateStats(options *CrawlOptions,
 	options.LinkStats.IncrementMatchedLinks()
 	options.LinkStatsMu.Unlock()
 	cs.Logger.Debug("Incremented matched links count")
-	if err := cs.handleMatchingLinks(options, href); err != nil {
+	if err := cs.handleMatchingLinks(href); err != nil {
 		cs.Logger.Error("Error handling matching links", "error", err)
 	}
 	pageData.MatchingTerms = matchingTerms
@@ -162,7 +159,7 @@ func (cs *CrawlManager) processMatchingLinkAndUpdateStats(options *CrawlOptions,
 	options.LinkStatsMu.Unlock()
 }
 
-func (cs *CrawlManager) incrementNonMatchedLinkCount(options *CrawlOptions, href string) {
+func (cs *CrawlManager) incrementNonMatchedLinkCount(options *CrawlOptions) {
 	options.LinkStatsMu.Lock()
 	options.LinkStats.IncrementNotMatchedLinks()
 	options.LinkStatsMu.Unlock()
