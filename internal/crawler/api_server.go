@@ -17,7 +17,7 @@ func PostMatchlinksStart(ctx echo.Context) error {
 		log.Fatalf("CrawlManager is not initialized")
 	}
 
-	var req PostMatchlinksStartJSONBody
+	var req PostMatchlinksJSONBody
 	if err := ctx.Bind(&req); err != nil {
 		return err
 	}

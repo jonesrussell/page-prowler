@@ -4,11 +4,23 @@
 package crawler
 
 import (
+	"fmt"
+	"net/http"
+
 	"github.com/labstack/echo/v4"
+	"github.com/oapi-codegen/runtime"
 )
 
-// PostMatchlinksStartJSONBody defines parameters for PostMatchlinksStart.
-type PostMatchlinksStartJSONBody struct {
+// ErrorResponse defines model for ErrorResponse.
+type ErrorResponse struct {
+	Error *string `json:"error,omitempty"`
+}
+
+// DefaultError defines model for DefaultError.
+type DefaultError = ErrorResponse
+
+// PostMatchlinksJSONBody defines parameters for PostMatchlinks.
+type PostMatchlinksJSONBody struct {
 	CrawlSiteID *string `json:"CrawlSiteID,omitempty"`
 	Debug       *bool   `json:"Debug,omitempty"`
 	MaxDepth    *int    `json:"MaxDepth,omitempty"`
@@ -16,14 +28,20 @@ type PostMatchlinksStartJSONBody struct {
 	URL         *string `json:"URL,omitempty"`
 }
 
-// PostMatchlinksStartJSONRequestBody defines body for PostMatchlinksStart for application/json ContentType.
-type PostMatchlinksStartJSONRequestBody PostMatchlinksStartJSONBody
+// PostMatchlinksJSONRequestBody defines body for PostMatchlinks for application/json ContentType.
+type PostMatchlinksJSONRequestBody PostMatchlinksJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Start the matching process
-	// (POST /matchlinks/start)
-	PostMatchlinksStart(ctx echo.Context) error
+	// Create a new matching task
+	// (POST /matchlinks)
+	PostMatchlinks(ctx echo.Context) error
+	// Get the details of a matching task
+	// (GET /matchlinks/{id})
+	GetMatchlinksId(ctx echo.Context, id string) error
+	// Delete the matching task
+	// (POST /matchlinks/{id}/delete)
+	PostMatchlinksIdDelete(ctx echo.Context, id string) error
 	// Ping the server
 	// (GET /ping)
 	GetPing(ctx echo.Context) error
@@ -34,12 +52,44 @@ type ServerInterfaceWrapper struct {
 	Handler ServerInterface
 }
 
-// PostMatchlinksStart converts echo context to params.
-func (w *ServerInterfaceWrapper) PostMatchlinksStart(ctx echo.Context) error {
+// PostMatchlinks converts echo context to params.
+func (w *ServerInterfaceWrapper) PostMatchlinks(ctx echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.PostMatchlinksStart(ctx)
+	err = w.Handler.PostMatchlinks(ctx)
+	return err
+}
+
+// GetMatchlinksId converts echo context to params.
+func (w *ServerInterfaceWrapper) GetMatchlinksId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetMatchlinksId(ctx, id)
+	return err
+}
+
+// PostMatchlinksIdDelete converts echo context to params.
+func (w *ServerInterfaceWrapper) PostMatchlinksIdDelete(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostMatchlinksIdDelete(ctx, id)
 	return err
 }
 
@@ -80,7 +130,9 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
-	router.POST(baseURL+"/matchlinks/start", wrapper.PostMatchlinksStart)
+	router.POST(baseURL+"/matchlinks", wrapper.PostMatchlinks)
+	router.GET(baseURL+"/matchlinks/:id", wrapper.GetMatchlinksId)
+	router.POST(baseURL+"/matchlinks/:id/delete", wrapper.PostMatchlinksIdDelete)
 	router.GET(baseURL+"/ping", wrapper.GetPing)
 
 }
