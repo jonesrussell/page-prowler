@@ -77,7 +77,7 @@ var matchlinksCmd = &cobra.Command{
 			Debug:       Debug,
 		}
 
-		err := tasks.EnqueueCrawlTask(client, payload)
+		_, err := tasks.EnqueueCrawlTask(client, payload)
 		if err != nil {
 			log.Fatalf("Error enqueuing crawl task: %v", err)
 		}
