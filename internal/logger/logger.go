@@ -67,12 +67,12 @@ func New(debug bool, level LogLevel) *ZapLoggerWrapper {
 	var err error
 
 	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 
 	atomicLevel := zap.NewAtomicLevel()
 	atomicLevel.SetLevel(zapcore.Level(level))
 
 	if debug {
+		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 		config := zap.Config{
 			Level:            atomicLevel,
 			Development:      true,
