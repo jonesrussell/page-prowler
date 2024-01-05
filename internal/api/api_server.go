@@ -1,4 +1,4 @@
-package crawler
+package api
 
 import (
 	"encoding/json"
