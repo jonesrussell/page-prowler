@@ -1,55 +1,116 @@
 package crawler
 
 import (
-	"errors"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
 
+	"github.com/hibiken/asynq"
+	"github.com/jonesrussell/page-prowler/internal/tasks"
 	"github.com/labstack/echo/v4"
+	"github.com/spf13/viper"
 )
 
-// PostMatchlinksStart starts the article posting process.
-func PostMatchlinksStart(ctx echo.Context) error {
-	// Get the CrawlManager from the context
-	manager := ctx.Get(string(echoManagerKey)).(*CrawlManager)
-	if manager == nil {
-		log.Fatalf("CrawlManager is not initialized")
-	}
+const (
+	DefaultQueueName = "default"
+	Protocol         = "https://"
+)
 
+type ApiServerInterface struct {
+	Inspector asynq.Inspector
+}
+
+// PostMatchlinks starts the article posting process.
+func (msi *ApiServerInterface) PostMatchlinks(ctx echo.Context) error {
 	var req PostMatchlinksJSONBody
 	if err := ctx.Bind(&req); err != nil {
 		return err
 	}
 
-	// Ensure the URL is not empty
-	if *req.URL == "" {
-		return errors.New("URL cannot be empty")
+	// Validate the input parameters
+	if req.URL == nil || *req.URL == "" {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "URL cannot be empty"})
+	}
+	if req.SearchTerms == nil || *req.SearchTerms == "" {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "SearchTerms cannot be empty"})
+	}
+	if req.CrawlSiteID == nil || *req.CrawlSiteID == "" {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "CrawlSiteID cannot be empty"})
+	}
+	if req.MaxDepth == nil {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "MaxDepth cannot be null"})
+	}
+
+	// Default Debug to false if it is nil
+	if req.Debug == nil {
+		req.Debug = new(bool)
+		*req.Debug = false
 	}
 
 	// Ensure the URL is correctly formatted
 	url := strings.TrimSpace(*req.URL)
-	if !strings.HasPrefix(url, "https://") {
-		url = "https://" + url
+	if !strings.HasPrefix(url, Protocol) {
+		url = Protocol + url
 	}
 
-	err := manager.StartCrawling(
-		ctx.Request().Context(),
-		url,
-		*req.SearchTerms,
-		*req.CrawlSiteID,
-		*req.MaxDepth,
-		*req.Debug,
-	)
+	// Create a new asynq.Client using the same Redis connection details
+	redisHost := viper.GetString("REDIS_HOST")
+	redisPort := viper.GetString("REDIS_PORT")
+	redisAuth := viper.GetString("REDIS_AUTH")
+	client := asynq.NewClient(asynq.RedisClientOpt{
+		Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
+		Password: redisAuth,
+	})
+
+	payload := &tasks.CrawlTaskPayload{
+		URL:         url,
+		SearchTerms: *req.SearchTerms,
+		CrawlSiteID: *req.CrawlSiteID,
+		MaxDepth:    *req.MaxDepth,
+		Debug:       *req.Debug,
+	}
+
+	tid, err := tasks.EnqueueCrawlTask(client, payload)
 	if err != nil {
+		log.Println("Error enqueuing crawl task: ", err)
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	return ctx.JSON(http.StatusOK, map[string]string{"message": "Crawling started successfully"})
+	return ctx.JSON(http.StatusOK, map[string]string{"message": "Crawling started successfully", "task_id": tid})
+}
+
+func (msi *ApiServerInterface) GetMatchlinksId(ctx echo.Context, id string) error {
+	// Use the Inspector to get the details of the task
+	queue := DefaultQueueName
+	tasks, err := msi.Inspector.ListActiveTasks(queue)
+	if err != nil {
+		return err
+	}
+
+	for _, task := range tasks {
+		if task.ID == id {
+			// Convert the task to JSON and write it to the response
+			taskJson, err := json.Marshal(task)
+			if err != nil {
+				return err
+			}
+
+			_, err = ctx.Response().Write(taskJson)
+			return err
+		}
+	}
+
+	return ctx.JSON(http.StatusNotFound, map[string]string{"error": "Task not found"})
+}
+
+func (msi *ApiServerInterface) PostMatchlinksIdDelete(ctx echo.Context, id string) error {
+	// Implement the method here
+	return nil
 }
 
 // GetPing handles the ping request.
-func GetPing(ctx echo.Context) error {
-	// Implement your logic here
-	return ctx.String(http.StatusOK, "Pong")
+func (msi *ApiServerInterface) GetPing(ctx echo.Context) error {
+	return ctx.JSON(http.StatusOK, map[string]string{"message": "Pong"})
 }
