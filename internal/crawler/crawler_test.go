@@ -1,7 +1,6 @@
 package crawler
 
 import (
-	"context"
 	"testing"
 
 	"github.com/gocolly/colly"
@@ -19,7 +18,7 @@ func TestHandleHTMLParsing(t *testing.T) {
 	options := &CrawlOptions{}
 
 	// Call the function with the mock parameters
-	err := cs.setupHTMLParsingHandler(context.Background(), options)
+	err := cs.setupHTMLParsingHandler(options)
 
 	// Check that no error was returned
 	if err != nil {
@@ -89,7 +88,7 @@ func TestSetupCrawlingLogic(t *testing.T) {
 	options := &CrawlOptions{}
 
 	// Call the function with the mock parameters
-	err := cs.setupCrawlingLogic(context.Background(), options)
+	err := cs.setupCrawlingLogic(options)
 	if err != nil {
 		t.Errorf("Expected no error, but got %v", err)
 	}
