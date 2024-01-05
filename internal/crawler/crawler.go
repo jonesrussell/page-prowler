@@ -40,7 +40,12 @@ type CrawlOptions struct {
 	Debug       bool
 }
 
-func NewCrawlManager(logger logger.Logger, client redis.ClientInterface, mongoDBWrapper mongodbwrapper.MongoDBInterface) *CrawlManager {
+// NewCrawlManager creates a new instance of CrawlManager.
+func NewCrawlManager(
+	logger logger.Logger,
+	client redis.ClientInterface,
+	mongoDBWrapper mongodbwrapper.MongoDBInterface,
+) *CrawlManager {
 	return &CrawlManager{
 		Logger:         logger,
 		Client:         client,
@@ -48,8 +53,8 @@ func NewCrawlManager(logger logger.Logger, client redis.ClientInterface, mongoDB
 	}
 }
 
-func (cs *CrawlManager) Crawl(ctx context.Context, url string, options *CrawlOptions) ([]PageData, error) {
-	err := cs.setupCrawlingLogic(ctx, options)
+func (cs *CrawlManager) Crawl(url string, options *CrawlOptions) ([]PageData, error) {
+	err := cs.setupCrawlingLogic(options)
 	if err != nil {
 		return nil, err
 	}
@@ -60,13 +65,13 @@ func (cs *CrawlManager) Crawl(ctx context.Context, url string, options *CrawlOpt
 }
 
 // setupHTMLParsingHandler sets up the handler for HTML parsing with gocolly, using the provided parameters.
-func (cs *CrawlManager) setupHTMLParsingHandler(ctx context.Context, options *CrawlOptions) error {
-	cs.Collector.OnHTML("a[href]", cs.getAnchorElementHandler(ctx, options))
+func (cs *CrawlManager) setupHTMLParsingHandler(options *CrawlOptions) error {
+	cs.Collector.OnHTML("a[href]", cs.getAnchorElementHandler(options))
 
 	return nil
 }
 
-func (cs *CrawlManager) getAnchorElementHandler(ctx context.Context, options *CrawlOptions) func(e *colly.HTMLElement) {
+func (cs *CrawlManager) getAnchorElementHandler(options *CrawlOptions) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
 		options.LinkStatsMu.Lock()
@@ -79,7 +84,7 @@ func (cs *CrawlManager) getAnchorElementHandler(ctx context.Context, options *Cr
 		cs.Logger.Debug("Search terms: %v", options.SearchTerms)
 		matchingTerms := termmatcher.GetMatchingTerms(href, options.SearchTerms)
 		if len(matchingTerms) > 0 {
-			cs.processMatchingLinkAndUpdateStats(ctx, options, href, pageData, matchingTerms)
+			cs.processMatchingLinkAndUpdateStats(options, href, pageData, matchingTerms)
 		} else {
 			cs.incrementNonMatchedLinkCount(options, href)
 		}
@@ -88,7 +93,6 @@ func (cs *CrawlManager) getAnchorElementHandler(ctx context.Context, options *Cr
 
 // handleMatchingLinks is responsible for handling the links that match the search criteria during crawling.
 func (cs *CrawlManager) handleMatchingLinks(
-	ctx context.Context,
 	options *CrawlOptions,
 	href string,
 ) error {
@@ -117,8 +121,8 @@ func (cs *CrawlManager) setupErrorEventHandler(collector *colly.Collector) {
 }
 
 // setupCrawlingLogic configures and initiates the crawling logic.
-func (cs *CrawlManager) setupCrawlingLogic(ctx context.Context, options *CrawlOptions) error {
-	err := cs.setupHTMLParsingHandler(ctx, options)
+func (cs *CrawlManager) setupCrawlingLogic(options *CrawlOptions) error {
+	err := cs.setupHTMLParsingHandler(options)
 	if err != nil {
 		return err
 	}
@@ -144,12 +148,12 @@ func (cs *CrawlManager) handleResults(options *CrawlOptions) []PageData {
 	return results
 }
 
-func (cs *CrawlManager) processMatchingLinkAndUpdateStats(ctx context.Context, options *CrawlOptions, href string, pageData PageData, matchingTerms []string) {
+func (cs *CrawlManager) processMatchingLinkAndUpdateStats(options *CrawlOptions, href string, pageData PageData, matchingTerms []string) {
 	options.LinkStatsMu.Lock()
 	options.LinkStats.IncrementMatchedLinks()
 	options.LinkStatsMu.Unlock()
 	cs.Logger.Debug("Incremented matched links count")
-	if err := cs.handleMatchingLinks(ctx, options, href); err != nil {
+	if err := cs.handleMatchingLinks(options, href); err != nil {
 		cs.Logger.Error("Error handling matching links", "error", err)
 	}
 	pageData.MatchingTerms = matchingTerms
@@ -222,7 +226,7 @@ func (cs *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, cra
 		Debug:       debug,
 	}
 
-	results, err = cs.Crawl(ctx, url, &options)
+	results, err = cs.Crawl(url, &options)
 	if err != nil {
 		return err
 	}
