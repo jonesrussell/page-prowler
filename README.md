@@ -50,7 +50,7 @@ curl -X POST -H "Content-Type: application/json" -d '{
  "CrawlSiteID": "siteID",
  "MaxDepth": 3,
  "Debug": true
-}' http://localhost:3000/matchlinks/start
+}' http://localhost:3000/matchlinks
 ```
 
 Again, replace `"https://www.example.com"` with the URL you want to crawl, `"keyword1,keyword2"` with the search terms you want to look for, `siteID` with your site ID, and `3` with the maximum depth of the crawl.

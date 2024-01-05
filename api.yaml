@@ -8,8 +8,9 @@ paths:
   /ping:
     get:
       summary: Ping the server
+      description: This operation checks if the server is up and running.
       responses:
-        '200':
+        "200":
           description: Server is up
           content:
             application/json:
@@ -18,9 +19,10 @@ paths:
                 properties:
                   message:
                     type: string
-  /matchlinks/start:
+  /matchlinks:
     post:
-      summary: Start the matching process
+      summary: Create a new matching task
+      description: This operation creates a new matching task.
       requestBody:
         required: true
         content:
@@ -39,8 +41,8 @@ paths:
                 Debug:
                   type: boolean
       responses:
-        '200':
-          description: Matching process started
+        "201":
+          description: Matching task created
           content:
             application/json:
               schema:
@@ -48,23 +50,71 @@ paths:
                 properties:
                   message:
                     type: string
-                  id:
-                    type: string
-        '400':
-          description: Bad request
+        "400":
+          $ref: "#/components/responses/DefaultError"
+        "500":
+          $ref: "#/components/responses/DefaultError"
+  /matchlinks/{id}:
+    get:
+      summary: Get the details of a matching task
+      description: This operation retrieves the details of a matching task for a given ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the matching task to retrieve.
+      responses:
+        "200":
+          description: Matching task retrieved
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  error:
+                  message:
                     type: string
-        '500':
-          description: Internal server error
+        "400":
+          $ref: "#/components/responses/DefaultError"
+        "500":
+          $ref: "#/components/responses/DefaultError"
+  /matchlinks/{id}/delete:
+    post:
+      summary: Delete the matching task
+      description: This operation deletes the matching task for a given ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the matching task to delete.
+      responses:
+        "200":
+          description: Matching task deleted
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  error:
+                  message:
                     type: string
+        "400":
+          $ref: "#/components/responses/DefaultError"
+        "500":
+          $ref: "#/components/responses/DefaultError"
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+  responses:
+    DefaultError:
+      description: An unexpected error occurred.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
