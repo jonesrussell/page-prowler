@@ -95,8 +95,7 @@ paths:
           $ref: "#/components/responses/DefaultError"
         "500":
           $ref: "#/components/responses/DefaultError"
-  /matchlinks/{id}/delete:
-    post:
+    delete:
       summary: Delete the matching task
       description: This operation deletes the matching task for a given ID.
       parameters:

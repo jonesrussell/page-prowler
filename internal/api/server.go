@@ -125,9 +125,20 @@ func (msi *ApiServerInterface) GetMatchlinksId(ctx echo.Context, id string) erro
 	return err
 }
 
-func (msi *ApiServerInterface) PostMatchlinksIdDelete(ctx echo.Context, id string) error {
-	// Implement the method here
-	return nil
+func (msi *ApiServerInterface) DeleteMatchlinksId(ctx echo.Context, id string) error {
+	queue := DefaultQueueName
+	_, err := msi.Inspector.GetTaskInfo(queue, id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return ctx.JSON(http.StatusNotFound, map[string]string{"error": "Task not found"})
+		}
+		return err
+	}
+	err = msi.Inspector.DeleteTask(queue, id)
+	if err != nil {
+		return err
+	}
+	return ctx.JSON(http.StatusOK, map[string]string{"message": "Task deleted successfully"})
 }
 
 // GetPing handles the ping request.
