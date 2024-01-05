@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 
+	"github.com/hibiken/asynq"
 	"github.com/jonesrussell/page-prowler/internal/api"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 type echoContextKey string
@@ -34,7 +37,19 @@ var apiCmd = &cobra.Command{
 		// Add the middleware to the Echo instance
 		e.Use(CrawlManagerMiddleware(manager))
 
-		apiServerInterface := &api.ApiServerInterface{}
+		redisHost := viper.GetString("REDIS_HOST")
+		redisPort := viper.GetString("REDIS_PORT")
+		redisAuth := viper.GetString("REDIS_AUTH")
+
+		// Initialize the Inspector
+		inspector := asynq.NewInspector(asynq.RedisClientOpt{
+			Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
+			Password: redisAuth,
+		})
+
+		apiServerInterface := &api.ApiServerInterface{
+			Inspector: inspector,
+		}
 
 		// Create a group with /v1 prefix
 		v1 := e.Group("/v1")
