@@ -51,12 +51,12 @@ type ServerInterface interface {
 	// Create a new matching task
 	// (POST /matchlinks)
 	PostMatchlinks(ctx echo.Context) error
+	// Delete the matching task
+	// (DELETE /matchlinks/{id})
+	DeleteMatchlinksId(ctx echo.Context, id string) error
 	// Get the details of a matching task
 	// (GET /matchlinks/{id})
 	GetMatchlinksId(ctx echo.Context, id string) error
-	// Delete the matching task
-	// (POST /matchlinks/{id}/delete)
-	PostMatchlinksIdDelete(ctx echo.Context, id string) error
 	// Ping the server
 	// (GET /ping)
 	GetPing(ctx echo.Context) error
@@ -85,6 +85,22 @@ func (w *ServerInterfaceWrapper) PostMatchlinks(ctx echo.Context) error {
 	return err
 }
 
+// DeleteMatchlinksId converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteMatchlinksId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteMatchlinksId(ctx, id)
+	return err
+}
+
 // GetMatchlinksId converts echo context to params.
 func (w *ServerInterfaceWrapper) GetMatchlinksId(ctx echo.Context) error {
 	var err error
@@ -98,22 +114,6 @@ func (w *ServerInterfaceWrapper) GetMatchlinksId(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetMatchlinksId(ctx, id)
-	return err
-}
-
-// PostMatchlinksIdDelete converts echo context to params.
-func (w *ServerInterfaceWrapper) PostMatchlinksIdDelete(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "id" -------------
-	var id string
-
-	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.PostMatchlinksIdDelete(ctx, id)
 	return err
 }
 
@@ -156,8 +156,8 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 
 	router.GET(baseURL+"/matchlinks", wrapper.GetMatchlinks)
 	router.POST(baseURL+"/matchlinks", wrapper.PostMatchlinks)
+	router.DELETE(baseURL+"/matchlinks/:id", wrapper.DeleteMatchlinksId)
 	router.GET(baseURL+"/matchlinks/:id", wrapper.GetMatchlinksId)
-	router.POST(baseURL+"/matchlinks/:id/delete", wrapper.PostMatchlinksIdDelete)
 	router.GET(baseURL+"/ping", wrapper.GetPing)
 
 }
