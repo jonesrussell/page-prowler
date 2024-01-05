@@ -3,6 +3,7 @@ package cmd
 import (
 	"log"
 
+	"github.com/jonesrussell/page-prowler/internal/api"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/cobra"
@@ -33,10 +34,10 @@ var apiCmd = &cobra.Command{
 		// Add the middleware to the Echo instance
 		e.Use(CrawlManagerMiddleware(manager))
 
-		apiServerInterface := &crawler.ApiServerInterface{}
+		apiServerInterface := &api.ApiServerInterface{}
 
 		// Register handlers
-		crawler.RegisterHandlers(e, apiServerInterface)
+		api.RegisterHandlers(e, apiServerInterface)
 
 		if err := e.Start(":3000"); err != nil {
 			log.Fatalf("Error starting echo server: %v", err)
