@@ -16,6 +16,18 @@ type ErrorResponse struct {
 	Error *string `json:"error,omitempty"`
 }
 
+// Task defines model for Task.
+type Task struct {
+	ErrMsg  *string `json:"ErrMsg,omitempty"`
+	ID      *string `json:"ID,omitempty"`
+	LastErr *string `json:"LastErr,omitempty"`
+	Payload *string `json:"Payload,omitempty"`
+	Queue   *string `json:"Queue,omitempty"`
+	Retries *int    `json:"Retries,omitempty"`
+	Timeout *string `json:"Timeout,omitempty"`
+	Type    *string `json:"Type,omitempty"`
+}
+
 // DefaultError defines model for DefaultError.
 type DefaultError = ErrorResponse
 
@@ -33,6 +45,9 @@ type PostMatchlinksJSONRequestBody PostMatchlinksJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Get all matching tasks
+	// (GET /matchlinks)
+	GetMatchlinks(ctx echo.Context) error
 	// Create a new matching task
 	// (POST /matchlinks)
 	PostMatchlinks(ctx echo.Context) error
@@ -50,6 +65,15 @@ type ServerInterface interface {
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
+}
+
+// GetMatchlinks converts echo context to params.
+func (w *ServerInterfaceWrapper) GetMatchlinks(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetMatchlinks(ctx)
+	return err
 }
 
 // PostMatchlinks converts echo context to params.
@@ -130,6 +154,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
+	router.GET(baseURL+"/matchlinks", wrapper.GetMatchlinks)
 	router.POST(baseURL+"/matchlinks", wrapper.PostMatchlinks)
 	router.GET(baseURL+"/matchlinks/:id", wrapper.GetMatchlinksId)
 	router.POST(baseURL+"/matchlinks/:id/delete", wrapper.PostMatchlinksIdDelete)

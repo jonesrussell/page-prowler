@@ -19,7 +19,31 @@ const (
 )
 
 type ApiServerInterface struct {
-	Inspector asynq.Inspector
+	Inspector *asynq.Inspector
+}
+
+func (msi *ApiServerInterface) GetMatchlinks(ctx echo.Context) error {
+	queue := DefaultQueueName
+	activeTasks, err := msi.Inspector.ListActiveTasks(queue)
+	if err != nil {
+		return err
+	}
+	pendingTasks, err := msi.Inspector.ListPendingTasks(queue)
+	if err != nil {
+		return err
+	}
+
+	// Merge activeTasks and pendingTasks
+	tasks := append(activeTasks, pendingTasks...)
+
+	// Convert the tasks to JSON and write it to the response
+	tasksJson, err := json.Marshal(tasks)
+	if err != nil {
+		return err
+	}
+
+	_, err = ctx.Response().Write(tasksJson)
+	return err
 }
 
 // PostMatchlinks starts the article posting process.
@@ -82,27 +106,23 @@ func (msi *ApiServerInterface) PostMatchlinks(ctx echo.Context) error {
 }
 
 func (msi *ApiServerInterface) GetMatchlinksId(ctx echo.Context, id string) error {
-	// Use the Inspector to get the details of the task
 	queue := DefaultQueueName
-	tasks, err := msi.Inspector.ListActiveTasks(queue)
+	info, err := msi.Inspector.GetTaskInfo(queue, id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return ctx.JSON(http.StatusNotFound, map[string]string{"error": "Queue or Task not found"})
+		}
+		return err
+	}
+
+	// Convert the task info to JSON and write it to the response
+	taskJson, err := json.Marshal(info)
 	if err != nil {
 		return err
 	}
 
-	for _, task := range tasks {
-		if task.ID == id {
-			// Convert the task to JSON and write it to the response
-			taskJson, err := json.Marshal(task)
-			if err != nil {
-				return err
-			}
-
-			_, err = ctx.Response().Write(taskJson)
-			return err
-		}
-	}
-
-	return ctx.JSON(http.StatusNotFound, map[string]string{"error": "Task not found"})
+	_, err = ctx.Response().Write(taskJson)
+	return err
 }
 
 func (msi *ApiServerInterface) PostMatchlinksIdDelete(ctx echo.Context, id string) error {

@@ -20,6 +20,22 @@ paths:
                   message:
                     type: string
   /matchlinks:
+    get:
+     summary: Get all matching tasks
+     description: This operation retrieves all matching tasks.
+     responses:
+       "200":
+         description: Matching tasks retrieved
+         content:
+           application/json:
+             schema:
+               type: array
+               items:
+                $ref: '#/components/schemas/Task'
+       "400":
+         $ref: "#/components/responses/DefaultError"
+       "500":
+         $ref: "#/components/responses/DefaultError"
     post:
       summary: Create a new matching task
       description: This operation creates a new matching task.
@@ -71,10 +87,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
+                $ref: '#/components/schemas/Task'
         "400":
           $ref: "#/components/responses/DefaultError"
         "500":
@@ -106,6 +119,26 @@ paths:
           $ref: "#/components/responses/DefaultError"
 components:
   schemas:
+    Task:
+      type: object
+      properties:
+        Type:
+          type: string
+        Payload:
+          type: string
+        ID:
+          type: string
+        Queue:
+          type: string
+        Retries:
+          type: integer
+        ErrMsg:
+          type: string
+        LastErr:
+          type: string
+        Timeout:
+          type: string
+          format: duration
     ErrorResponse:
       type: object
       properties:
