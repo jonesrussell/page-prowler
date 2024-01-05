@@ -27,7 +27,7 @@ const (
 	Info LogLevel = iota
 )
 
-const DefaultLogLevel LogLevel = Info
+const DefaultLogLevel = Info
 
 func (z *ZapLoggerWrapper) Info(msg string, keysAndValues ...interface{}) {
 	z.Logger.Infow(msg, keysAndValues...)

@@ -29,7 +29,7 @@ func PostMatchlinksStart(ctx echo.Context) error {
 
 	// Ensure the URL is correctly formatted
 	url := strings.TrimSpace(*req.URL)
-	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+	if !strings.HasPrefix(url, "https://") {
 		url = "https://" + url
 	}
 
