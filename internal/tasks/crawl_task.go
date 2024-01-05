@@ -18,7 +18,7 @@ type CrawlTaskPayload struct {
 	Debug       bool   `json:"debug"`
 }
 
-// Create asynq task
+// EnqueueCrawlTask creates asynq task
 func EnqueueCrawlTask(client *asynq.Client, payload *CrawlTaskPayload) error {
 	task, err := NewCrawlTask(payload)
 	if err != nil {
