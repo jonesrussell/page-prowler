@@ -8,6 +8,7 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/api"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -27,6 +28,12 @@ var apiCmd = &cobra.Command{
 		  The server also includes a '/ping' endpoint for health checks.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		e := echo.New()
+
+		// Enable CORS
+		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+			AllowOrigins: []string{"*"},
+			AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
+		}))
 
 		// Get the manager from the context
 		manager, ok := cmd.Context().Value(managerKey).(*crawler.CrawlManager)
@@ -57,7 +64,7 @@ var apiCmd = &cobra.Command{
 		// Register handlers under /v1
 		api.RegisterHandlers(v1, apiServerInterface)
 
-		if err := e.Start(":3000"); err != nil {
+		if err := e.StartTLS(":3000", "/ssl/cert.pem", "/ssl/key_unencrypted.pem"); err != nil {
 			log.Fatalf("Error starting echo server: %v", err)
 		}
 	},
