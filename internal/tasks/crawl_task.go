@@ -19,13 +19,16 @@ type CrawlTaskPayload struct {
 }
 
 // EnqueueCrawlTask creates asynq task
-func EnqueueCrawlTask(client *asynq.Client, payload *CrawlTaskPayload) error {
+func EnqueueCrawlTask(client *asynq.Client, payload *CrawlTaskPayload) (string, error) {
 	task, err := NewCrawlTask(payload)
 	if err != nil {
-		return err
+		return "", err
 	}
-	_, err = client.Enqueue(task)
-	return err
+	info, err := client.Enqueue(task)
+	if err != nil {
+		return "", err
+	}
+	return info.ID, nil
 }
 
 func NewCrawlTask(payload *CrawlTaskPayload) (*asynq.Task, error) {
