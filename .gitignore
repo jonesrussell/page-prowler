@@ -29,6 +29,7 @@ cmd/consumer/consumer
 page-prowler
 
 /.idea
-qodana.*
 :Zone.Identifier
 
+# qodana
+/data/res
