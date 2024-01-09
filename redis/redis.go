@@ -29,33 +29,33 @@ type Client struct {
 	ClientInterface
 }
 
-// RedisClient is a wrapper around the go-redis Client that implements the ClientInterface.
-type RedisClient struct {
+// ClientRedis is a wrapper around the go-redis Client that implements the ClientInterface.
+type ClientRedis struct {
 	*goredis.Client
 }
 
-func (c *RedisClient) Ping(ctx context.Context) error {
+func (c *ClientRedis) Ping(ctx context.Context) error {
 	return c.Client.Ping(ctx).Err()
 }
 
-func (c *RedisClient) SAdd(ctx context.Context, key string, members ...interface{}) error {
+func (c *ClientRedis) SAdd(ctx context.Context, key string, members ...interface{}) error {
 	return c.Client.SAdd(ctx, key, members...).Err()
 }
 
-func (c *RedisClient) Del(ctx context.Context, keys ...string) error {
+func (c *ClientRedis) Del(ctx context.Context, keys ...string) error {
 	cmd := c.Client.Del(ctx, keys...)
 	return cmd.Err()
 }
 
-func (c *RedisClient) SMembers(ctx context.Context, key string) ([]string, error) {
+func (c *ClientRedis) SMembers(ctx context.Context, key string) ([]string, error) {
 	return c.Client.SMembers(ctx, key).Result()
 }
 
-func (c *RedisClient) SIsMember(ctx context.Context, key string, member interface{}) (bool, error) {
+func (c *ClientRedis) SIsMember(ctx context.Context, key string, member interface{}) (bool, error) {
 	return c.Client.SIsMember(ctx, key, member).Result()
 }
 
-func (c *RedisClient) Options() *Options {
+func (c *ClientRedis) Options() *Options {
 	opts := c.Client.Options()
 	return &Options{
 		Addr:     opts.Addr,
@@ -75,5 +75,5 @@ func NewClient(ctx context.Context, address string, password string, port string
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to Redis: %v", err)
 	}
-	return &RedisClient{client}, nil
+	return &ClientRedis{client}, nil
 }

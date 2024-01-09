@@ -6,8 +6,8 @@ import (
 
 func TestMarshalBinary(t *testing.T) {
 	p := PageData{
-		URL:           "http://example.com",
-		Links:         []string{"http://example.com/link1", "http://example.com/link2"},
+		URL:           "https://example.com",
+		Links:         []string{"https://example.com/link1", "https://example.com/link2"},
 		SearchTerms:   []string{"test", "search"},
 		MatchingTerms: []string{"test", "match"},
 		Error:         "",
@@ -22,7 +22,7 @@ func TestMarshalBinary(t *testing.T) {
 func TestUnmarshalBinary(t *testing.T) {
 	p := &PageData{}
 	data := []byte(`{
-		"url": "http://example.com",
+		"url": "https://example.com",
 		"crawl_time": "2022-01-01T00:00:00Z",
 		"status_code": 200,
 		"metadata": {
@@ -33,7 +33,7 @@ func TestUnmarshalBinary(t *testing.T) {
 			"title": "Test Title",
 			"body": "Test Body"
 		},
-		"links": ["http://example.com/link1", "http://example.com/link2"],
+		"links": ["https://example.com/link1", "https://example.com/link2"],
 		"search_terms": ["test", "search"],
 		"matching_terms": ["test", "match"],
 		"error": ""
@@ -59,7 +59,7 @@ func TestMarshalBinary_Error(t *testing.T) {
 func TestUnmarshalBinary_Error(t *testing.T) {
 	p := &PageData{}
 	data := []byte(`{
-		"url": "http://example.com",
+		"url": "https://example.com",
 		"crawl_time": "invalid time", // invalid time format
 		"status_code": 200
 	}`)

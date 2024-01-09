@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	goredis "github.com/redis/go-redis/v9"
 	"testing"
 
 	"github.com/go-redis/redismock/v9"
@@ -10,11 +11,16 @@ import (
 
 func TestPing(t *testing.T) {
 	db, mock := redismock.NewClientMock()
-	defer db.Close()
+	defer func(db *goredis.Client) {
+		err := db.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}(db)
 
 	mock.ExpectPing().SetVal("PONG")
 
-	client := &RedisClient{db}
+	client := &ClientRedis{db}
 	err := client.Ping(context.Background())
 
 	assert.Nil(t, err)
@@ -26,14 +32,19 @@ func TestPing(t *testing.T) {
 
 func TestSAdd(t *testing.T) {
 	db, mock := redismock.NewClientMock()
-	defer db.Close()
+	defer func(db *goredis.Client) {
+		err := db.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}(db)
 
 	key := "testKey"
 	member := "testMember"
 
 	mock.ExpectSAdd(key, member).SetVal(int64(1))
 
-	client := &RedisClient{db}
+	client := &ClientRedis{db}
 	err := client.SAdd(context.Background(), key, member)
 
 	assert.Nil(t, err)
@@ -45,13 +56,18 @@ func TestSAdd(t *testing.T) {
 
 func TestDel(t *testing.T) {
 	db, mock := redismock.NewClientMock()
-	defer db.Close()
+	defer func(db *goredis.Client) {
+		err := db.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}(db)
 
 	keys := []string{"key1", "key2"}
 
 	mock.ExpectDel(keys[0], keys[1]).SetVal(int64(2))
 
-	client := &RedisClient{db}
+	client := &ClientRedis{db}
 	err := client.Del(context.Background(), keys...)
 
 	assert.Nil(t, err)
@@ -63,14 +79,19 @@ func TestDel(t *testing.T) {
 
 func TestSMembers(t *testing.T) {
 	db, mock := redismock.NewClientMock()
-	defer db.Close()
+	defer func(db *goredis.Client) {
+		err := db.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}(db)
 
 	key := "testKey"
 	members := []string{"member1", "member2"}
 
 	mock.ExpectSMembers(key).SetVal(members)
 
-	client := &RedisClient{db}
+	client := &ClientRedis{db}
 	result, err := client.SMembers(context.Background(), key)
 
 	assert.Nil(t, err)
@@ -83,14 +104,19 @@ func TestSMembers(t *testing.T) {
 
 func TestSIsMember(t *testing.T) {
 	db, mock := redismock.NewClientMock()
-	defer db.Close()
+	defer func(db *goredis.Client) {
+		err := db.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}(db)
 
 	key := "testKey"
 	member := "testMember"
 
 	mock.ExpectSIsMember(key, member).SetVal(true)
 
-	client := &RedisClient{db}
+	client := &ClientRedis{db}
 	result, err := client.SIsMember(context.Background(), key, member)
 
 	assert.Nil(t, err)
@@ -103,9 +129,14 @@ func TestSIsMember(t *testing.T) {
 
 func TestOptions(t *testing.T) {
 	db, _ := redismock.NewClientMock()
-	defer db.Close()
+	defer func(db *goredis.Client) {
+		err := db.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}(db)
 
-	client := &RedisClient{db}
+	client := &ClientRedis{db}
 	options := client.Options()
 
 	assert.NotNil(t, options)

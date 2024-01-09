@@ -18,11 +18,11 @@ const (
 	Protocol         = "https://"
 )
 
-type ApiServerInterface struct {
+type ServerApiInterface struct {
 	Inspector *asynq.Inspector
 }
 
-func (msi *ApiServerInterface) GetMatchlinks(ctx echo.Context) error {
+func (msi *ServerApiInterface) GetMatchlinks(ctx echo.Context) error {
 	queue := DefaultQueueName
 	activeTasks, err := msi.Inspector.ListActiveTasks(queue)
 	if err != nil {
@@ -34,10 +34,10 @@ func (msi *ApiServerInterface) GetMatchlinks(ctx echo.Context) error {
 	}
 
 	// Merge activeTasks and pendingTasks
-	tasks := append(activeTasks, pendingTasks...)
+	allTasks := append(activeTasks, pendingTasks...)
 
 	// Convert the tasks to JSON and write it to the response
-	tasksJson, err := json.Marshal(tasks)
+	tasksJson, err := json.Marshal(allTasks)
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func (msi *ApiServerInterface) GetMatchlinks(ctx echo.Context) error {
 }
 
 // PostMatchlinks starts the article posting process.
-func (msi *ApiServerInterface) PostMatchlinks(ctx echo.Context) error {
+func (msi *ServerApiInterface) PostMatchlinks(ctx echo.Context) error {
 	var req PostMatchlinksJSONBody
 	if err := ctx.Bind(&req); err != nil {
 		return err
@@ -105,7 +105,7 @@ func (msi *ApiServerInterface) PostMatchlinks(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, map[string]string{"message": "Crawling started successfully", "task_id": tid})
 }
 
-func (msi *ApiServerInterface) GetMatchlinksId(ctx echo.Context, id string) error {
+func (msi *ServerApiInterface) GetMatchlinksId(ctx echo.Context, id string) error {
 	queue := DefaultQueueName
 	info, err := msi.Inspector.GetTaskInfo(queue, id)
 	if err != nil {
@@ -125,7 +125,7 @@ func (msi *ApiServerInterface) GetMatchlinksId(ctx echo.Context, id string) erro
 	return err
 }
 
-func (msi *ApiServerInterface) DeleteMatchlinksId(ctx echo.Context, id string) error {
+func (msi *ServerApiInterface) DeleteMatchlinksId(ctx echo.Context, id string) error {
 	queue := DefaultQueueName
 	_, err := msi.Inspector.GetTaskInfo(queue, id)
 	if err != nil {
@@ -142,6 +142,6 @@ func (msi *ApiServerInterface) DeleteMatchlinksId(ctx echo.Context, id string) e
 }
 
 // GetPing handles the ping request.
-func (msi *ApiServerInterface) GetPing(ctx echo.Context) error {
+func (msi *ServerApiInterface) GetPing(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, map[string]string{"message": "Pong"})
 }
