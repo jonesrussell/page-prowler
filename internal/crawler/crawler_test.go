@@ -56,7 +56,7 @@ func TestGetHostFromURL(t *testing.T) {
 		url      string
 		expected string
 	}{
-		{"http://example.com/path", "example.com"},
+		{"https://example.com/path", "example.com"},
 		{"https://www.example.com", "www.example.com"},
 		// add more test cases here
 	}

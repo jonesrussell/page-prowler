@@ -13,8 +13,8 @@ func TestExtractTitleFromURL(t *testing.T) {
 		url  string
 		want string
 	}{
-		{"Test URL with path", "http://example.com/path/to/page", "page"},
-		{"Test URL without path", "http://example.com", ""},
+		{"Test URL with path", "https://example.com/path/to/page", "page"},
+		{"Test URL without path", "https://example.com", ""},
 	}
 
 	for _, tt := range tests {
