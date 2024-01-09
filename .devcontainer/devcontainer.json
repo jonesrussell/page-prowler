@@ -5,12 +5,18 @@
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "app",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
 		"ghcr.io/guiyomh/features/golangci-lint:0": {},
 		"ghcr.io/guiyomh/features/gomarkdoc:0": {},
 		"ghcr.io/guiyomh/features/goreleaser:0": {},
-		"ghcr.io/guiyomh/features/gotestsum:0": {}
+		"ghcr.io/guiyomh/features/gotestsum:0": {},
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {},
+		"ghcr.io/devcontainers-contrib/features/bitwarden-cli:1": {}
 	},
+
+	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -19,15 +25,12 @@
 		}
 	},
 	"mounts": [
+		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
 		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssl,target=/ssl,type=bind"
 	 ],
 
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
-
-	// Configure tool-specific properties.
-	// "customizations": {},
-
+	"runArgs": ["--init"],
+	
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [3000]
 
