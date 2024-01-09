@@ -1,8 +1,8 @@
-package redis
+package prowlredis
 
 import (
 	"context"
-	goredis "github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9"
 	"testing"
 
 	"github.com/go-redis/redismock/v9"
@@ -11,7 +11,7 @@ import (
 
 func TestPing(t *testing.T) {
 	db, mock := redismock.NewClientMock()
-	defer func(db *goredis.Client) {
+	defer func(db *redis.Client) {
 		err := db.Close()
 		if err != nil {
 			t.Error(err)
@@ -32,7 +32,7 @@ func TestPing(t *testing.T) {
 
 func TestSAdd(t *testing.T) {
 	db, mock := redismock.NewClientMock()
-	defer func(db *goredis.Client) {
+	defer func(db *redis.Client) {
 		err := db.Close()
 		if err != nil {
 			t.Error(err)
@@ -56,7 +56,7 @@ func TestSAdd(t *testing.T) {
 
 func TestDel(t *testing.T) {
 	db, mock := redismock.NewClientMock()
-	defer func(db *goredis.Client) {
+	defer func(db *redis.Client) {
 		err := db.Close()
 		if err != nil {
 			t.Error(err)
@@ -79,7 +79,7 @@ func TestDel(t *testing.T) {
 
 func TestSMembers(t *testing.T) {
 	db, mock := redismock.NewClientMock()
-	defer func(db *goredis.Client) {
+	defer func(db *redis.Client) {
 		err := db.Close()
 		if err != nil {
 			t.Error(err)
@@ -104,7 +104,7 @@ func TestSMembers(t *testing.T) {
 
 func TestSIsMember(t *testing.T) {
 	db, mock := redismock.NewClientMock()
-	defer func(db *goredis.Client) {
+	defer func(db *redis.Client) {
 		err := db.Close()
 		if err != nil {
 			t.Error(err)
@@ -129,7 +129,7 @@ func TestSIsMember(t *testing.T) {
 
 func TestOptions(t *testing.T) {
 	db, _ := redismock.NewClientMock()
-	defer func(db *goredis.Client) {
+	defer func(db *redis.Client) {
 		err := db.Close()
 		if err != nil {
 			t.Error(err)

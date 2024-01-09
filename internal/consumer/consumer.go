@@ -9,13 +9,13 @@ import (
 	"syscall"
 
 	"github.com/gocolly/colly"
-	goredis "github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
 // Consumer represents a consumer that processes URLs from a Redis stream.
 type Consumer struct {
-	Client    *goredis.Client
+	Client    *redis.Client
 	Collector *colly.Collector
 	Logger    *zap.SugaredLogger
 	Stream    string
@@ -23,7 +23,7 @@ type Consumer struct {
 }
 
 // NewConsumer creates a new Consumer instance.
-func NewConsumer(redisClient *goredis.Client, collector *colly.Collector, logger *zap.SugaredLogger, stream, group string) *Consumer {
+func NewConsumer(redisClient *redis.Client, collector *colly.Collector, logger *zap.SugaredLogger, stream, group string) *Consumer {
 	return &Consumer{
 		Client:    redisClient,
 		Collector: collector,
@@ -36,7 +36,7 @@ func NewConsumer(redisClient *goredis.Client, collector *colly.Collector, logger
 // Consume starts listening to the Redis stream and processes URLs.
 func (c *Consumer) Consume(ctx context.Context) error {
 	// Create a consumer group if it doesn't exist
-	if err := c.Client.XGroupCreateMkStream(ctx, c.Stream, c.Group, "$").Err(); err != nil && err != goredis.Nil {
+	if err := c.Client.XGroupCreateMkStream(ctx, c.Stream, c.Group, "$").Err(); err != nil && err != redis.Nil {
 		return err
 	}
 
@@ -50,7 +50,7 @@ func (c *Consumer) Consume(ctx context.Context) error {
 			return nil // The context is canceled, so we should stop the consumer gracefully.
 		default:
 			// Read messages from the Redis stream
-			messages, err := c.Client.XReadGroup(ctx, &goredis.XReadGroupArgs{
+			messages, err := c.Client.XReadGroup(ctx, &redis.XReadGroupArgs{
 				Group:    c.Group,
 				Consumer: "crawler", // Your consumer name
 				Streams:  []string{c.Stream, ">"},
@@ -93,7 +93,7 @@ func main() {
 		}
 	}()
 
-	redisClient := goredis.NewClient(&goredis.Options{
+	redisClient := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 	})
 

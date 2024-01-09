@@ -2,9 +2,8 @@ package mocks
 
 import (
 	"context"
-
 	"github.com/go-redis/redismock/v9"
-	"github.com/jonesrussell/page-prowler/redis"
+	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 )
 
 type MockRedisClient struct {
@@ -43,8 +42,8 @@ func (m *MockRedisClient) SIsMember(ctx context.Context, key string, member inte
 	return false, nil
 }
 
-func (m *MockRedisClient) Options() *redis.Options {
-	return &redis.Options{
+func (m *MockRedisClient) Options() *prowlredis.Options {
+	return &prowlredis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,

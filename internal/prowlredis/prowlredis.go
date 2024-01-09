@@ -1,10 +1,10 @@
-package redis
+package prowlredis
 
 import (
 	"context"
 	"fmt"
 
-	goredis "github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9"
 )
 
 // Options represents the options for a Redis client.
@@ -31,7 +31,7 @@ type Client struct {
 
 // ClientRedis is a wrapper around the go-redis Client that implements the ClientInterface.
 type ClientRedis struct {
-	*goredis.Client
+	*redis.Client
 }
 
 func (c *ClientRedis) Ping(ctx context.Context) error {
@@ -66,7 +66,7 @@ func (c *ClientRedis) Options() *Options {
 
 // NewClient creates a new Redis client.
 func NewClient(ctx context.Context, address string, password string, port string) (ClientInterface, error) {
-	client := goredis.NewClient(&goredis.Options{
+	client := redis.NewClient(&redis.Options{
 		Addr:     address + ":" + port,
 		Password: password, // Use the Redis password
 		DB:       0,
