@@ -9,8 +9,8 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
+	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/jonesrussell/page-prowler/internal/tasks"
-	"github.com/jonesrussell/page-prowler/redis"
 )
 
 type CustomLogger struct {
@@ -56,7 +56,7 @@ func StartWorker(concurrency int, crawlerService *crawler.CrawlManager, debug bo
 	ctx := context.Background()
 
 	// Create a new Redis client
-	redisClient, err := redis.NewClient(ctx, "localhost", "", "6379")
+	redisClient, err := prowlredis.NewClient(ctx, "localhost", "", "6379")
 	if err != nil {
 		log.Fatalf("Failed to create Redis client: %v", err)
 	}

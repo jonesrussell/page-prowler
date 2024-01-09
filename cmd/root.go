@@ -8,7 +8,7 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
-	"github.com/jonesrussell/page-prowler/redis"
+	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -59,7 +59,7 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("MONGODB_URI is not set but is required")
 		}
 
-		redisClient, err := redis.NewClient(
+		redisClient, err := prowlredis.NewClient(
 			ctx,
 			redisHost,
 			"", // No auth needed
@@ -119,7 +119,7 @@ func initializeLogger(debug bool, level logger.LogLevel) logger.Logger {
 }
 
 func initializeManager(
-	redisClient redis.ClientInterface,
+	redisClient prowlredis.ClientInterface,
 	appLogger logger.Logger,
 	mongoDBWrapper mongodbwrapper.MongoDBInterface,
 ) (*crawler.CrawlManager, error) {

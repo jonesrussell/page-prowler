@@ -3,6 +3,7 @@ package crawler
 import (
 	"context"
 	"errors"
+	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"strings"
 	"sync"
 	"time"
@@ -12,13 +13,12 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
 	"github.com/jonesrussell/page-prowler/internal/stats"
 	"github.com/jonesrussell/page-prowler/internal/termmatcher"
-	"github.com/jonesrussell/page-prowler/redis"
 )
 
 // CrawlManager encapsulates shared dependencies for crawler functions.
 type CrawlManager struct {
 	Logger         logger.Logger
-	Client         redis.ClientInterface
+	Client         prowlredis.ClientInterface
 	MongoDBWrapper mongodbwrapper.MongoDBInterface
 	Collector      *colly.Collector
 	CrawlingMu     sync.Mutex
@@ -37,7 +37,7 @@ type CrawlOptions struct {
 // NewCrawlManager creates a new instance of CrawlManager.
 func NewCrawlManager(
 	logger logger.Logger,
-	client redis.ClientInterface,
+	client prowlredis.ClientInterface,
 	mongoDBWrapper mongodbwrapper.MongoDBInterface,
 ) *CrawlManager {
 	return &CrawlManager{
