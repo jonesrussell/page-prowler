@@ -1,5 +1,5 @@
 # Start from the latest golang base image
-FROM golang:1.21
+FROM golang:1.21 AS builder
 
 # Add Maintainer Info
 LABEL maintainer="Russell Jones <jonesrussell42@gmail.com>"
@@ -17,10 +17,16 @@ RUN go mod download
 COPY . .
 
 # Build the Go app
-RUN go build -o main .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+
+# Start a new stage from scratch
+FROM alpine:latest
+
+# Copy the built binary from the builder stage
+COPY --from=builder /app/main /app/main
 
 # Expose port 3000 to the outside world
 EXPOSE 3000
 
 # Command to run the executable
-CMD ["./main"]
+CMD ["./app/main"]
