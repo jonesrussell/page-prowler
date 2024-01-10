@@ -11,7 +11,7 @@ type MockLogger struct {
 	Logger   *zap.SugaredLogger
 }
 
-func NewMockLogger() *MockLogger {
+func NewMockLogger(level zapcore.Level) *MockLogger {
 	core, observed := observer.New(zapcore.DebugLevel)
 	logger := zap.New(core).Sugar()
 	return &MockLogger{
@@ -46,11 +46,6 @@ func (m *MockLogger) Warn(msg string, keysAndValues ...interface{}) {
 
 func (m *MockLogger) AllEntries() []observer.LoggedEntry {
 	return m.observer.AllUntimed()
-}
-
-func (m *MockLogger) IsDebugEnabled() bool {
-	// Implement the method according to your needs
-	return true
 }
 
 func (m *MockLogger) Errorf(format string, args ...interface{}) {

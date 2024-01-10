@@ -9,7 +9,6 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
-	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/jonesrussell/page-prowler/internal/tasks"
 )
 
@@ -53,24 +52,16 @@ func handleCrawlTask(ctx context.Context, task *asynq.Task, crawlerService *craw
 }
 
 func StartWorker(concurrency int, crawlerService *crawler.CrawlManager, debug bool) {
-	ctx := context.Background()
-
-	// Create a new Redis client
-	redisClient, err := prowlredis.NewClient(ctx, "localhost", "", "6379")
-	if err != nil {
-		log.Fatalf("Failed to create Redis client: %v", err)
-	}
-
 	// Initialize a new Asynq server with the default settings.
 	srv := asynq.NewServer(
 		asynq.RedisClientOpt{
-			Addr:     redisClient.Options().Addr,
-			Password: redisClient.Options().Password,
-			DB:       redisClient.Options().DB,
+			Addr:     crawlerService.Client.Options().Addr,
+			Password: crawlerService.Client.Options().Password,
+			DB:       crawlerService.Client.Options().DB,
 		},
 		asynq.Config{
 			Concurrency: concurrency,
-			Logger:      &CustomLogger{logger.New(debug, logger.DefaultLogLevel)},
+			Logger:      &CustomLogger{logger.New(logger.DefaultLogLevel)},
 		},
 	)
 

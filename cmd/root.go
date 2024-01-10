@@ -38,10 +38,11 @@ var rootCmd = &cobra.Command{
 		// Initialize your dependencies here
 		ctx := context.Background()
 
-		appLogger := initializeLogger(viper.GetBool("debug"), logger.DefaultLogLevel)
+		appLogger := initializeLogger(logger.DefaultLogLevel)
 
 		redisHost := viper.GetString("REDIS_HOST")
 		redisPort := viper.GetString("REDIS_PORT")
+		redisAuth := viper.GetString("REDIS_AUTH")
 		mongodbUri := viper.GetString("MONGODB_URI")
 
 		if redisHost == "" {
@@ -59,12 +60,14 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("MONGODB_URI is not set but is required")
 		}
 
-		redisClient, err := prowlredis.NewClient(
-			ctx,
-			redisHost,
-			"", // No auth needed
-			redisPort,
-		)
+		cfg := &prowlredis.Options{
+			Addr:     redisHost,
+			Password: redisAuth,
+			Port:     redisPort,
+			DB:       0, // TODO: redisDB
+		}
+
+		redisClient, err := prowlredis.NewClient(ctx, cfg)
 		if err != nil {
 			return fmt.Errorf("failed to initialize Redis client: %v", err)
 		}
@@ -114,8 +117,8 @@ func initConfig() {
 	_ = viper.ReadInConfig()
 }
 
-func initializeLogger(debug bool, level logger.LogLevel) logger.Logger {
-	return logger.New(debug, level)
+func initializeLogger(level logger.LogLevel) logger.Logger {
+	return logger.New(level)
 }
 
 func initializeManager(

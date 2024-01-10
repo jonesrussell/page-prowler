@@ -5,7 +5,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/jonesrussell/page-prowler/cmd/mocks"
+	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -14,7 +14,7 @@ import (
 func TestClearlinksCmd(t *testing.T) {
 	viper.Set("crawlsiteid", "testsite")
 
-	mockRedisClient := mocks.NewMockRedisClient()
+	mockRedisClient := prowlredis.NewMockClient()
 	ctx := context.WithValue(context.Background(), managerKey, mockRedisClient)
 
 	// Create a new Cobra command for testing

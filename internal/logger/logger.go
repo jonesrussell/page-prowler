@@ -12,7 +12,6 @@ type Logger interface {
 	Fatal(msg string, keysAndValues ...interface{})
 	Debug(msg string, keysAndValues ...interface{})
 	Warn(msg string, keysAndValues ...interface{})
-	IsDebugEnabled() bool
 	Infof(format string, args ...interface{})
 	Errorf(format string, args ...interface{})
 }
@@ -49,10 +48,6 @@ func (z *ZapLoggerWrapper) Warn(msg string, keysAndValues ...interface{}) {
 	z.Logger.Warnw(msg, keysAndValues...)
 }
 
-func (z *ZapLoggerWrapper) IsDebugEnabled() bool {
-	return z.Logger.Desugar().Core().Enabled(zap.DebugLevel)
-}
-
 func (z *ZapLoggerWrapper) Infof(format string, args ...interface{}) {
 	z.Logger.Infof(format, args...)
 }
@@ -62,7 +57,7 @@ func (z *ZapLoggerWrapper) Errorf(format string, args ...interface{}) {
 }
 
 // New returns a new Logger instance.
-func New(debug bool, level LogLevel) *ZapLoggerWrapper {
+func New(level LogLevel) *ZapLoggerWrapper {
 	var logger *zap.Logger
 	var err error
 
@@ -71,28 +66,15 @@ func New(debug bool, level LogLevel) *ZapLoggerWrapper {
 	atomicLevel := zap.NewAtomicLevel()
 	atomicLevel.SetLevel(zapcore.Level(level))
 
-	if debug {
-		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-		config := zap.Config{
-			Level:            atomicLevel,
-			Development:      true,
-			Encoding:         "console",
-			EncoderConfig:    encoderConfig,
-			OutputPaths:      []string{"stderr"},
-			ErrorOutputPaths: []string{"stderr"},
-		}
-		logger, err = config.Build()
-	} else {
-		config := zap.Config{
-			Level:            atomicLevel,
-			Development:      false,
-			Encoding:         "json",
-			EncoderConfig:    encoderConfig,
-			OutputPaths:      []string{"stderr"},
-			ErrorOutputPaths: []string{"stderr"},
-		}
-		logger, err = config.Build()
+	config := zap.Config{
+		Level:            atomicLevel,
+		Development:      false,
+		Encoding:         "json",
+		EncoderConfig:    encoderConfig,
+		OutputPaths:      []string{"stderr"},
+		ErrorOutputPaths: []string{"stderr"},
 	}
+	logger, err = config.Build()
 
 	if err != nil {
 		panic(err)
