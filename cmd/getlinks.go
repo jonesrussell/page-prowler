@@ -12,7 +12,7 @@ var getLinksCmd = &cobra.Command{
 	Short: "Get the list of links for a given crawlsiteid",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if Crawlsiteid == "" {
-			return fmt.Errorf("crawlsiteid is required")
+			return ErrCrawlsiteidRequired
 		}
 
 		// Get the manager from the context

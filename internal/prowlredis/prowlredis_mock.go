@@ -3,13 +3,16 @@ package prowlredis
 import "context"
 
 type MockClient struct {
-	pingErr error
-	data    map[string][]string
+	pingErr      error
+	data         map[string][]string
+	WasDelCalled bool
+	DelErr       error
 }
 
 func NewMockClient() ClientInterface {
 	return &MockClient{
-		data: make(map[string][]string),
+		data:         make(map[string][]string),
+		WasDelCalled: false,
 	}
 }
 
@@ -25,6 +28,10 @@ func (m *MockClient) SAdd(_ context.Context, key string, members ...interface{})
 }
 
 func (m *MockClient) Del(_ context.Context, keys ...string) error {
+	m.WasDelCalled = true
+	if m.DelErr != nil {
+		return m.DelErr
+	}
 	for _, key := range keys {
 		delete(m.data, key)
 	}
