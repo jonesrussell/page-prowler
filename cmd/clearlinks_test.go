@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createTestCommand(ctx context.Context) *cobra.Command {
+func createTestCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   clearlinksCmd.Use,
 		Short: clearlinksCmd.Short,
@@ -38,7 +38,7 @@ func TestClearlinksCmd_WithoutInitializedManager(t *testing.T) {
 	ctx := context.WithValue(context.Background(), managerKey, nil)
 
 	// Create a new Cobra command for testing
-	cmd := createTestCommand(ctx)
+	cmd := createTestCommand()
 
 	// Discard the command's output
 	cmd.SetOut(io.Discard)
@@ -66,7 +66,7 @@ func TestClearlinksCmd_WithValidCrawlsiteid(t *testing.T) {
 	ctx := context.WithValue(context.Background(), managerKey, manager)
 
 	// Create a new Cobra command for testing
-	cmd := createTestCommand(ctx)
+	cmd := createTestCommand()
 
 	// Execute the command and check the error
 	err = cmd.ExecuteContext(ctx)
@@ -91,7 +91,7 @@ func TestClearlinksCmd_WithEmptyCrawlsiteid(t *testing.T) {
 	ctx := context.WithValue(context.Background(), managerKey, manager)
 
 	// Create a new Cobra command for testing
-	cmd := createTestCommand(ctx)
+	cmd := createTestCommand()
 
 	// Discard the command's output
 	cmd.SetOut(io.Discard)
@@ -122,7 +122,7 @@ func TestClearlinksCmd_WhenRedisClientReturnsError(t *testing.T) {
 	ctx := context.WithValue(context.Background(), managerKey, manager)
 
 	// Create a new Cobra command for testing
-	cmd := createTestCommand(ctx)
+	cmd := createTestCommand()
 
 	// Discard the command's output
 	cmd.SetOut(io.Discard)
@@ -150,7 +150,7 @@ func TestClearlinksCmd_CheckLoggingOutput(t *testing.T) {
 	ctx := context.WithValue(context.Background(), managerKey, manager)
 
 	// Create a new Cobra command for testing
-	cmd := createTestCommand(ctx)
+	cmd := createTestCommand()
 
 	// Discard the command's output
 	cmd.SetOut(io.Discard)
