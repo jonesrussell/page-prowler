@@ -13,29 +13,29 @@ func NewMockClient() ClientInterface {
 	}
 }
 
-func (m *MockClient) Ping(ctx context.Context) error {
+func (m *MockClient) Ping(_ context.Context) error {
 	return m.pingErr
 }
 
-func (m *MockClient) SAdd(ctx context.Context, key string, members ...interface{}) error {
+func (m *MockClient) SAdd(_ context.Context, key string, members ...interface{}) error {
 	for _, member := range members {
 		m.data[key] = append(m.data[key], member.(string))
 	}
 	return nil
 }
 
-func (m *MockClient) Del(ctx context.Context, keys ...string) error {
+func (m *MockClient) Del(_ context.Context, keys ...string) error {
 	for _, key := range keys {
 		delete(m.data, key)
 	}
 	return nil
 }
 
-func (m *MockClient) SMembers(ctx context.Context, key string) ([]string, error) {
+func (m *MockClient) SMembers(_ context.Context, key string) ([]string, error) {
 	return m.data[key], nil
 }
 
-func (m *MockClient) SIsMember(ctx context.Context, key string, member interface{}) (bool, error) {
+func (m *MockClient) SIsMember(_ context.Context, key string, member interface{}) (bool, error) {
 	members, ok := m.data[key]
 	if !ok {
 		return false, nil
