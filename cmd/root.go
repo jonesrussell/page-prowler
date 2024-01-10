@@ -126,11 +126,11 @@ func initConfig() {
 }
 
 func initializeLogger(level logger.LogLevel) (logger.Logger, error) {
-	log, err := logger.New(level)
+	initlog, err := logger.New(level)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize logger: %v", err)
 	}
-	return log, nil
+	return initlog, nil
 }
 
 func initializeManager(
