@@ -14,7 +14,7 @@ func TestLogger(t *testing.T) {
 	core, recorded := observer.New(zapcore.DebugLevel)
 
 	// Create a new logger that writes to the buffer
-	var appLogger Logger = New(true, LogLevel(zapcore.DebugLevel))
+	var appLogger Logger = New(LogLevel(zapcore.DebugLevel))
 	appLogger.(*ZapLoggerWrapper).Logger = zap.New(core).Sugar()
 
 	// Log a message at each level

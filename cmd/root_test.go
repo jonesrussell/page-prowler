@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	"github.com/jonesrussell/page-prowler/cmd/mocks"
+	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestRootCmd(t *testing.T) {
@@ -97,8 +99,12 @@ func TestInitializeManager(t *testing.T) {
 		log.Fatalf("Failed to set environment variable: %v", err)
 	}
 
-	// Initialize the manager with a mock Redis client
-	manager, err := initializeManager(&mocks.MockRedisClient{}, &mocks.MockLogger{}, mocks.NewMockMongoDBWrapper())
+	// Initialize the manager with a mock Redis client and a new mock logger
+	manager, err := initializeManager(
+		prowlredis.NewMockClient(),
+		mocks.NewMockLogger(zapcore.InfoLevel),
+		mocks.NewMockMongoDBWrapper(),
+	)
 	if err != nil {
 		t.Fatalf("Failed to initialize manager: %v", err)
 	}
@@ -106,5 +112,5 @@ func TestInitializeManager(t *testing.T) {
 	// Add assertions
 	assert.NotNil(t, manager.Client, "Client should not be nil")
 	assert.NotNil(t, manager.MongoDBWrapper, "MongoDBWrapper should not be nil")
-	assert.Equal(t, Debug, manager.Logger.IsDebugEnabled(), "Logger should be in debug mode if Debug is true")
+	assert.NotNil(t, manager.Logger, "Logger should not be nil")
 }

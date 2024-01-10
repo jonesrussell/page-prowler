@@ -11,6 +11,7 @@ import (
 type Options struct {
 	Addr     string
 	Password string
+	Port     string
 	DB       int
 }
 
@@ -32,6 +33,10 @@ type Client struct {
 // ClientRedis is a wrapper around the go-redis Client that implements the ClientInterface.
 type ClientRedis struct {
 	*redis.Client
+}
+
+func (c *ClientRedis) Close() error {
+	return c.Client.Close()
 }
 
 func (c *ClientRedis) Ping(ctx context.Context) error {
@@ -65,11 +70,11 @@ func (c *ClientRedis) Options() *Options {
 }
 
 // NewClient creates a new Redis client.
-func NewClient(ctx context.Context, address string, password string, port string) (ClientInterface, error) {
+func NewClient(ctx context.Context, cfg *Options) (ClientInterface, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:     address + ":" + port,
-		Password: password, // Use the Redis password
-		DB:       0,
+		Addr:     cfg.Addr + ":" + cfg.Port,
+		Password: cfg.Password,
+		DB:       cfg.DB,
 	})
 	_, err := client.Ping(ctx).Result()
 	if err != nil {
