@@ -33,7 +33,7 @@ var matchlinksCmd = &cobra.Command{
 
 		crawlsiteid := viper.GetString("crawlsiteid")
 		if crawlsiteid == "" {
-			return fmt.Errorf("crawlsiteid is required")
+			return ErrCrawlsiteidRequired
 		}
 
 		searchterms := viper.GetString("searchterms")

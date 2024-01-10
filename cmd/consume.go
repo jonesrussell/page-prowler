@@ -16,7 +16,7 @@ var consumeCmd = &cobra.Command{
 	Long:  `Consume is a CLI tool designed to fetch URLs from a Redis set.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if Crawlsiteid == "" {
-			return fmt.Errorf("crawlsiteid is required")
+			return ErrCrawlsiteidRequired
 		}
 
 		ctx := context.Background()

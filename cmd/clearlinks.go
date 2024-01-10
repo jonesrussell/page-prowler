@@ -14,12 +14,12 @@ var clearlinksCmd = &cobra.Command{
 	Short: "Clear the Redis set for a given crawlsiteid",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if Crawlsiteid == "" {
-			return fmt.Errorf("crawlsiteid is required")
+			return ErrCrawlsiteidRequired
 		}
 
 		manager, ok := cmd.Context().Value(managerKey).(*crawler.CrawlManager)
 		if !ok || manager == nil {
-			return fmt.Errorf("CrawlManager is not initialized")
+			return ErrCrawlManagerNotInitialized
 		}
 
 		redisClient := manager.Client

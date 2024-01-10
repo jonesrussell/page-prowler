@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -17,6 +18,9 @@ var (
 	Crawlsiteid string
 	Debug       bool
 )
+
+var ErrCrawlManagerNotInitialized = errors.New("CrawlManager is not initialized")
+var ErrCrawlsiteidRequired = errors.New("crawlsiteid is required")
 
 type key int
 
