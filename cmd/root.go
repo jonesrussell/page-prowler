@@ -38,7 +38,11 @@ var rootCmd = &cobra.Command{
 		// Initialize your dependencies here
 		ctx := context.Background()
 
-		appLogger := initializeLogger(logger.DefaultLogLevel)
+		appLogger, err := initializeLogger(logger.DefaultLogLevel)
+		if err != nil {
+			log.Println("Error initializing logger:", err)
+			return err
+		}
 
 		redisHost := viper.GetString("REDIS_HOST")
 		redisPort := viper.GetString("REDIS_PORT")
@@ -117,8 +121,12 @@ func initConfig() {
 	_ = viper.ReadInConfig()
 }
 
-func initializeLogger(level logger.LogLevel) logger.Logger {
-	return logger.New(level)
+func initializeLogger(level logger.LogLevel) (logger.Logger, error) {
+	log, err := logger.New(level)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize logger: %v", err)
+	}
+	return log, nil
 }
 
 func initializeManager(

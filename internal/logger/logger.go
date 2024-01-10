@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"fmt"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -14,6 +16,7 @@ type Logger interface {
 	Warn(msg string, keysAndValues ...interface{})
 	Infof(format string, args ...interface{})
 	Errorf(format string, args ...interface{})
+	Fatalf(format string, args ...interface{})
 }
 
 type ZapLoggerWrapper struct {
@@ -40,6 +43,10 @@ func (z *ZapLoggerWrapper) Fatal(msg string, keysAndValues ...interface{}) {
 	z.Logger.Fatalw(msg, keysAndValues...)
 }
 
+func (z *ZapLoggerWrapper) Fatalf(format string, args ...interface{}) {
+	z.Logger.Fatalf(format, args...)
+}
+
 func (z *ZapLoggerWrapper) Debug(msg string, keysAndValues ...interface{}) {
 	z.Logger.Debugw(msg, keysAndValues...)
 }
@@ -57,7 +64,7 @@ func (z *ZapLoggerWrapper) Errorf(format string, args ...interface{}) {
 }
 
 // New returns a new Logger instance.
-func New(level LogLevel) *ZapLoggerWrapper {
+func New(level LogLevel) (*ZapLoggerWrapper, error) {
 	var logger *zap.Logger
 	var err error
 
@@ -77,8 +84,8 @@ func New(level LogLevel) *ZapLoggerWrapper {
 	logger, err = config.Build()
 
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to build logger: %v", err)
 	}
 
-	return &ZapLoggerWrapper{logger.Sugar()}
+	return &ZapLoggerWrapper{logger.Sugar()}, nil
 }

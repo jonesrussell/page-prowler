@@ -40,6 +40,10 @@ func (m *MockLogger) Fatal(msg string, keysAndValues ...interface{}) {
 	m.Logger.Fatalw(msg, keysAndValues...)
 }
 
+func (m *MockLogger) Fatalf(msg string, keysAndValues ...interface{}) {
+	m.Logger.Fatalf(msg, keysAndValues...)
+}
+
 func (m *MockLogger) Warn(msg string, keysAndValues ...interface{}) {
 	m.Logger.Warnw(msg, keysAndValues...)
 }
