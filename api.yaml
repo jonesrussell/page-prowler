@@ -6,7 +6,7 @@ info:
    name: Russell Jones
    email: jonesrussell42@gmail.com
 servers:
-  - url: http://localhost:3000/v1
+  - url: https://localhost:3000/v1
 paths:
   /ping:
     get:
