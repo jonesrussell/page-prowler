@@ -17,6 +17,8 @@ type echoContextKey string
 
 const (
 	echoManagerKey echoContextKey = "manager"
+	CertPathEnvKey                = "SSL_CERT_PATH"
+	KeyPathEnvKey                 = "SSL_KEY_PATH"
 )
 
 var apiCmd = &cobra.Command{
@@ -64,7 +66,7 @@ var apiCmd = &cobra.Command{
 		// Register handlers under /v1
 		api.RegisterHandlers(v1, apiServerInterface)
 
-		if err := e.StartTLS(":3000", "/ssl/cert.pem", "/ssl/key_unencrypted.pem"); err != nil {
+		if err := e.StartTLS(":3000", viper.GetString(CertPathEnvKey), viper.GetString(KeyPathEnvKey)); err != nil {
 			log.Fatalf("Error starting echo server: %v", err)
 		}
 	},
