@@ -11,7 +11,7 @@ type MockLogger struct {
 	Logger   *zap.SugaredLogger
 }
 
-func NewMockLogger(level zapcore.Level) *MockLogger {
+func NewMockLogger() *MockLogger {
 	core, observed := observer.New(zapcore.DebugLevel)
 	logger := zap.New(core).Sugar()
 	return &MockLogger{

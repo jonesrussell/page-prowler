@@ -9,7 +9,6 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap/zapcore"
 )
 
 func TestRootCmd(t *testing.T) {
@@ -102,7 +101,7 @@ func TestInitializeManager(t *testing.T) {
 	// Initialize the manager with a mock Redis client and a new mock logger
 	manager, err := initializeManager(
 		prowlredis.NewMockClient(),
-		mocks.NewMockLogger(zapcore.InfoLevel),
+		mocks.NewMockLogger(),
 		mocks.NewMockMongoDBWrapper(),
 	)
 	if err != nil {
