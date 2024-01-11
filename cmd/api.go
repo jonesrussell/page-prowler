@@ -1,11 +1,12 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/hibiken/asynq"
 	"github.com/jonesrussell/page-prowler/internal/api"
+	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -13,12 +14,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-type echoContextKey string
-
 const (
-	echoManagerKey echoContextKey = "manager"
-	CertPathEnvKey                = "SSL_CERT_PATH"
-	KeyPathEnvKey                 = "SSL_KEY_PATH"
+	CertPathEnvKey string = "SSL_CERT_PATH"
+	KeyPathEnvKey  string = "SSL_KEY_PATH"
 )
 
 var apiCmd = &cobra.Command{
@@ -38,7 +36,7 @@ var apiCmd = &cobra.Command{
 		}))
 
 		// Get the manager from the context
-		manager, ok := cmd.Context().Value(managerKey).(*crawler.CrawlManager)
+		manager, ok := cmd.Context().Value(common.ManagerKey).(*crawler.CrawlManager)
 		if !ok || manager == nil {
 			log.Fatalf("CrawlManager is not initialized")
 		}
@@ -46,13 +44,13 @@ var apiCmd = &cobra.Command{
 		// Add the middleware to the Echo instance
 		e.Use(CrawlManagerMiddleware(manager))
 
-		redisHost := viper.GetString("REDIS_HOST")
-		redisPort := viper.GetString("REDIS_PORT")
-		redisAuth := viper.GetString("REDIS_AUTH")
+		redisDetails := manager.Client.Options()
+		redisAddr := redisDetails.Addr
+		redisAuth := redisDetails.Password
 
 		// Initialize the Inspector
 		inspector := asynq.NewInspector(asynq.RedisClientOpt{
-			Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
+			Addr:     redisAddr,
 			Password: redisAuth,
 		})
 
@@ -80,7 +78,8 @@ func CrawlManagerMiddleware(manager *crawler.CrawlManager) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			// Set the CrawlManager in the context
-			c.Set(string(echoManagerKey), manager)
+			c.Set(strconv.Itoa(int(common.ManagerKey)), manager)
+			log.Println("CrawlManager added to context") // Add this line
 			return next(c)
 		}
 	}

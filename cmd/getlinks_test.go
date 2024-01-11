@@ -5,6 +5,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/spf13/cobra"
@@ -16,7 +17,7 @@ func TestGetLinksCmd(t *testing.T) {
 	viper.Set("crawlsiteid", "testsite")
 
 	mockRedisClient := prowlredis.NewMockClient()
-	ctx := context.WithValue(context.Background(), managerKey, &crawler.CrawlManager{Client: mockRedisClient})
+	ctx := context.WithValue(context.Background(), common.ManagerKey, &crawler.CrawlManager{Client: mockRedisClient})
 
 	// Create a new Cobra command for testing
 	cmd := &cobra.Command{

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +17,7 @@ var getLinksCmd = &cobra.Command{
 		}
 
 		// Get the manager from the context
-		manager, ok := cmd.Context().Value(managerKey).(*crawler.CrawlManager)
+		manager, ok := cmd.Context().Value(common.ManagerKey).(*crawler.CrawlManager)
 		if !ok || manager == nil {
 			return fmt.Errorf("CrawlManager is not initialized")
 		}

@@ -11,7 +11,6 @@ import (
 type Options struct {
 	Addr     string
 	Password string
-	Port     string
 	DB       int
 }
 
@@ -72,7 +71,7 @@ func (c *ClientRedis) Options() *Options {
 // NewClient creates a new Redis client.
 func NewClient(ctx context.Context, cfg *Options) (ClientInterface, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:     cfg.Addr + ":" + cfg.Port,
+		Addr:     cfg.Addr,
 		Password: cfg.Password,
 		DB:       cfg.DB,
 	})
