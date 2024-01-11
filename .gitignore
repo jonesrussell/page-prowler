@@ -23,13 +23,8 @@ __debug_bin
 *.csv
 bin/
 .gopath/
-cmd/crawler/crawler
-cmd/consumer/consumer
 *__debug_bin*
 page-prowler
 
 /.idea
 :Zone.Identifier
-
-# qodana
-/data/res
