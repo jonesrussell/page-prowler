@@ -78,20 +78,6 @@ func TestNewCrawlTask(t *testing.T) {
 			},
 			wantErr: false,
 		},
-		{
-			name: "invalid payload",
-			args: args{
-				payload: &CrawlTaskPayload{
-					URL:         "",
-					SearchTerms: "example",
-					CrawlSiteID: "site123",
-					MaxDepth:    3,
-					Debug:       false,
-				},
-			},
-			want:    nil,
-			wantErr: true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -115,7 +101,65 @@ func TestNewCrawlTask(t *testing.T) {
 }
 
 func TestNewCrawlTaskInvalidPayload(t *testing.T) {
-	// Add test cases for invalid payloads
+	tests := []struct {
+		name    string
+		payload *CrawlTaskPayload
+		wantErr bool
+	}{
+		{
+			name: "empty URL",
+			payload: &CrawlTaskPayload{
+				URL:         "",
+				SearchTerms: "example",
+				CrawlSiteID: "site123",
+				MaxDepth:    3,
+				Debug:       false,
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty SearchTerms",
+			payload: &CrawlTaskPayload{
+				URL:         "http://example.com",
+				SearchTerms: "",
+				CrawlSiteID: "site123",
+				MaxDepth:    3,
+				Debug:       false,
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty CrawlSiteID",
+			payload: &CrawlTaskPayload{
+				URL:         "http://example.com",
+				SearchTerms: "example",
+				CrawlSiteID: "",
+				MaxDepth:    3,
+				Debug:       false,
+			},
+			wantErr: true,
+		},
+		{
+			name: "negative MaxDepth",
+			payload: &CrawlTaskPayload{
+				URL:         "http://example.com",
+				SearchTerms: "example",
+				CrawlSiteID: "site123",
+				MaxDepth:    -1,
+				Debug:       false,
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewCrawlTask(tt.payload)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewCrawlTask() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }
 
 func TestEnqueueCrawlTaskError(t *testing.T) {
