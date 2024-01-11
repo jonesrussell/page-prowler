@@ -7,6 +7,11 @@ import (
 	"github.com/hibiken/asynq"
 )
 
+// Define an interface with the methods you use from asynq.Client.
+type AsynqClient interface {
+	Enqueue(task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error)
+}
+
 const (
 	CrawlTaskType = "crawl"
 )
@@ -20,7 +25,7 @@ type CrawlTaskPayload struct {
 }
 
 // EnqueueCrawlTask creates asynq task
-func EnqueueCrawlTask(client *asynq.Client, payload *CrawlTaskPayload) (string, error) {
+func EnqueueCrawlTask(client AsynqClient, payload *CrawlTaskPayload) (string, error) {
 	task, err := NewCrawlTask(payload)
 	if err != nil {
 		return "", err
