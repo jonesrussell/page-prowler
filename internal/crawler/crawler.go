@@ -3,10 +3,11 @@ package crawler
 import (
 	"context"
 	"errors"
-	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/logger"
@@ -47,7 +48,7 @@ func NewCrawlManager(
 	}
 }
 
-func (cs *CrawlManager) Crawl(url string, options *CrawlOptions) ([]PageData, error) {
+func (cs *CrawlManager) crawl(url string, options *CrawlOptions) ([]PageData, error) {
 	err := cs.setupCrawlingLogic(options)
 	if err != nil {
 		return nil, err
@@ -217,7 +218,7 @@ func (cs *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, cra
 		Debug:       debug,
 	}
 
-	results, err = cs.Crawl(url, &options)
+	results, err = cs.crawl(url, &options)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,6 @@
 # Page Prowler
 
-Page Prowler is a tool for finding matchlinks from websites where the URL matches provided terms. It provides functionalities for crawling specific websites, extracting matchlinks that match the provided terms, and consuming URLs from a Redis set.
+Page Prowler is a tool designed to find and extract links from websites based on specified terms. It allows direct interaction through the command-line interface or the initiation of the Echo web server, which exposes an API. This API utilizes the Asynq library to manage queued crawl jobs.
 
 ## Usage
 
@@ -8,20 +8,29 @@ Page Prowler is a tool for finding matchlinks from websites where the URL matche
 
 ## Commands
 
-- api: Starts the API server.
-- matchlinks: Crawls specific websites and extracts matchlinks that match the provided terms.
-- consume: Consumes URLs from a Redis set.
-- help: Displays help about any command.
+- **api**: Starts the API server.
+- **matchlinks**: Crawls specific websites and extracts matchlinks that match the provided terms. Can be run from the command line or via a POST request to `/v1/matchlinks` on the API server.
+- **consume**: Consumes URLs from a Redis set.
+- **clearlinks**: Clears the Redis set for a given crawlsiteid.
+- **getlinks**: Gets the list of links for a given crawlsiteid.
+- **worker**: Starts the Asynq worker.
+- **help**: Displays help about any command.
 
-## Installation
+## Building
 
 To install Page Prowler, clone the repository and build the binary using the following commands:
 
-```bash
+```
 git clone https://github.com/jonesrussell/page-prowler.git
 cd page-prowler
 go build
 ```
+
+Alternatively, you can use the provided Makefile to build the project:
+
+```make all```
+
+This command will run fmt, lint, test, and build targets defined in the Makefile.
 
 ### Command Line
 
@@ -61,7 +70,8 @@ Page Prowler uses a `.env` file for configuration. You can specify the Redis hos
 
 ```bash
 REDIS_HOST=localhost
-REDIS_PASSWORD=yourpassword
+REDIS_PORT=6379
+REDIS_AUTH=yourpassword
 ```
 
 ## Contributing
