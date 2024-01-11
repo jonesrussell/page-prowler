@@ -10,7 +10,6 @@ Page Prowler is a tool designed to find and extract links from websites based on
 
 - **api**: Starts the API server.
 - **matchlinks**: Crawls specific websites and extracts matchlinks that match the provided terms. Can be run from the command line or via a POST request to `/v1/matchlinks` on the API server.
-- **consume**: Consumes URLs from a Redis set.
 - **clearlinks**: Clears the Redis set for a given crawlsiteid.
 - **getlinks**: Gets the list of links for a given crawlsiteid.
 - **worker**: Starts the Asynq worker.
