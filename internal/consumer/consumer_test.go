@@ -18,9 +18,12 @@ func TestRetrieveAndUnmarshalLinks(t *testing.T) {
 	crawlsiteid := "testsite"
 
 	// Add some mock data to the client
-	link1 := `{"url": "http://example.com/1", "matching_terms": ["term1", "term2"]}`
-	link2 := `{"url": "http://example.com/2", "matching_terms": ["term3", "term4"]}`
-	manager.Client.SAdd(ctx, crawlsiteid, link1, link2)
+	link1 := `{"url": "https://example.com/1", "matching_terms": ["term1", "term2"]}`
+	link2 := `{"url": "https://example.com/2", "matching_terms": ["term3", "term4"]}`
+	err := manager.Client.SAdd(ctx, crawlsiteid, link1, link2)
+	if err != nil {
+		return
+	}
 
 	links, err := RetrieveAndUnmarshalLinks(ctx, manager, crawlsiteid)
 	assert.NoError(t, err)
@@ -43,7 +46,7 @@ func TestRetrieveAndUnmarshalLinksEmptySet(t *testing.T) {
 
 func TestCreateOutput(t *testing.T) {
 	crawlsiteid := "testsite"
-	links := []Link{} // Initialize with mock data
+	var links []Link // Initialize with mock data
 
 	output := CreateOutput(crawlsiteid, links)
 	assert.Equal(t, crawlsiteid, output.Crawlsiteid)

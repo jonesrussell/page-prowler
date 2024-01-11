@@ -120,7 +120,7 @@ func TestNewCrawlTaskInvalidPayload(t *testing.T) {
 		{
 			name: "empty SearchTerms",
 			payload: &CrawlTaskPayload{
-				URL:         "http://example.com",
+				URL:         "https://example.com",
 				SearchTerms: "",
 				CrawlSiteID: "site123",
 				MaxDepth:    3,
@@ -131,7 +131,7 @@ func TestNewCrawlTaskInvalidPayload(t *testing.T) {
 		{
 			name: "empty CrawlSiteID",
 			payload: &CrawlTaskPayload{
-				URL:         "http://example.com",
+				URL:         "https://example.com",
 				SearchTerms: "example",
 				CrawlSiteID: "",
 				MaxDepth:    3,
@@ -142,7 +142,7 @@ func TestNewCrawlTaskInvalidPayload(t *testing.T) {
 		{
 			name: "negative MaxDepth",
 			payload: &CrawlTaskPayload{
-				URL:         "http://example.com",
+				URL:         "https://example.com",
 				SearchTerms: "example",
 				CrawlSiteID: "site123",
 				MaxDepth:    -1,
