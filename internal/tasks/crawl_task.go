@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/hibiken/asynq"
 )
@@ -32,6 +33,11 @@ func EnqueueCrawlTask(client *asynq.Client, payload *CrawlTaskPayload) (string, 
 }
 
 func NewCrawlTask(payload *CrawlTaskPayload) (*asynq.Task, error) {
+	// Validate the payload
+	if payload.URL == "" || payload.SearchTerms == "" || payload.CrawlSiteID == "" || payload.MaxDepth < 0 {
+		return nil, fmt.Errorf("invalid payload")
+	}
+
 	data, err := json.Marshal(map[string]interface{}{
 		"url":           payload.URL,
 		"search_terms":  payload.SearchTerms,

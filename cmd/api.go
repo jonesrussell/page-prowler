@@ -79,7 +79,6 @@ func CrawlManagerMiddleware(manager *crawler.CrawlManager) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			// Set the CrawlManager in the context
 			c.Set(strconv.Itoa(int(common.ManagerKey)), manager)
-			log.Println("CrawlManager added to context") // Add this line
 			return next(c)
 		}
 	}
