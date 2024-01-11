@@ -21,7 +21,7 @@ var getLinksCmd = &cobra.Command{
 	RunE:  getLinks,
 }
 
-func getLinks(cmd *cobra.Command, args []string) error {
+func getLinks(cmd *cobra.Command, _ []string) error {
 	if Crawlsiteid == "" {
 		return ErrCrawlsiteidRequired
 	}
