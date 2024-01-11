@@ -9,6 +9,7 @@ import (
 
 	"github.com/hibiken/asynq"
 	"github.com/jonesrussell/page-prowler/internal/common"
+	"github.com/jonesrussell/page-prowler/internal/consumer"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/tasks"
 	"github.com/labstack/echo/v4"
@@ -21,6 +22,32 @@ const (
 
 type ServerApiInterface struct {
 	Inspector *asynq.Inspector
+}
+
+func (msi *ServerApiInterface) GetGetlinks(ctx echo.Context, params GetGetlinksParams) error {
+	crawlsiteid := params.Crawlsiteid
+	if crawlsiteid == "" {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "crawlsiteid cannot be empty"})
+	}
+
+	manager, ok := ctx.Get(strconv.Itoa(int(common.ManagerKey))).(*crawler.CrawlManager)
+	if !ok || manager == nil {
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "CrawlManager not found in context"})
+	}
+
+	links, err := consumer.RetrieveAndUnmarshalLinks(ctx.Request().Context(), manager, crawlsiteid)
+	if err != nil {
+		return err
+	}
+
+	output := consumer.CreateOutput(crawlsiteid, links)
+
+	jsonOutput, err := consumer.MarshalOutput(output)
+	if err != nil {
+		return err
+	}
+
+	return ctx.Blob(http.StatusOK, "application/json", jsonOutput)
 }
 
 func (msi *ServerApiInterface) GetMatchlinks(ctx echo.Context) error {

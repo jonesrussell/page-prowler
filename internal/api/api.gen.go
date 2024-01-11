@@ -6,6 +6,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/oapi-codegen/runtime"
@@ -14,6 +15,21 @@ import (
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	Error *string `json:"error,omitempty"`
+}
+
+// Link defines model for Link.
+type Link struct {
+	MatchingTerms *[]string `json:"matching_terms,omitempty"`
+	Url           *string   `json:"url,omitempty"`
+}
+
+// Output defines model for Output.
+type Output struct {
+	Crawlsiteid *string    `json:"crawlsiteid,omitempty"`
+	Links       *[]Link    `json:"links,omitempty"`
+	Message     *string    `json:"message,omitempty"`
+	Status      *string    `json:"status,omitempty"`
+	Timestamp   *time.Time `json:"timestamp,omitempty"`
 }
 
 // Task defines model for Task.
@@ -31,6 +47,12 @@ type Task struct {
 // DefaultError defines model for DefaultError.
 type DefaultError = ErrorResponse
 
+// GetGetlinksParams defines parameters for GetGetlinks.
+type GetGetlinksParams struct {
+	// Crawlsiteid The ID of the crawl site to retrieve links for.
+	Crawlsiteid string `form:"crawlsiteid" json:"crawlsiteid"`
+}
+
 // PostMatchlinksJSONBody defines parameters for PostMatchlinks.
 type PostMatchlinksJSONBody struct {
 	CrawlSiteID *string `json:"CrawlSiteID,omitempty"`
@@ -45,6 +67,9 @@ type PostMatchlinksJSONRequestBody PostMatchlinksJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Get the list of links for a given crawlsiteid
+	// (GET /getlinks)
+	GetGetlinks(ctx echo.Context, params GetGetlinksParams) error
 	// Get all matching tasks
 	// (GET /matchlinks)
 	GetMatchlinks(ctx echo.Context) error
@@ -65,6 +90,24 @@ type ServerInterface interface {
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
+}
+
+// GetGetlinks converts echo context to params.
+func (w *ServerInterfaceWrapper) GetGetlinks(ctx echo.Context) error {
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetGetlinksParams
+	// ------------- Required query parameter "crawlsiteid" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "crawlsiteid", ctx.QueryParams(), &params.Crawlsiteid)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter crawlsiteid: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetGetlinks(ctx, params)
+	return err
 }
 
 // GetMatchlinks converts echo context to params.
@@ -154,6 +197,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
+	router.GET(baseURL+"/getlinks", wrapper.GetGetlinks)
 	router.GET(baseURL+"/matchlinks", wrapper.GetMatchlinks)
 	router.POST(baseURL+"/matchlinks", wrapper.PostMatchlinks)
 	router.DELETE(baseURL+"/matchlinks/:id", wrapper.DeleteMatchlinksId)

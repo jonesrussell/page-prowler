@@ -119,8 +119,55 @@ paths:
           $ref: "#/components/responses/DefaultError"
         "500":
           $ref: "#/components/responses/DefaultError"
+  /getlinks:
+    get:
+      summary: Get the list of links for a given crawlsiteid
+      description: This operation retrieves the list of links for a given crawlsiteid.
+      parameters:
+        - name: crawlsiteid
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The ID of the crawl site to retrieve links for.
+      responses:
+        "200":
+          description: Links retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Output'
+        "400":
+          $ref: "#/components/responses/DefaultError"
+        "500":
+          $ref: "#/components/responses/DefaultError"
 components:
   schemas:
+    Output:
+      type: object
+      properties:
+        crawlsiteid:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+        message:
+          type: string
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+    Link:
+      type: object
+      properties:
+        url:
+          type: string
+        matching_terms:
+          type: array
+          items:
+            type: string
     Task:
       type: object
       properties:
