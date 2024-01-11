@@ -7,7 +7,7 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-// Define an interface with the methods you use from asynq.Client.
+// AsynqClient defines an interface with the methods you use from asynq.Client.
 type AsynqClient interface {
 	Enqueue(task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error)
 }

@@ -62,7 +62,7 @@ func TestNewCrawlTask(t *testing.T) {
 			name: "valid payload",
 			args: args{
 				payload: &CrawlTaskPayload{
-					URL:         "http://example.com",
+					URL:         "https://example.com",
 					SearchTerms: "example",
 					CrawlSiteID: "site123",
 					MaxDepth:    3,
@@ -70,7 +70,7 @@ func TestNewCrawlTask(t *testing.T) {
 				},
 			},
 			want: &CrawlTaskPayload{
-				URL:         "http://example.com",
+				URL:         "https://example.com",
 				SearchTerms: "example",
 				CrawlSiteID: "site123",
 				MaxDepth:    3,
