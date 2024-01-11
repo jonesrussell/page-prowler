@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/hibiken/asynq"
+	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/tasks"
 	"github.com/spf13/cobra"
@@ -19,13 +20,13 @@ var matchlinksCmd = &cobra.Command{
            It allows users to specify parameters such as depth of crawl and target elements to extract.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Access the CrawlManager from the context
-		value := cmd.Context().Value(managerKey)
+		value := cmd.Context().Value(common.ManagerKey)
 		if value == nil {
-			log.Fatalf("managerKey not found in context")
+			log.Fatalf("common.ManagerKey not found in context")
 		}
 		manager, ok := value.(*crawler.CrawlManager)
 		if !ok {
-			log.Fatalf("managerKey in context is not of type *crawler.CrawlManager")
+			log.Fatalf("common.ManagerKey in context is not of type *crawler.CrawlManager")
 		}
 		if manager == nil {
 			log.Fatalf("manager is nil")

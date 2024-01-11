@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -23,7 +24,7 @@ var consumeCmd = &cobra.Command{
 		debug := viper.GetBool("debug")
 
 		// Get the manager from the context
-		manager, ok := cmd.Context().Value(managerKey).(*crawler.CrawlManager)
+		manager, ok := cmd.Context().Value(common.ManagerKey).(*crawler.CrawlManager)
 		if !ok || manager == nil {
 			log.Fatalf("CrawlManager is not initialized")
 		}

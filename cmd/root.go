@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
@@ -21,12 +22,6 @@ var (
 
 var ErrCrawlManagerNotInitialized = errors.New("CrawlManager is not initialized")
 var ErrCrawlsiteidRequired = errors.New("crawlsiteid is required")
-
-type key int
-
-const (
-	managerKey key = iota
-)
 
 var rootCmd = &cobra.Command{
 	Use:   "page-prowler",
@@ -69,9 +64,8 @@ var rootCmd = &cobra.Command{
 		}
 
 		cfg := &prowlredis.Options{
-			Addr:     redisHost,
+			Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
 			Password: redisAuth,
-			Port:     redisPort,
 			DB:       0, // TODO: redisDB
 		}
 
@@ -93,7 +87,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Set the manager to the context
-		ctx = context.WithValue(ctx, managerKey, manager)
+		ctx = context.WithValue(ctx, common.ManagerKey, manager)
 
 		// Set the context of the command
 		cmd.SetContext(ctx)

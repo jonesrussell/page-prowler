@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/jonesrussell/page-prowler/cmd/mocks"
+	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/spf13/cobra"
@@ -35,7 +36,7 @@ func TestClearlinksCmd_WithoutInitializedManager(t *testing.T) {
 	Crawlsiteid = "testsite"
 
 	// Do not initialize CrawlManager
-	ctx := context.WithValue(context.Background(), managerKey, nil)
+	ctx := context.WithValue(context.Background(), common.ManagerKey, nil)
 
 	// Create a new Cobra command for testing
 	cmd := createTestCommand()
@@ -63,7 +64,7 @@ func TestClearlinksCmd_WithValidCrawlsiteid(t *testing.T) {
 		t.Fatalf("Failed to initialize CrawlManager: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), managerKey, manager)
+	ctx := context.WithValue(context.Background(), common.ManagerKey, manager)
 
 	// Create a new Cobra command for testing
 	cmd := createTestCommand()
@@ -88,7 +89,7 @@ func TestClearlinksCmd_WithEmptyCrawlsiteid(t *testing.T) {
 		t.Fatalf("Failed to initialize CrawlManager: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), managerKey, manager)
+	ctx := context.WithValue(context.Background(), common.ManagerKey, manager)
 
 	// Create a new Cobra command for testing
 	cmd := createTestCommand()
@@ -119,7 +120,7 @@ func TestClearlinksCmd_WhenRedisClientReturnsError(t *testing.T) {
 	}
 	manager.Client = mockRedisClient
 
-	ctx := context.WithValue(context.Background(), managerKey, manager)
+	ctx := context.WithValue(context.Background(), common.ManagerKey, manager)
 
 	// Create a new Cobra command for testing
 	cmd := createTestCommand()
@@ -147,7 +148,7 @@ func TestClearlinksCmd_CheckLoggingOutput(t *testing.T) {
 		t.Fatalf("Failed to initialize CrawlManager: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), managerKey, manager)
+	ctx := context.WithValue(context.Background(), common.ManagerKey, manager)
 
 	// Create a new Cobra command for testing
 	cmd := createTestCommand()

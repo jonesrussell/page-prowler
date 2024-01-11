@@ -2,15 +2,16 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/hibiken/asynq"
+	"github.com/jonesrussell/page-prowler/internal/common"
+	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/tasks"
 	"github.com/labstack/echo/v4"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -80,11 +81,16 @@ func (msi *ServerApiInterface) PostMatchlinks(ctx echo.Context) error {
 	}
 
 	// Create a new asynq.Client using the same Redis connection details
-	redisHost := viper.GetString("REDIS_HOST")
-	redisPort := viper.GetString("REDIS_PORT")
-	redisAuth := viper.GetString("REDIS_AUTH")
+	manager, ok := ctx.Get(strconv.Itoa(int(common.ManagerKey))).(*crawler.CrawlManager)
+	if !ok || manager == nil {
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "CrawlManager not found in context"})
+	}
+	redisDetails := manager.Client.Options()
+	redisAddr := redisDetails.Addr
+	redisAuth := redisDetails.Password
+
 	client := asynq.NewClient(asynq.RedisClientOpt{
-		Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
+		Addr:     redisAddr,
 		Password: redisAuth,
 	})
 
