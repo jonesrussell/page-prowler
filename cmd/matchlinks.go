@@ -107,6 +107,4 @@ func init() {
 	if err := viper.BindPFlag("maxdepth", matchlinksCmd.Flags().Lookup("maxdepth")); err != nil {
 		log.Fatalf("Error binding flag: %v", err)
 	}
-
-	rootCmd.AddCommand(matchlinksCmd)
 }

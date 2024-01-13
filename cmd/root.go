@@ -108,6 +108,12 @@ func init() {
 	if err := viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug")); err != nil {
 		log.Fatalf("Error binding debug flag: %v", err)
 	}
+
+	rootCmd.AddCommand(apiCmd)
+	rootCmd.AddCommand(clearlinksCmd)
+	rootCmd.AddCommand(getLinksCmd)
+	rootCmd.AddCommand(matchlinksCmd)
+	rootCmd.AddCommand(workerCmd)
 }
 
 func initConfig() {

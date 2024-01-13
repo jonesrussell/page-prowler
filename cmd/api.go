@@ -70,10 +70,6 @@ var apiCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(apiCmd)
-}
-
 func CrawlManagerMiddleware(manager *crawler.CrawlManager) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
