@@ -12,7 +12,6 @@ import (
 
 func init() {
 	getLinksCmd.Flags().StringVarP(&Crawlsiteid, "crawlsiteid", "s", "", "CrawlSite ID")
-	rootCmd.AddCommand(getLinksCmd)
 }
 
 var getLinksCmd = &cobra.Command{

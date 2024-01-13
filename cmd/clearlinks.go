@@ -41,5 +41,4 @@ func init() {
 	if err := viper.BindPFlag("crawlsiteid", clearlinksCmd.Flags().Lookup("crawlsiteid")); err != nil {
 		log.Fatalf("Error binding flag: %v", err)
 	}
-	rootCmd.AddCommand(clearlinksCmd)
 }
