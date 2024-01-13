@@ -107,15 +107,29 @@ func TestProcessTitle(t *testing.T) {
 }
 
 func TestGetMatchingTerms(t *testing.T) {
-	// Test with a URL that should match the search terms
+	// Test with a URL and anchor text that should match the search terms
 	href := "https://example.com/privacy-policy"
+	anchorText := "Privacy Policy"
 	searchTerms := []string{"privacy", "policy"}
 	expected := []string{"privacy", "policy"}
-	assert.Equal(t, expected, GetMatchingTerms(href, searchTerms))
+	assert.Equal(t, expected, GetMatchingTerms(href, anchorText, searchTerms))
 
-	// Test with a URL that should not match the search terms
+	// Test with a URL and anchor text that should not match the search terms
 	href = "https://example.com/unrelated-term"
-	assert.NotEqual(t, []string{}, GetMatchingTerms(href, searchTerms))
+	anchorText = "Unrelated Term"
+	assert.NotEqual(t, []string{}, GetMatchingTerms(href, anchorText, searchTerms))
+
+	// Test with a URL and anchor text where the anchor text does not contain any of the search terms
+	href = "https://example.com/another-term"
+	// Test with a URL and anchor text where the anchor text does not contain any of the search terms
+	href = "https://example.com/another-term"
+	anchorText = "Another Term"
+	assert.Nil(t, GetMatchingTerms(href, anchorText, searchTerms))
+
+	// Test with a URL and anchor text where the anchor text contains all of the search terms
+	href = "https://example.com/all-terms"
+	anchorText = "All Privacy Policy Terms"
+	assert.Equal(t, searchTerms, GetMatchingTerms(href, anchorText, searchTerms))
 }
 
 func TestFindMatchingTerms(t *testing.T) {
