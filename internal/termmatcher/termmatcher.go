@@ -58,8 +58,9 @@ func processTitle(title string) string {
 }
 
 // GetMatchingTerms checks if the URL title matches any of the provided search terms and returns the matching terms.
-func GetMatchingTerms(href string, searchTerms []string) []string {
-	title := extractTitleFromURL(href)
+func GetMatchingTerms(href string, anchorText string, searchTerms []string) []string {
+	combined := href + " " + anchorText
+	title := extractTitleFromURL(combined)
 	if title == "" {
 		return nil
 	}

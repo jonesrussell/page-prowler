@@ -60,15 +60,15 @@ func (cs *CrawlManager) crawl(url string, options *CrawlOptions) ([]PageData, er
 }
 
 // setupHTMLParsingHandler sets up the handler for HTML parsing with gocolly, using the provided parameters.
-func (cs *CrawlManager) setupHTMLParsingHandler(options *CrawlOptions) error {
-	cs.Collector.OnHTML("a[href]", cs.getAnchorElementHandler(options))
-
+func (cs *CrawlManager) setupHTMLParsingHandler(options *CrawlOptions, handler func(*colly.HTMLElement)) error {
+	cs.Collector.OnHTML("a[href]", handler)
 	return nil
 }
 
 func (cs *CrawlManager) getAnchorElementHandler(options *CrawlOptions) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
+		anchorText := e.Text
 		options.LinkStatsMu.Lock()
 		options.LinkStats.IncrementTotalLinks()
 		options.LinkStatsMu.Unlock()
@@ -77,7 +77,7 @@ func (cs *CrawlManager) getAnchorElementHandler(options *CrawlOptions) func(e *c
 			URL: href,
 		}
 		cs.Logger.Debug("Search terms: %v", options.SearchTerms)
-		matchingTerms := termmatcher.GetMatchingTerms(href, options.SearchTerms)
+		matchingTerms := termmatcher.GetMatchingTerms(href, anchorText, options.SearchTerms)
 		if len(matchingTerms) > 0 {
 			cs.processMatchingLinkAndUpdateStats(options, href, pageData, matchingTerms)
 		} else {
@@ -114,7 +114,7 @@ func (cs *CrawlManager) setupErrorEventHandler(collector *colly.Collector) {
 
 // setupCrawlingLogic configures and initiates the crawling logic.
 func (cs *CrawlManager) setupCrawlingLogic(options *CrawlOptions) error {
-	err := cs.setupHTMLParsingHandler(options)
+	err := cs.setupHTMLParsingHandler(options, cs.getAnchorElementHandler(options))
 	if err != nil {
 		return err
 	}
