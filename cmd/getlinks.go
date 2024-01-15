@@ -25,7 +25,7 @@ func getLinks(cmd *cobra.Command, _ []string) error {
 		return ErrCrawlsiteidRequired
 	}
 
-	manager, ok := cmd.Context().Value(common.ManagerKey).(*crawler.CrawlManager)
+	manager, ok := cmd.Context().Value(common.CrawlManagerKey).(*crawler.CrawlManager)
 	if !ok || manager == nil {
 		return fmt.Errorf("CrawlManager is not initialized")
 	}
