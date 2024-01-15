@@ -18,7 +18,7 @@ func TestRootCmd(t *testing.T) {
 func TestExecute(t *testing.T) {
 	// Call Execute with no arguments
 	os.Args = []string{"cmd"}
-	err := Execute()
+	err := rootCmd.Execute()
 	assert.NoError(t, err, "Execute() without arguments should not return an error")
 }
 
@@ -81,6 +81,30 @@ func TestInitConfigError(t *testing.T) {
 
 	// Call initConfig and check if it doesn't panic
 	assert.NotPanics(t, func() { initConfig() }, "initConfig should not panic if the config file does not exist")
+}
+
+func TestInitializeManager_WithNilMongoDBWrapper(t *testing.T) {
+	// Initialize the manager with a mock Redis client and a nil MongoDB wrapper
+	_, err := initializeManager(
+		prowlredis.NewMockClient(),
+		mocks.NewMockLogger(),
+		nil,
+	)
+
+	// Check if an error was returned
+	assert.Error(t, err, "Expected an error when initializing with a nil MongoDB wrapper")
+}
+
+func TestInitializeManager_WithNilRedisClient(t *testing.T) {
+	// Initialize the manager with a nil Redis client and a new mock logger
+	_, err := initializeManager(
+		nil,
+		mocks.NewMockLogger(),
+		mocks.NewMockMongoDBWrapper(),
+	)
+
+	// Check if an error was returned
+	assert.Error(t, err, "Expected an error when initializing with a nil Redis client")
 }
 
 func TestInitializeManager(t *testing.T) {
