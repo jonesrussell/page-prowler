@@ -86,7 +86,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Set the manager to the context
-		ctx = context.WithValue(ctx, common.ManagerKey, manager)
+		ctx = context.WithValue(ctx, common.CrawlManagerKey, manager)
 
 		// Set the context of the command
 		cmd.SetContext(ctx)

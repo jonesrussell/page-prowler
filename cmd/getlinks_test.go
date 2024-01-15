@@ -17,7 +17,7 @@ func TestGetLinksCmd(t *testing.T) {
 	viper.Set("crawlsiteid", "testsite")
 
 	mockRedisClient := prowlredis.NewMockClient()
-	ctx := context.WithValue(context.Background(), common.ManagerKey, &crawler.CrawlManager{Client: mockRedisClient})
+	ctx := context.WithValue(context.Background(), common.CrawlManagerKey, &crawler.CrawlManager{Client: mockRedisClient})
 
 	// Create a new Cobra command for testing
 	cmd := &cobra.Command{

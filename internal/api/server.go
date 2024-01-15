@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/hibiken/asynq"
@@ -30,7 +29,7 @@ func (msi *ServerApiInterface) GetGetlinks(ctx echo.Context, params GetGetlinksP
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "crawlsiteid cannot be empty"})
 	}
 
-	manager, ok := ctx.Get(strconv.Itoa(int(common.ManagerKey))).(*crawler.CrawlManager)
+	manager, ok := ctx.Get(string(common.CrawlManagerKey)).(*crawler.CrawlManager)
 	if !ok || manager == nil {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "CrawlManager not found in context"})
 	}
@@ -108,7 +107,7 @@ func (msi *ServerApiInterface) PostMatchlinks(ctx echo.Context) error {
 	}
 
 	// Create a new asynq.Client using the same Redis connection details
-	manager, ok := ctx.Get(strconv.Itoa(int(common.ManagerKey))).(*crawler.CrawlManager)
+	manager, ok := ctx.Get(string(common.CrawlManagerKey)).(*crawler.CrawlManager)
 	if !ok || manager == nil {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "CrawlManager not found in context"})
 	}

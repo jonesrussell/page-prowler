@@ -2,8 +2,8 @@ package common
 
 import "testing"
 
-func TestManagerKey(t *testing.T) {
-	if ManagerKey != 0 {
-		t.Errorf("Expected ManagerKey to be 0, got %d", ManagerKey)
+func TestCrawlManagerKey(t *testing.T) {
+	if CrawlManagerKey != "cm" {
+		t.Errorf("Expected CrawlManagerKey to be 'cm', but got '%s'", CrawlManagerKey)
 	}
 }

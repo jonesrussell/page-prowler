@@ -1,5 +1,5 @@
 package common
 
-type key int
+type CrawlManagerKeyType string
 
-const ManagerKey key = iota
+const CrawlManagerKey = CrawlManagerKeyType("cm")

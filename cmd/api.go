@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"log"
-	"strconv"
 
 	"github.com/hibiken/asynq"
 	"github.com/jonesrussell/page-prowler/internal/api"
@@ -36,7 +35,7 @@ var apiCmd = &cobra.Command{
 		}))
 
 		// Get the manager from the context
-		manager, ok := cmd.Context().Value(common.ManagerKey).(*crawler.CrawlManager)
+		manager, ok := cmd.Context().Value(common.CrawlManagerKey).(*crawler.CrawlManager)
 		if !ok || manager == nil {
 			log.Fatalf("CrawlManager is not initialized")
 		}
@@ -73,8 +72,8 @@ var apiCmd = &cobra.Command{
 func CrawlManagerMiddleware(manager *crawler.CrawlManager) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// Set the CrawlManager in the context
-			c.Set(strconv.Itoa(int(common.ManagerKey)), manager)
+			// Set the CrawlManager in the context using the string constant as the key
+			c.Set(string(common.CrawlManagerKey), manager)
 			return next(c)
 		}
 	}

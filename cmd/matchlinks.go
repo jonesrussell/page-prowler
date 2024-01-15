@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hibiken/asynq"
 	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
-	"github.com/jonesrussell/page-prowler/internal/tasks"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -19,11 +17,14 @@ var matchlinksCmd = &cobra.Command{
 	Long: `Crawl is a CLI tool designed to perform web scraping and data extraction from websites.
            It allows users to specify parameters such as depth of crawl and target elements to extract.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
+
 		// Access the CrawlManager from the context
-		value := cmd.Context().Value(common.ManagerKey)
+		value := ctx.Value(common.CrawlManagerKey)
 		if value == nil {
 			log.Fatalf("common.ManagerKey not found in context")
 		}
+
 		manager, ok := value.(*crawler.CrawlManager)
 		if !ok {
 			log.Fatalf("common.ManagerKey in context is not of type *crawler.CrawlManager")
@@ -59,28 +60,9 @@ var matchlinksCmd = &cobra.Command{
 			manager.Logger.Infof(" %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH"))
 		}
 
-		// Retrieve the Redis connection details
-		redisHost := viper.GetString("REDIS_HOST")
-		redisPort := viper.GetString("REDIS_PORT")
-		redisAuth := viper.GetString("REDIS_AUTH")
-
-		// Create a new asynq.Client using the same Redis connection details
-		client := asynq.NewClient(asynq.RedisClientOpt{
-			Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
-			Password: redisAuth,
-		})
-
-		payload := &tasks.CrawlTaskPayload{
-			URL:         url,
-			SearchTerms: searchterms,
-			CrawlSiteID: crawlsiteid,
-			MaxDepth:    viper.GetInt("maxdepth"),
-			Debug:       Debug,
-		}
-
-		_, err := tasks.EnqueueCrawlTask(client, payload)
+		err := manager.StartCrawling(ctx, url, searchterms, crawlsiteid, viper.GetInt("maxdepth"), Debug)
 		if err != nil {
-			log.Fatalf("Error enqueuing crawl task: %v", err)
+			log.Fatalf("Error starting crawling: %v", err)
 		}
 
 		return nil

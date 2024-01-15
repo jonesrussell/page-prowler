@@ -10,18 +10,8 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
-
-func createTestCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   clearlinksCmd.Use,
-		Short: clearlinksCmd.Short,
-		Long:  clearlinksCmd.Long,
-		RunE:  clearlinksCmd.RunE,
-	}
-}
 
 func initializeTestManager() (*crawler.CrawlManager, error) {
 	return initializeManager(
@@ -36,10 +26,10 @@ func TestClearlinksCmd_WithoutInitializedManager(t *testing.T) {
 	Crawlsiteid = "testsite"
 
 	// Do not initialize CrawlManager
-	ctx := context.WithValue(context.Background(), common.ManagerKey, nil)
+	ctx := context.WithValue(context.Background(), common.CrawlManagerKey, nil)
 
 	// Create a new Cobra command for testing
-	cmd := createTestCommand()
+	cmd := CreateTestCommand(clearlinksCmd.Use, clearlinksCmd.Short, clearlinksCmd.Long, clearlinksCmd.RunE)
 
 	// Discard the command's output
 	cmd.SetOut(io.Discard)
@@ -64,10 +54,10 @@ func TestClearlinksCmd_WithValidCrawlsiteid(t *testing.T) {
 		t.Fatalf("Failed to initialize CrawlManager: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), common.ManagerKey, manager)
+	ctx := context.WithValue(context.Background(), common.CrawlManagerKey, manager)
 
 	// Create a new Cobra command for testing
-	cmd := createTestCommand()
+	cmd := CreateTestCommand(clearlinksCmd.Use, clearlinksCmd.Short, clearlinksCmd.Long, clearlinksCmd.RunE)
 
 	// Execute the command and check the error
 	err = cmd.ExecuteContext(ctx)
@@ -89,10 +79,10 @@ func TestClearlinksCmd_WithEmptyCrawlsiteid(t *testing.T) {
 		t.Fatalf("Failed to initialize CrawlManager: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), common.ManagerKey, manager)
+	ctx := context.WithValue(context.Background(), common.CrawlManagerKey, manager)
 
 	// Create a new Cobra command for testing
-	cmd := createTestCommand()
+	cmd := CreateTestCommand(clearlinksCmd.Use, clearlinksCmd.Short, clearlinksCmd.Long, clearlinksCmd.RunE)
 
 	// Discard the command's output
 	cmd.SetOut(io.Discard)
@@ -120,10 +110,10 @@ func TestClearlinksCmd_WhenRedisClientReturnsError(t *testing.T) {
 	}
 	manager.Client = mockRedisClient
 
-	ctx := context.WithValue(context.Background(), common.ManagerKey, manager)
+	ctx := context.WithValue(context.Background(), common.CrawlManagerKey, manager)
 
 	// Create a new Cobra command for testing
-	cmd := createTestCommand()
+	cmd := CreateTestCommand(clearlinksCmd.Use, clearlinksCmd.Short, clearlinksCmd.Long, clearlinksCmd.RunE)
 
 	// Discard the command's output
 	cmd.SetOut(io.Discard)
@@ -148,10 +138,10 @@ func TestClearlinksCmd_CheckLoggingOutput(t *testing.T) {
 		t.Fatalf("Failed to initialize CrawlManager: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), common.ManagerKey, manager)
+	ctx := context.WithValue(context.Background(), common.CrawlManagerKey, manager)
 
 	// Create a new Cobra command for testing
-	cmd := createTestCommand()
+	cmd := CreateTestCommand(clearlinksCmd.Use, clearlinksCmd.Short, clearlinksCmd.Long, clearlinksCmd.RunE)
 
 	// Discard the command's output
 	cmd.SetOut(io.Discard)
