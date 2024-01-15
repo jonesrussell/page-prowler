@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
@@ -95,9 +96,13 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-// Execute runs the root command.
-func Execute() error {
-	return rootCmd.Execute()
+// Execute adds all child commands to the root command and sets flags appropriately.
+// This is called by main.main(). It only needs to happen once to the rootCmd.
+func Execute() {
+	err := rootCmd.Execute()
+	if err != nil {
+		os.Exit(1)
+	}
 }
 
 func init() {
@@ -137,5 +142,14 @@ func initializeManager(
 	appLogger logger.Logger,
 	mongoDBWrapper mongodbwrapper.MongoDBInterface,
 ) (*crawler.CrawlManager, error) {
+	if redisClient == nil {
+		return nil, errors.New("redisClient cannot be nil")
+	}
+	if appLogger == nil {
+		return nil, errors.New("appLogger cannot be nil")
+	}
+	if mongoDBWrapper == nil {
+		return nil, errors.New("mongoDBWrapper cannot be nil")
+	}
 	return crawler.NewCrawlManager(appLogger, redisClient, mongoDBWrapper), nil
 }
