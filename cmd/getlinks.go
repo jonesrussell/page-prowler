@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -9,28 +10,15 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/consumer"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var GetLinksCmd = &cobra.Command{
 	Use:   "getlinks",
 	Short: "Get the list of links for a given crawlsiteid",
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		log.Println("RunE function started")
-
-		crawlsiteid := viper.GetString("crawlsiteid")
-		log.Println(crawlsiteid)
-
+		crawlsiteid, _ := cmd.Flags().GetString("crawlsiteid")
 		if crawlsiteid == "" {
-			return ErrCrawlsiteidRequired
-		}
-
-		log.Println("CrawlSiteID: ", crawlsiteid) // Print the crawlsiteid
-
-		if Debug {
-			log.Println("Debug mode is enabled.")
-		} else {
-			log.Println("Debug mode is disabled.")
+			return errors.New("crawlsiteid is required")
 		}
 
 		manager, ok := cmd.Context().Value(common.CrawlManagerKey).(*crawler.CrawlManager)
@@ -38,7 +26,6 @@ var GetLinksCmd = &cobra.Command{
 			return fmt.Errorf("CrawlManager is not initialized")
 		}
 
-		log.Println("RunE function ending")
 		err := printLinks(cmd.Context(), manager, crawlsiteid)
 		if err != nil {
 			log.Printf("Failed to print links: %v\n", err)
@@ -50,8 +37,6 @@ var GetLinksCmd = &cobra.Command{
 }
 
 func init() {
-	GetLinksCmd.Flags().StringP("crawlsiteid", "s", "", "CrawlSite ID")
-
 	rootCmd.AddCommand(GetLinksCmd)
 }
 
@@ -64,7 +49,6 @@ func printJSON(jsonOutput []byte) error {
 }
 
 func printLinks(ctx context.Context, manager *crawler.CrawlManager, crawlsiteid string) error {
-	log.Println("printLinks function started")
 	links, err := consumer.RetrieveAndUnmarshalLinks(ctx, manager, crawlsiteid)
 	if err != nil {
 		return err
