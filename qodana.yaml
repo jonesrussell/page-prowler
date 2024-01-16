@@ -3,5 +3,3 @@ linter: jetbrains/qodana-go:2023.2
 exclude:
   - name: VgoDependencyDeprecated
   - name: GoBoolExpressions
-    paths:
-      - internal\common\types_test.go

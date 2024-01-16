@@ -60,7 +60,7 @@ func (cs *CrawlManager) crawl(url string, options *CrawlOptions) ([]PageData, er
 }
 
 // setupHTMLParsingHandler sets up the handler for HTML parsing with gocolly, using the provided parameters.
-func (cs *CrawlManager) setupHTMLParsingHandler(options *CrawlOptions, handler func(*colly.HTMLElement)) error {
+func (cs *CrawlManager) setupHTMLParsingHandler(handler func(*colly.HTMLElement)) error {
 	cs.Collector.OnHTML("a[href]", handler)
 	return nil
 }
@@ -114,7 +114,7 @@ func (cs *CrawlManager) setupErrorEventHandler(collector *colly.Collector) {
 
 // setupCrawlingLogic configures and initiates the crawling logic.
 func (cs *CrawlManager) setupCrawlingLogic(options *CrawlOptions) error {
-	err := cs.setupHTMLParsingHandler(options, cs.getAnchorElementHandler(options))
+	err := cs.setupHTMLParsingHandler(cs.getAnchorElementHandler(options))
 	if err != nil {
 		return err
 	}
