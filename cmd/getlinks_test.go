@@ -24,7 +24,10 @@ func TestGetLinksCmd(t *testing.T) {
 
 	// Set the 'crawlsiteid' flag
 	getLinksCmd.Flags().StringP("crawlsiteid", "s", "", "CrawlSite ID")
-	viper.BindPFlag("crawlsiteid", getLinksCmd.Flags().Lookup("crawlsiteid"))
+	err := viper.BindPFlag("crawlsiteid", getLinksCmd.Flags().Lookup("crawlsiteid"))
+	if err != nil {
+		return
+	}
 
 	// Enable viper to read from environment variables
 	viper.AutomaticEnv()
@@ -59,7 +62,10 @@ func TestGetLinksCmd(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set the 'crawlsiteid' environment variable
-			os.Setenv("CRAWLSITEID", tt.env)
+			err := os.Setenv("CRAWLSITEID", tt.env)
+			if err != nil {
+				return
+			}
 
 			// Set the 'crawlsiteid' flag value
 			viper.Set("crawlsiteid", tt.flag)
@@ -79,14 +85,17 @@ func TestGetLinksCmd(t *testing.T) {
 
 			// Execute the command with the 'crawlsiteid' flag and environment variable values
 			getLinksCmd.SetArgs([]string{"--crawlsiteid=" + tt.flag})
-			err := getLinksCmd.Execute()
-
-			// Unset the 'crawlsiteid' environment variable
-			os.Unsetenv("CRAWLSITEID")
+			err = getLinksCmd.Execute()
 
 			// Check for error
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getLinksCmd.Execute() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			// Unset the 'crawlsiteid' environment variable
+			err = os.Unsetenv("CRAWLSITEID")
+			if err != nil {
+				return
 			}
 		})
 	}

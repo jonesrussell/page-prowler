@@ -22,7 +22,7 @@ func TestHandleHTMLParsing(t *testing.T) {
 	options := &CrawlOptions{}
 
 	// Call the function with the mock parameters
-	err := cs.setupHTMLParsingHandler(options, cs.getAnchorElementHandler(options))
+	err := cs.setupHTMLParsingHandler(cs.getAnchorElementHandler(options))
 
 	// Check that no error was returned
 	if err != nil {
@@ -323,7 +323,7 @@ func TestSetupHTMLParsingHandler(t *testing.T) {
 	}
 
 	// Call the function with the mock parameters
-	err := cs.setupHTMLParsingHandler(options, cs.getAnchorElementHandler(options))
+	err := cs.setupHTMLParsingHandler(cs.getAnchorElementHandler(options))
 	if err != nil {
 		t.Errorf("Expected no error, but got %v", err)
 	}

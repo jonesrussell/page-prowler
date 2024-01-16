@@ -4,9 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
-	"os"
-
 	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
@@ -14,6 +11,7 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"log"
 )
 
 var (
@@ -166,25 +164,4 @@ func InitializeManager(
 		return nil, errors.New("mongoDBWrapper cannot be nil")
 	}
 	return crawler.NewCrawlManager(appLogger, redisClient, mongoDBWrapper), nil
-}
-
-// In your cmd package, export a function to initialize the command environment.
-func SetupCommandEnvironment(redisHost, redisPort string) *cobra.Command {
-	// Set the REDIS_HOST and REDIS_PORT environment variables
-	if err := os.Setenv("REDIS_HOST", redisHost); err != nil {
-		log.Fatalf("Failed to set REDIS_HOST: %v", err)
-	}
-	if err := os.Setenv("REDIS_PORT", redisPort); err != nil {
-		log.Fatalf("Failed to set REDIS_PORT: %v", err)
-	}
-
-	log.Printf("REDIS_HOST set to %s", redisHost)
-	log.Printf("REDIS_PORT set to %s", redisPort)
-
-	// Call the PersistentPreRunE function to set up the environment.
-	// This is just an example; you'll need to adapt it to your actual initialization logic.
-	if err := rootCmd.PersistentPreRunE(nil, nil); err != nil {
-		log.Fatal(err)
-	}
-	return rootCmd
 }

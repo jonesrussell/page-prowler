@@ -39,16 +39,15 @@ import (
 func TestStartCrawlingIsCalledWithCorrectArguments(t *testing.T) {
 	mockManager := new(mocks.MockCrawlManager)
 	ctx := context.Background()
-	url := "http://example.com"
+	url := "https://example.com"
 	searchterms := "test"
 	crawlsiteid := "123"
 	maxdepth := 1
-	debug := false
 
-	mockManager.On("StartCrawling", ctx, url, searchterms, crawlsiteid, maxdepth, debug).Return(nil)
+	mockManager.On("StartCrawling", ctx, url, searchterms, crawlsiteid, maxdepth, false).Return(nil)
 
 	// Call the function that uses StartCrawling here
-	err := mockManager.StartCrawling(ctx, url, searchterms, crawlsiteid, maxdepth, debug)
+	err := mockManager.StartCrawling(ctx, url, searchterms, crawlsiteid, maxdepth, false)
 	if err != nil {
 		t.Errorf("error running matchlinks command: %v", err)
 	}
@@ -59,17 +58,16 @@ func TestStartCrawlingIsCalledWithCorrectArguments(t *testing.T) {
 func TestStartCrawlingHandlesErrors(t *testing.T) {
 	mockManager := new(mocks.MockCrawlManager)
 	ctx := context.Background()
-	url := "http://example.com"
+	url := "https://example.com"
 	searchterms := "test"
 	crawlsiteid := "123"
 	maxdepth := 1
-	debug := false
 
 	// Set up the mock to return an error
-	mockManager.On("StartCrawling", ctx, url, searchterms, crawlsiteid, maxdepth, debug).Return(errors.New("mock error"))
+	mockManager.On("StartCrawling", ctx, url, searchterms, crawlsiteid, maxdepth, false).Return(errors.New("mock error"))
 
 	// Call the function that uses StartCrawling here
-	err := mockManager.StartCrawling(ctx, url, searchterms, crawlsiteid, maxdepth, debug)
+	err := mockManager.StartCrawling(ctx, url, searchterms, crawlsiteid, maxdepth, false)
 	if err == nil {
 		t.Errorf("expected error, got nil")
 	}
