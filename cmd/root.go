@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
@@ -17,8 +16,7 @@ import (
 )
 
 var (
-	Crawlsiteid string
-	Debug       bool
+	Debug bool
 )
 
 var ErrCrawlManagerNotInitialized = errors.New("CrawlManager is not initialized")
@@ -32,8 +30,10 @@ var rootCmd = &cobra.Command{
 1. Crawling specific websites and extracting matchlinks that match the provided terms ('matchlinks' command)
 
 	In addition to the command line interface, Page Prowler also provides an HTTP API for interacting with the tool.`,
-	SilenceErrors: true,
+	SilenceErrors: false,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		log.Println("PersistentPreRunE function started")
+
 		// Initialize your dependencies here
 		ctx := context.Background()
 
@@ -42,26 +42,32 @@ var rootCmd = &cobra.Command{
 			log.Println("Error initializing logger:", err)
 			return err
 		}
+		log.Println("Logger initialized successfully")
 
 		redisHost := viper.GetString("REDIS_HOST")
 		redisPort := viper.GetString("REDIS_PORT")
 		redisAuth := viper.GetString("REDIS_AUTH")
 		mongodbUri := viper.GetString("MONGODB_URI")
 
+		log.Println("Checking REDIS_HOST")
 		if redisHost == "" {
 			log.Println("REDIS_HOST is not set but is required")
 			return fmt.Errorf("REDIS_HOST is not set but is required")
 		}
+		log.Println("REDIS_HOST is set")
 
+		log.Println("Checking REDIS_PORT")
 		if redisPort == "" {
 			log.Println("REDIS_PORT is not set but is required")
 			return fmt.Errorf("REDIS_PORT is not set but is required")
 		}
+		log.Println("REDIS_PORT is set")
 
 		if mongodbUri == "" {
 			log.Println("MONGODB_URI is not set but is required")
 			return fmt.Errorf("MONGODB_URI is not set but is required")
 		}
+		log.Println("MONGODB_URI is set")
 
 		cfg := &prowlredis.Options{
 			Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
@@ -71,20 +77,24 @@ var rootCmd = &cobra.Command{
 
 		redisClient, err := prowlredis.NewClient(ctx, cfg)
 		if err != nil {
+			log.Printf("Failed to initialize Redis client: %v", err)
 			return fmt.Errorf("failed to initialize Redis client: %v", err)
 		}
+		log.Println("Redis client initialized successfully")
 
 		mongoDBWrapper, err := mongodbwrapper.NewMongoDB(ctx, mongodbUri)
 		if err != nil {
+			log.Printf("Failed to initialize MongoDB wrapper: %v", err)
 			return fmt.Errorf("failed to initialize MongoDB wrapper: %v", err)
 		}
+		log.Println("MongoDB wrapper initialized successfully")
 
-		// Now you can pass them to the initializeManager function
-		manager, err := initializeManager(redisClient, appLogger, mongoDBWrapper)
+		manager, err := InitializeManager(redisClient, appLogger, mongoDBWrapper)
 		if err != nil {
-			log.Println("Error initializing manager:", err)
+			log.Printf("Error initializing manager: %v", err)
 			return err
 		}
+		log.Println("Manager initialized successfully")
 
 		// Set the manager to the context
 		ctx = context.WithValue(ctx, common.CrawlManagerKey, manager)
@@ -92,6 +102,7 @@ var rootCmd = &cobra.Command{
 		// Set the context of the command
 		cmd.SetContext(ctx)
 
+		log.Println("PersistentPreRunE function finished")
 		return nil
 	},
 }
@@ -101,7 +112,7 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }
 
@@ -115,8 +126,6 @@ func init() {
 	}
 
 	rootCmd.AddCommand(apiCmd)
-	rootCmd.AddCommand(clearlinksCmd)
-	rootCmd.AddCommand(getLinksCmd)
 	rootCmd.AddCommand(matchlinksCmd)
 	rootCmd.AddCommand(workerCmd)
 }
@@ -127,6 +136,11 @@ func initConfig() {
 	viper.AutomaticEnv() // Automatically override values from the .env file with those from the environment.
 
 	_ = viper.ReadInConfig()
+
+	// Bind the 'crawlsiteid' flag to Viper
+	if err := viper.BindPFlag("crawlsiteid", GetLinksCmd.Flags().Lookup("crawlsiteid")); err != nil {
+		log.Fatalf("Error binding crawlsiteid flag: %v", err)
+	}
 }
 
 func initializeLogger(level logger.LogLevel) (logger.Logger, error) {
@@ -137,7 +151,7 @@ func initializeLogger(level logger.LogLevel) (logger.Logger, error) {
 	return initlog, nil
 }
 
-func initializeManager(
+func InitializeManager(
 	redisClient prowlredis.ClientInterface,
 	appLogger logger.Logger,
 	mongoDBWrapper mongodbwrapper.MongoDBInterface,
