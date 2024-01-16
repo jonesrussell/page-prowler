@@ -16,7 +16,8 @@ import (
 )
 
 var (
-	Debug bool
+	Debug       bool
+	crawlsiteid string
 )
 
 var ErrCrawlManagerNotInitialized = errors.New("CrawlManager is not initialized")
@@ -32,8 +33,6 @@ var rootCmd = &cobra.Command{
 	In addition to the command line interface, Page Prowler also provides an HTTP API for interacting with the tool.`,
 	SilenceErrors: false,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		log.Println("PersistentPreRunE function started")
-
 		// Initialize your dependencies here
 		ctx := context.Background()
 
@@ -42,32 +41,26 @@ var rootCmd = &cobra.Command{
 			log.Println("Error initializing logger:", err)
 			return err
 		}
-		log.Println("Logger initialized successfully")
 
 		redisHost := viper.GetString("REDIS_HOST")
 		redisPort := viper.GetString("REDIS_PORT")
 		redisAuth := viper.GetString("REDIS_AUTH")
 		mongodbUri := viper.GetString("MONGODB_URI")
 
-		log.Println("Checking REDIS_HOST")
 		if redisHost == "" {
 			log.Println("REDIS_HOST is not set but is required")
 			return fmt.Errorf("REDIS_HOST is not set but is required")
 		}
-		log.Println("REDIS_HOST is set")
 
-		log.Println("Checking REDIS_PORT")
 		if redisPort == "" {
 			log.Println("REDIS_PORT is not set but is required")
 			return fmt.Errorf("REDIS_PORT is not set but is required")
 		}
-		log.Println("REDIS_PORT is set")
 
 		if mongodbUri == "" {
 			log.Println("MONGODB_URI is not set but is required")
 			return fmt.Errorf("MONGODB_URI is not set but is required")
 		}
-		log.Println("MONGODB_URI is set")
 
 		cfg := &prowlredis.Options{
 			Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
@@ -80,21 +73,18 @@ var rootCmd = &cobra.Command{
 			log.Printf("Failed to initialize Redis client: %v", err)
 			return fmt.Errorf("failed to initialize Redis client: %v", err)
 		}
-		log.Println("Redis client initialized successfully")
 
 		mongoDBWrapper, err := mongodbwrapper.NewMongoDB(ctx, mongodbUri)
 		if err != nil {
 			log.Printf("Failed to initialize MongoDB wrapper: %v", err)
 			return fmt.Errorf("failed to initialize MongoDB wrapper: %v", err)
 		}
-		log.Println("MongoDB wrapper initialized successfully")
 
 		manager, err := InitializeManager(redisClient, appLogger, mongoDBWrapper)
 		if err != nil {
 			log.Printf("Error initializing manager: %v", err)
 			return err
 		}
-		log.Println("Manager initialized successfully")
 
 		// Set the manager to the context
 		ctx = context.WithValue(ctx, common.CrawlManagerKey, manager)
@@ -102,7 +92,6 @@ var rootCmd = &cobra.Command{
 		// Set the context of the command
 		cmd.SetContext(ctx)
 
-		log.Println("PersistentPreRunE function finished")
 		return nil
 	},
 }
@@ -119,10 +108,18 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
+	// Define the crawlsiteid flag as a persistent flag on the rootCmd
+	rootCmd.PersistentFlags().StringVarP(&crawlsiteid, "crawlsiteid", "s", "", "CrawlSite ID")
 	rootCmd.PersistentFlags().BoolVar(&Debug, "debug", false, "Enable debug mode")
 
+	// Bind the debug flag to the viper configuration
 	if err := viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug")); err != nil {
 		log.Fatalf("Error binding debug flag: %v", err)
+	}
+
+	// Bind the crawlsiteid flag to the viper configuration
+	if err := viper.BindPFlag("crawlsiteid", rootCmd.PersistentFlags().Lookup("crawlsiteid")); err != nil {
+		log.Fatalf("Failed to bind crawlsiteid flag: %v", err)
 	}
 
 	rootCmd.AddCommand(apiCmd)
@@ -135,12 +132,12 @@ func initConfig() {
 	viper.SetConfigType("env")
 	viper.AutomaticEnv() // Automatically override values from the .env file with those from the environment.
 
-	_ = viper.ReadInConfig()
-
-	// Bind the 'crawlsiteid' flag to Viper
-	if err := viper.BindPFlag("crawlsiteid", GetLinksCmd.Flags().Lookup("crawlsiteid")); err != nil {
-		log.Fatalf("Error binding crawlsiteid flag: %v", err)
+	if err := viper.ReadInConfig(); err != nil {
+		log.Printf("Error reading config file: %v", err)
 	}
+
+	// Set the default value of the crawlsiteid flag from the viper configuration
+	rootCmd.PersistentFlags().Lookup("crawlsiteid").Value.Set(viper.GetString("CRAWLSITEID"))
 }
 
 func initializeLogger(level logger.LogLevel) (logger.Logger, error) {

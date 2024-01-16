@@ -1,24 +1,24 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
 	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var ClearlinksCmd = &cobra.Command{
 	Use:   "clearlinks",
 	Short: "Clear the Redis set for a given crawlsiteid",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		log.Println("RunE function started")
 
-		crawlsiteid := viper.GetString("crawlsiteid")
+		crawlsiteid, _ := cmd.Flags().GetString("crawlsiteid")
 		if crawlsiteid == "" {
-			return ErrCrawlsiteidRequired
+			return errors.New("crawlsiteid is required")
 		}
 
 		manager, ok := cmd.Context().Value(common.CrawlManagerKey).(*crawler.CrawlManager)
@@ -45,7 +45,5 @@ var ClearlinksCmd = &cobra.Command{
 }
 
 func init() {
-	ClearlinksCmd.Flags().StringP("crawlsiteid", "s", "", "CrawlSite ID")
-
 	rootCmd.AddCommand(ClearlinksCmd)
 }
