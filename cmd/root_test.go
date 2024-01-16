@@ -85,7 +85,7 @@ func TestInitConfigError(t *testing.T) {
 
 func TestInitializeManager_WithNilMongoDBWrapper(t *testing.T) {
 	// Initialize the manager with a mock Redis client and a nil MongoDB wrapper
-	_, err := initializeManager(
+	_, err := InitializeManager(
 		prowlredis.NewMockClient(),
 		mocks.NewMockLogger(),
 		nil,
@@ -97,7 +97,7 @@ func TestInitializeManager_WithNilMongoDBWrapper(t *testing.T) {
 
 func TestInitializeManager_WithNilRedisClient(t *testing.T) {
 	// Initialize the manager with a nil Redis client and a new mock logger
-	_, err := initializeManager(
+	_, err := InitializeManager(
 		nil,
 		mocks.NewMockLogger(),
 		mocks.NewMockMongoDBWrapper(),
@@ -123,7 +123,7 @@ func TestInitializeManager(t *testing.T) {
 	}
 
 	// Initialize the manager with a mock Redis client and a new mock logger
-	manager, err := initializeManager(
+	manager, err := InitializeManager(
 		prowlredis.NewMockClient(),
 		mocks.NewMockLogger(),
 		mocks.NewMockMongoDBWrapper(),

@@ -16,10 +16,6 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/termmatcher"
 )
 
-type CrawlManagerInterface interface {
-	StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool) error
-}
-
 // CrawlManager encapsulates shared dependencies for crawler functions.
 type CrawlManager struct {
 	Logger         logger.Logger

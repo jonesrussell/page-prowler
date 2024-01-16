@@ -10,11 +10,14 @@ import (
 	"github.com/spf13/viper"
 )
 
-var clearlinksCmd = &cobra.Command{
+var ClearlinksCmd = &cobra.Command{
 	Use:   "clearlinks",
 	Short: "Clear the Redis set for a given crawlsiteid",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if Crawlsiteid == "" {
+		log.Println("RunE function started")
+
+		crawlsiteid := viper.GetString("crawlsiteid")
+		if crawlsiteid == "" {
 			return ErrCrawlsiteidRequired
 		}
 
@@ -25,20 +28,24 @@ var clearlinksCmd = &cobra.Command{
 
 		redisClient := manager.Client
 
-		err := redisClient.Del(cmd.Context(), Crawlsiteid)
+		err := redisClient.Del(cmd.Context(), crawlsiteid)
 		if err != nil {
 			return fmt.Errorf("failed to clear Redis set: %v", err)
 		}
 
+		if Debug {
+			manager.Logger.Debug("Debugging enabled. Clearing Redis set...")
+		}
+
 		manager.Logger.Info("Redis set cleared successfully")
 
+		log.Println("RunE function ended")
 		return nil
 	},
 }
 
 func init() {
-	clearlinksCmd.Flags().StringVarP(&Crawlsiteid, "crawlsiteid", "s", "", "CrawlSite ID")
-	if err := viper.BindPFlag("crawlsiteid", clearlinksCmd.Flags().Lookup("crawlsiteid")); err != nil {
-		log.Fatalf("Error binding flag: %v", err)
-	}
+	ClearlinksCmd.Flags().StringP("crawlsiteid", "s", "", "CrawlSite ID")
+
+	rootCmd.AddCommand(ClearlinksCmd)
 }
