@@ -197,7 +197,7 @@ func (cs *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 	cs.Collector = collector
 
 	// Respect robots.txt
-	cs.Collector.AllowURLRevisit = true
+	cs.Collector.AllowURLRevisit = false
 	cs.Collector.IgnoreRobotsTxt = false
 
 	return nil
@@ -242,6 +242,7 @@ func (cs *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, cra
 		"TotalLinks", report["TotalLinks"],
 		"MatchedLinks", report["MatchedLinks"],
 		"NotMatchedLinks", report["NotMatchedLinks"],
+		"TotalPages", report["TotalPages"],
 	)
 
 	err = cs.SaveResultsToRedis(ctx, results, crawlSiteID)

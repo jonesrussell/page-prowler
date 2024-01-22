@@ -7,6 +7,7 @@ type fields struct {
 	TotalLinks      int
 	MatchedLinks    int
 	NotMatchedLinks int
+	TotalPages      int
 	Links           []string
 }
 
@@ -42,12 +43,27 @@ func (s *Stats) IncrementNotMatchedLinks() {
 	s.NotMatchedLinks++
 }
 
-func (s *Stats) Report() map[string]int {
+// IncrementTotalPages increases the TotalPages counter by one.
+func (s *Stats) IncrementTotalPages() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return map[string]int{
+	s.TotalPages++
+}
+
+// GetTotalPages retrieves the total number of pages crawled.
+func (s *Stats) GetTotalPages() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.TotalPages
+}
+
+func (s *Stats) Report() map[string]interface{} {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return map[string]interface{}{
 		"TotalLinks":      s.TotalLinks,
 		"MatchedLinks":    s.MatchedLinks,
 		"NotMatchedLinks": s.NotMatchedLinks,
+		"TotalPages":      s.TotalPages,
 	}
 }
