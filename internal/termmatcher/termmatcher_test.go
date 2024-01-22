@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/adrg/strutil/metrics"
+	"github.com/jonesrussell/page-prowler/cmd/mocks"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap/zapcore"
 )
 
-func TestExtractTitleFromURL(t *testing.T) {
+func TestExtractLastSegmentFromURL(t *testing.T) {
 	tests := []struct {
 		name string
 		url  string
@@ -19,8 +22,8 @@ func TestExtractTitleFromURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := extractTitleFromURL(tt.url); got != tt.want {
-				t.Errorf("extractTitleFromURL() = %v, want %v", got, tt.want)
+			if got := extractLastSegmentFromURL(tt.url); got != tt.want {
+				t.Errorf("extractLastSegmentFromURL() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -77,11 +80,11 @@ func TestStemTitle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := stemTitle(tt.input)
+			got := processAndStem(tt.input)
 			fmt.Println("Expected: ", tt.want)
 			fmt.Println("Actual: ", got)
 			if got != tt.want {
-				t.Errorf("stemTitle() = %v, want %v", got, tt.want)
+				t.Errorf("procesAndStem() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -99,7 +102,7 @@ func TestProcessTitle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := processTitle(tt.title); got != tt.want {
+			if got := processContent(tt.title); got != tt.want {
 				t.Errorf("processTitle() = %v, want %v", got, tt.want)
 			}
 		})
@@ -107,39 +110,323 @@ func TestProcessTitle(t *testing.T) {
 }
 
 func TestGetMatchingTerms(t *testing.T) {
-	// Test with a URL and anchor text that should match the search terms
-	href := "https://example.com/privacy-policy"
-	anchorText := "Privacy Policy"
-	searchTerms := []string{"privacy", "policy"}
-	expected := []string{"privacy", "policy"}
-	assert.Equal(t, expected, GetMatchingTerms(href, anchorText, searchTerms))
+	tests := []struct {
+		name        string
+		href        string
+		anchorText  string
+		searchTerms []string
+		expected    []string
+	}{
+		{
+			name:        "Test with a URL and anchor text that should match the search terms",
+			href:        "https://example.com/privacy-policy",
+			anchorText:  "Privacy Policy",
+			searchTerms: []string{"privacy", "policy"},
+			expected:    []string{"privaci", "polici"},
+		},
+		{
+			name:        "Test with a URL and anchor text that should not match the search terms",
+			href:        "https://example.com/unrelated-term",
+			anchorText:  "Unrelated Term",
+			searchTerms: []string{"privacy", "policy"},
+			expected:    []string{},
+		},
+		{
+			name:        "Test with a URL and anchor text where the anchor text does not contain any of the search terms",
+			href:        "https://example.com/another-term",
+			anchorText:  "Another Term",
+			searchTerms: []string{"privacy", "policy"},
+			expected:    []string{},
+		},
+		{
+			name:        "New test case",
+			href:        "foo",
+			anchorText:  "Hollow out the tree",
+			searchTerms: []string{"hollow"},
+			expected:    []string{"hollow"},
+		},
+		{
+			name:        "Test with a URL and anchor text where the anchor text contains all of the search terms",
+			href:        "https://example.com/all-terms",
+			anchorText:  "All Privacy Policy Terms",
+			searchTerms: []string{"privacy", "policy"},
+			expected:    []string{"privaci", "polici"},
+		},
+		{
+			name:        "Test with an empty searchTerms array",
+			href:        "https://example.com/privacy-policy",
+			anchorText:  "Privacy Policy",
+			searchTerms: []string{},
+			expected:    []string{},
+		},
+		{
+			name:        "Test with a searchTerms array that contains only one term",
+			href:        "https://example.com/privacy-policy",
+			anchorText:  "Privacy Policy",
+			searchTerms: []string{"privacy"},
+			expected:    []string{"privaci"},
+		},
+		{
+			name:        "Test with a searchTerms array that contains duplicate terms",
+			href:        "https://example.com/privacy-policy",
+			anchorText:  "Privacy Policy",
+			searchTerms: []string{"privacy", "privacy"},
+			expected:    []string{"privaci"},
+		},
+		{
+			name:        "Test with a searchTerms array that contains terms that are substrings of other terms",
+			href:        "https://example.com/privacy-policy",
+			anchorText:  "Privacy Policy",
+			searchTerms: []string{"privacy", "policy"},
+			expected:    []string{"privaci", "polici"},
+		},
+		{
+			name:        "Test with a searchTerms array that contains terms that are not present in the href or anchorText",
+			href:        "https://example.com/privacy-policy",
+			anchorText:  "Privacy Policy",
+			searchTerms: []string{"unrelated", "term"},
+			expected:    []string{},
+		},
+		{
+			name:        "Test with empty href and anchorText",
+			href:        "",
+			anchorText:  "",
+			searchTerms: []string{"privacy", "policy"},
+			expected:    []string{},
+		},
+		{
+			name:        "Test with case sensitivity",
+			href:        "https://example.com/Privacy-Policy",
+			anchorText:  "Privacy Policy",
+			searchTerms: []string{"privacy", "policy"},
+			expected:    []string{"privaci", "polici"},
+		},
+		{
+			name:        "Test with a large number of unique search terms",
+			href:        "https://example.com/large-number-of-terms",
+			anchorText:  "Large Number Of Terms",
+			searchTerms: generateLargeNumberOfUniqueSearchTerms(1000), // Generate 1000 unique search terms
+			expected:    []string{},                                   // Expect an empty array, as none of the unique terms should match the href or anchorText
+		},
+	}
 
-	// Test with a URL and anchor text that should not match the search terms
-	href = "https://example.com/unrelated-term"
-	anchorText = "Unrelated Term"
-	assert.NotEqual(t, []string{}, GetMatchingTerms(href, anchorText, searchTerms))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logger := mocks.NewMockLogger() // Create a new mock logger
+			assert.Equal(t, tt.expected, GetMatchingTerms(tt.href, tt.anchorText, tt.searchTerms, logger))
+		})
+	}
+}
 
-	// Test with a URL and anchor text where the anchor text does not contain any of the search terms
-	href = "https://example.com/another-term"
-	// Test with a URL and anchor text where the anchor text does not contain any of the search terms
-	href = "https://example.com/another-term"
-	anchorText = "Another Term"
-	assert.Nil(t, GetMatchingTerms(href, anchorText, searchTerms))
+func TestCompareAndAppendTerm(t *testing.T) {
+	swg := createSWG()
+	logger := mocks.NewMockLogger()
+	matchingTerms := []string{}
 
-	// Test with a URL and anchor text where the anchor text contains all of the search terms
-	href = "https://example.com/all-terms"
-	anchorText = "All Privacy Policy Terms"
-	assert.Equal(t, searchTerms, GetMatchingTerms(href, anchorText, searchTerms))
+	compareAndAppendTerm("test", "test", swg, &matchingTerms, logger)
+
+	if len(matchingTerms) != 1 {
+		t.Errorf("Expected matchingTerms to have 1 element, got %v", len(matchingTerms))
+	}
+
+	if matchingTerms[0] != "test" {
+		t.Errorf("Expected first element of matchingTerms to be 'test', got %v", matchingTerms[0])
+	}
+}
+
+func TestCreateSWG(t *testing.T) {
+	swg := createSWG()
+
+	if swg.CaseSensitive != false {
+		t.Errorf("Expected CaseSensitive to be false, got %v", swg.CaseSensitive)
+	}
+
+	if swg.GapPenalty != -0.1 {
+		t.Errorf("Expected GapPenalty to be -0.1, got %v", swg.GapPenalty)
+	}
+
+	matchMismatch, ok := swg.Substitution.(metrics.MatchMismatch)
+	if !ok {
+		t.Fatalf("Unexpected type for Substitution: %T", swg.Substitution)
+	}
+	if matchMismatch.Match != 1 {
+		t.Errorf("Expected Substitution.Match to be 1, got %v", matchMismatch.Match)
+	}
+
+	if matchMismatch.Mismatch != -0.5 {
+		t.Errorf("Expected Substitution.Mismatch to be -0.5, got %v", matchMismatch.Mismatch)
+	}
 }
 
 func TestFindMatchingTerms(t *testing.T) {
-	// Test with a title that should match the search terms
-	title := "privacy policy"
-	searchTerms := []string{"privacy", "policy"}
-	expected := []string{"privacy", "policy"}
-	assert.Equal(t, expected, findMatchingTerms(title, searchTerms))
+	tests := []struct {
+		name        string
+		content     string
+		searchTerms []string
+		expected    []string
+	}{
+		{
+			name:        "Test with matching terms",
+			content:     "privacy policy",
+			searchTerms: []string{"privacy", "policy"},
+			expected:    []string{"privaci", "polici"},
+		},
+		{
+			name:        "Test with no matching terms",
+			content:     "unrelated term",
+			searchTerms: []string{"privacy", "policy"},
+			expected:    []string{},
+		},
+		{
+			name:        "Test with term appearing in content",
+			content:     "trump win iowa caucus crucial victori outset republican presidenti campaign trump win iowa caucus crucial victori outset republican presidenti campaign",
+			searchTerms: []string{"fight", "prescription", "gang", "drug", "JOINT", "CANNABI", "IMPAIR", "SHOOT", "FIREARM", "MURDER", "COCAIN", "POSSESS"},
+			expected:    []string{},
+		},
+	}
 
-	// Test with a title that should not match the search terms
-	title = "unrelated term"
-	assert.NotEqual(t, []string{}, findMatchingTerms(title, searchTerms))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockLogger := mocks.NewMockLogger()
+			mockLogger.SetLevel(zapcore.DebugLevel) // Set the logger level to Debug
+			fmt.Println("Content: ", tt.content)
+			fmt.Println("Search Terms: ", tt.searchTerms)
+			actual := findMatchingTerms(tt.content, tt.searchTerms, mockLogger)
+			assert.Equal(t, tt.expected, actual)
+
+			// Print the logs with human-readable similarity scores
+			for _, entry := range mockLogger.AllEntries() {
+				fmt.Printf("Message: %s, Fields: %v\n", entry.Message, entry.Context)
+			}
+
+		})
+	}
+}
+
+func TestCombineContents(t *testing.T) {
+	tests := []struct {
+		name     string
+		content1 string
+		content2 string
+		expected string
+	}{
+		{
+			name:     "Test with two strings",
+			content1: "Hello",
+			content2: "World",
+			expected: "Hello World",
+		},
+		{
+			name:     "Test with empty second string",
+			content1: "Hello",
+			content2: "",
+			expected: "Hello",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, combineContents(tt.content1, tt.content2))
+		})
+	}
+}
+
+func TestConvertToLowercase(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"Test with uppercase letters", "HELLO WORLD", "hello world"},
+		{"Test with lowercase letters", "hello world", "hello world"},
+		{"Test with mixed case letters", "HeLlO WoRlD", "hello world"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := convertToLowercase(tt.input); got != tt.want {
+				t.Errorf("convertToLowercase() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStemContent(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		// Update these expected values based on the actual behavior of your stemmer
+		{"Test with multiple words", "running tests", "run test"},
+		{"Test with single word", "test", "test"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := stemContent(tt.input); got != tt.want {
+				t.Errorf("stemContent() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCompareTerms(t *testing.T) {
+	tests := []struct {
+		name       string
+		searchTerm string
+		content    string
+		want       float64
+	}{
+		{"Test with similar terms", "test", "testing", 1},
+		{"Test with dissimilar terms", "apple", "banana", 0.2},
+	}
+
+	swg := metrics.NewSmithWatermanGotoh()
+	swg.CaseSensitive = false
+	swg.GapPenalty = -0.1
+	swg.Substitution = metrics.MatchMismatch{
+		Match:    1,
+		Mismatch: -0.5,
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockLogger := mocks.NewMockLogger()
+			mockLogger.SetLevel(zapcore.DebugLevel) // Set the logger level to Debug
+
+			if got := compareTerms(tt.searchTerm, tt.content, swg, mockLogger); got != tt.want {
+				t.Errorf("compareTerms() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func generateLargeNumberOfUniqueSearchTerms(n int) []string {
+	terms := make([]string, n)
+	for i := 0; i < n; i++ {
+		terms[i] = fmt.Sprintf("term%d", i)
+	}
+	return terms
+}
+
+func Test_combineContents(t *testing.T) {
+	type args struct {
+		content1 string
+		content2 string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := combineContents(tt.args.content1, tt.args.content2); got != tt.want {
+				t.Errorf("combineContents() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

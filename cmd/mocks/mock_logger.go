@@ -12,12 +12,19 @@ type MockLogger struct {
 }
 
 func NewMockLogger() *MockLogger {
+	config := zap.NewDevelopmentConfig()
+	config.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+
 	core, observed := observer.New(zapcore.DebugLevel)
-	logger := zap.New(core).Sugar()
+	sugar := zap.New(core).Sugar()
 	return &MockLogger{
 		observer: observed,
-		Logger:   logger,
+		Logger:   sugar,
 	}
+}
+
+func (m *MockLogger) SetLevel(level zapcore.Level) {
+	m.Logger.Desugar().Core().Enabled(level)
 }
 
 func (m *MockLogger) Info(msg string, keysAndValues ...interface{}) {

@@ -9,11 +9,11 @@ import (
 
 // PageData represents the data of a crawled page.
 type PageData struct {
-	URL           string   `json:"url,omitempty"`            // The URL of the web page
-	Links         []string `json:"links,omitempty"`          // The hyperlinks found on the web page
-	SearchTerms   []string `json:"search_terms,omitempty"`   // The search terms used during the crawl
-	MatchingTerms []string `json:"matching_terms,omitempty"` // The terms that matched the search criteria
-	Error         string   `json:"error,omitempty"`          // Any error encountered during crawling of this page
+	URL           string   `json:"url,omitempty"`
+	ParentURL     string   `json:"parent_url,omitempty"` // New field for the parent URL
+	SearchTerms   []string `json:"search_terms,omitempty"`
+	MatchingTerms []string `json:"matching_terms,omitempty"`
+	Error         string   `json:"error,omitempty"`
 }
 
 func (p *PageData) Validate() error {

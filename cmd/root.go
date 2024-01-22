@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+
 	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
@@ -11,7 +13,6 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"log"
 )
 
 var (
@@ -35,7 +36,16 @@ var rootCmd = &cobra.Command{
 		// Initialize your dependencies here
 		ctx := context.Background()
 
-		appLogger, err := initializeLogger(logger.DefaultLogLevel)
+		var logLevel logger.LogLevel
+		if Debug {
+			logLevel = logger.DebugLevel // Set to debug level if Debug is true
+			log.Println("Debug mode is enabled")
+		} else {
+			logLevel = logger.InfoLevel // Otherwise, use the default log level
+			log.Println("Debug mode is not enabled")
+		}
+
+		appLogger, err := initializeLogger(logLevel)
 		if err != nil {
 			log.Println("Error initializing logger:", err)
 			return err
