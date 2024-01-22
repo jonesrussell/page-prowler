@@ -68,6 +68,11 @@ func (cs *CrawlManager) setupHTMLParsingHandler(handler func(*colly.HTMLElement)
 func (cs *CrawlManager) getAnchorElementHandler(options *CrawlOptions) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
 		href := e.Request.AbsoluteURL(e.Attr("href"))
+		if href == "" {
+			cs.Logger.Debug("Found anchor element with no href attribute")
+			return
+		}
+		cs.Logger.Debug("Processing link", "href", href)
 		anchorText := e.Text
 		options.LinkStatsMu.Lock()
 		options.LinkStats.IncrementTotalLinks()
@@ -76,10 +81,10 @@ func (cs *CrawlManager) getAnchorElementHandler(options *CrawlOptions) func(e *c
 		pageData := PageData{
 			URL: href,
 		}
-		cs.Logger.Debug("Search terms: %v", options.SearchTerms)
-		matchingTerms := termmatcher.GetMatchingTerms(href, anchorText, options.SearchTerms)
+		cs.Logger.Debug("Search terms", "terms", options.SearchTerms)
+		matchingTerms := termmatcher.GetMatchingTerms(href, anchorText, options.SearchTerms, cs.Logger)
 		if len(matchingTerms) > 0 {
-			cs.processMatchingLinkAndUpdateStats(options, href, pageData, matchingTerms)
+			cs.processMatchingLinkAndUpdateStats(options, e.Request.URL.String(), pageData, matchingTerms)
 		} else {
 			cs.incrementNonMatchedLinkCount(options)
 		}
@@ -125,6 +130,7 @@ func (cs *CrawlManager) setupCrawlingLogic(options *CrawlOptions) error {
 }
 
 func (cs *CrawlManager) visitURL(url string) {
+	cs.Logger.Debug("Visiting URL", "url", url)
 	err := cs.visit(url)
 	if err != nil {
 		cs.Logger.Error("Error visiting URL", "url", url, "error", err)
@@ -141,6 +147,11 @@ func (cs *CrawlManager) handleResults(options *CrawlOptions) []PageData {
 }
 
 func (cs *CrawlManager) processMatchingLinkAndUpdateStats(options *CrawlOptions, href string, pageData PageData, matchingTerms []string) {
+	if href == "" {
+		cs.Logger.Error("Missing URL for matching link")
+		return
+	}
+
 	options.LinkStatsMu.Lock()
 	options.LinkStats.IncrementMatchedLinks()
 	options.LinkStatsMu.Unlock()
@@ -149,6 +160,7 @@ func (cs *CrawlManager) processMatchingLinkAndUpdateStats(options *CrawlOptions,
 		cs.Logger.Error("Error handling matching links", "error", err)
 	}
 	pageData.MatchingTerms = matchingTerms
+	pageData.ParentURL = href // Store the parent URL
 	options.LinkStatsMu.Lock()
 	*options.Results = append(*options.Results, pageData)
 	options.LinkStatsMu.Unlock()
@@ -225,9 +237,11 @@ func (cs *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, cra
 
 	// Call the Report method after the crawling process is complete
 	report := options.LinkStats.Report()
-	cs.Logger.Info("Total Links:", report["TotalLinks"])
-	cs.Logger.Info("Matched Links:", report["MatchedLinks"])
-	cs.Logger.Info("Not Matched Links:", report["NotMatchedLinks"])
+	cs.Logger.Info("Crawling statistics",
+		"TotalLinks", report["TotalLinks"],
+		"MatchedLinks", report["MatchedLinks"],
+		"NotMatchedLinks", report["NotMatchedLinks"],
+	)
 
 	err = cs.SaveResultsToRedis(ctx, results, crawlSiteID)
 	if err != nil {

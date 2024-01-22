@@ -26,10 +26,15 @@ type ZapLoggerWrapper struct {
 type LogLevel int
 
 const (
-	Info LogLevel = iota
+	// DebugLevel logs are typically voluminous, and are usually disabled in
+	// production.
+	DebugLevel LogLevel = iota
+	// InfoLevel is the default logging priority.
+	InfoLevel
+	// ... other log levels if needed
 )
 
-const DefaultLogLevel = Info
+const DefaultLogLevel = InfoLevel
 
 func (z *ZapLoggerWrapper) Info(msg string, keysAndValues ...interface{}) {
 	z.Logger.Infow(msg, keysAndValues...)
@@ -65,13 +70,24 @@ func (z *ZapLoggerWrapper) Errorf(format string, args ...interface{}) {
 
 // New returns a new Logger instance.
 func New(level LogLevel) (*ZapLoggerWrapper, error) {
-	var logger *zap.Logger
-	var err error
+	fmt.Printf("Initializing logger with level: %v\n", level)
+
+	var zapLevel zapcore.Level
+	switch level {
+	case DebugLevel:
+		zapLevel = zapcore.DebugLevel
+	case InfoLevel:
+		zapLevel = zapcore.InfoLevel
+	// ... handle other levels if necessary
+	default:
+		zapLevel = zapcore.InfoLevel
+	}
 
 	encoderConfig := zap.NewProductionEncoderConfig()
-
 	atomicLevel := zap.NewAtomicLevel()
-	atomicLevel.SetLevel(zapcore.Level(level))
+	atomicLevel.SetLevel(zapLevel) // Set the atomic level using the explicit zapcore.Level
+
+	fmt.Printf("Atomic level set to: %v\n", atomicLevel)
 
 	config := zap.Config{
 		Level:            atomicLevel,
@@ -81,11 +97,11 @@ func New(level LogLevel) (*ZapLoggerWrapper, error) {
 		OutputPaths:      []string{"stderr"},
 		ErrorOutputPaths: []string{"stderr"},
 	}
-	logger, err = config.Build()
 
+	logger, err := config.Build()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build logger: %v", err)
 	}
 
-	return &ZapLoggerWrapper{logger.Sugar()}, nil
+	return &ZapLoggerWrapper{Logger: logger.Sugar()}, nil
 }
