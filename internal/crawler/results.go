@@ -10,7 +10,7 @@ import (
 // PageData represents the data of a crawled page.
 type PageData struct {
 	URL           string   `json:"url,omitempty"`
-	ParentURL     string   `json:"parent_url,omitempty"` // New field for the parent URL
+	ParentURL     string   `json:"parent_url,omitempty"`
 	SearchTerms   []string `json:"search_terms,omitempty"`
 	MatchingTerms []string `json:"matching_terms,omitempty"`
 	Error         string   `json:"error,omitempty"`
