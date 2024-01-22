@@ -7,7 +7,7 @@ import (
 func TestMarshalBinary(t *testing.T) {
 	p := PageData{
 		URL:           "https://example.com",
-		Links:         []string{"https://example.com/link1", "https://example.com/link2"},
+		ParentURL:     "https://parent.example.com",
 		SearchTerms:   []string{"test", "search"},
 		MatchingTerms: []string{"test", "match"},
 		Error:         "",
