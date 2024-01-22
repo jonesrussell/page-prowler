@@ -58,8 +58,6 @@ func processContent(content string) string {
 
 // GetMatchingTerms checks if the URL title matches any of the provided search terms and returns the matching terms.
 func GetMatchingTerms(href string, anchorText string, searchTerms []string, logger logger.Logger) []string {
-	logger.Debug("GetMatchingTerms called", "href", href, "anchorText", anchorText, "searchTerms", searchTerms)
-
 	content := extractLastSegmentFromURL(href)
 	processedContent := processContent(content)
 	logger.Debug("Processed content from URL", "processedContent", processedContent)

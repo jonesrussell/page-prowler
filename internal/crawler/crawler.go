@@ -78,6 +78,7 @@ func (cs *CrawlManager) getAnchorElementHandler(options *CrawlOptions) func(e *c
 		options.LinkStats.IncrementTotalLinks()
 		options.LinkStatsMu.Unlock()
 		cs.Logger.Debug("Incremented total links count")
+		cs.Logger.Debug("Current URL being crawled", "url", e.Request.URL.String()) // Log the current URL
 		pageData := PageData{
 			URL: href,
 		}
@@ -196,7 +197,7 @@ func (cs *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 	cs.Collector = collector
 
 	// Respect robots.txt
-	cs.Collector.AllowURLRevisit = false
+	cs.Collector.AllowURLRevisit = true
 	cs.Collector.IgnoreRobotsTxt = false
 
 	return nil
