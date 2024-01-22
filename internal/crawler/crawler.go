@@ -223,12 +223,18 @@ func (cs *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, cra
 		return err
 	}
 
+	// Call the Report method after the crawling process is complete
+	report := options.LinkStats.Report()
+	cs.Logger.Info("Total Links:", report["TotalLinks"])
+	cs.Logger.Info("Matched Links:", report["MatchedLinks"])
+	cs.Logger.Info("Not Matched Links:", report["NotMatchedLinks"])
+
 	err = cs.SaveResultsToRedis(ctx, results, crawlSiteID)
 	if err != nil {
 		return err
 	}
 
-	printResults(cs, results)
+	logResults(cs, results)
 
 	return nil
 }

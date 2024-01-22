@@ -43,8 +43,8 @@ func (p *PageData) UnmarshalBinary(data []byte) error {
 	return p.Validate()
 }
 
-// printResults prints the results of the crawl.
-func printResults(crawlerService *CrawlManager, results []PageData) {
+// logResults prints the results of the crawl.
+func logResults(crawlerService *CrawlManager, results []PageData) {
 	if len(results) == 0 {
 		crawlerService.Logger.Info("No results to print")
 		return
