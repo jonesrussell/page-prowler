@@ -2,8 +2,6 @@ package crawler
 
 import (
 	"testing"
-
-	"github.com/jonesrussell/page-prowler/internal/stats"
 )
 
 func TestNewCrawlOptions(t *testing.T) {
@@ -11,9 +9,8 @@ func TestNewCrawlOptions(t *testing.T) {
 	searchTerms := []string{"term1", "term2"}
 	debug := true
 	var results []PageData
-	linkStats := &stats.Stats{}
 
-	co := NewCrawlOptions(crawlSiteID, searchTerms, debug, &results, linkStats)
+	co := NewCrawlOptions(crawlSiteID, searchTerms, debug, &results)
 
 	if co.CrawlSiteID != crawlSiteID {
 		t.Errorf("Expected CrawlSiteID to be %v, got %v", crawlSiteID, co.CrawlSiteID)
@@ -31,9 +28,5 @@ func TestNewCrawlOptions(t *testing.T) {
 
 	if co.Debug != debug {
 		t.Errorf("Expected Debug to be %v, got %v", debug, co.Debug)
-	}
-
-	if co.LinkStats != linkStats {
-		t.Errorf("Expected LinkStats to be %v, got %v", linkStats, co.LinkStats)
 	}
 }

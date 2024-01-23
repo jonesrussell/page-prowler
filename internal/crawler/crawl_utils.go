@@ -1,10 +1,12 @@
 package crawler
 
 import (
+	"errors"
+	"net/url"
 	"strings"
 
 	"github.com/gocolly/colly"
-	"github.com/jonesrussell/page-prowler/internal/stats"
+	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/termmatcher"
 )
 
@@ -18,7 +20,7 @@ func (cs *CrawlManager) getAnchorElementHandler(options *CrawlOptions) func(e *c
 		cs.processLink(e, href, options)
 		err := cs.visitWithColly(href)
 		if err != nil {
-			cs.Debug("[getAnchorElementHandler] Error visiting URL", "url", href, "error", err)
+			cs.LoggerField.Debug("[getAnchorElementHandler] Error visiting URL", "url", href, "error", err)
 		}
 	}
 }
@@ -26,20 +28,20 @@ func (cs *CrawlManager) getAnchorElementHandler(options *CrawlOptions) func(e *c
 func (cs *CrawlManager) getHref(e *colly.HTMLElement) string {
 	href := e.Request.AbsoluteURL(e.Attr("href"))
 	if href == "" {
-		cs.Debug("Found anchor element with no href attribute")
+		cs.LoggerField.Debug("Found anchor element with no href attribute")
 	} else {
-		cs.Debug("Processing link", "href", href)
+		cs.LoggerField.Debug("Processing link", "href", href)
 	}
 	return href
 }
 
 func (cs *CrawlManager) incrementTotalLinks(options *CrawlOptions) {
 	cs.StatsManager.LinkStats.IncrementTotalLinks()
-	cs.Debug("Incremented total links count")
+	cs.LoggerField.Debug("Incremented total links count")
 }
 
 func (cs *CrawlManager) logCurrentURL(e *colly.HTMLElement) {
-	cs.Debug("Current URL being crawled", "url", e.Request.URL.String())
+	cs.LoggerField.Debug("Current URL being crawled", "url", e.Request.URL.String())
 }
 
 func (cs *CrawlManager) createPageData(href string) PageData {
@@ -49,7 +51,7 @@ func (cs *CrawlManager) createPageData(href string) PageData {
 }
 
 func (cs *CrawlManager) logSearchTerms(options *CrawlOptions) {
-	cs.Debug("Search terms", "terms", options.SearchTerms)
+	cs.LoggerField.Debug("Search terms", "terms", options.SearchTerms)
 }
 
 func (cs *CrawlManager) getMatchingTerms(href string, anchorText string, options *CrawlOptions) []string {
@@ -61,7 +63,7 @@ func (cs *CrawlManager) handleMatchingTerms(options *CrawlOptions, currentURL st
 		cs.ProcessMatchingLinkAndUpdateStats(options, currentURL, pageData, matchingTerms)
 	} else {
 		cs.incrementNonMatchedLinkCount(options)
-		cs.Debug("Link does not match search terms", "link", pageData.URL)
+		cs.LoggerField.Debug("Link does not match search terms", "link", pageData.URL)
 	}
 }
 
@@ -74,58 +76,36 @@ func (cs *CrawlManager) processLink(e *colly.HTMLElement, href string, options *
 	cs.handleMatchingTerms(options, e.Request.URL.String(), pageData, matchingTerms)
 }
 
-// handleMatchingLinks is responsible for handling the links that match the search criteria during crawling.
-func (cs *CrawlManager) handleMatchingLinks(href string) error {
-	cs.Debug("[handleMatchingLinks] Start handling matching links", "url", href)
-
-	cs.Debug("End handling matching links", "url", href)
-	return nil
-}
-
 func (cs *CrawlManager) handleSetupError(err error) error {
-	cs.Error("Error setting up crawling logic", "error", err)
+	cs.LoggerField.Error("Error setting up crawling logic", "error", err)
 	return err
 }
 
 func (cs *CrawlManager) ProcessMatchingLinkAndUpdateStats(options *CrawlOptions, href string, pageData PageData, matchingTerms []string) {
 	if cs == nil {
-		cs.Error("CrawlManager instance is nil")
+		cs.LoggerField.Error("CrawlManager instance is nil")
 		return
 	}
 
 	if href == "" {
-		cs.Error("Missing URL for matching link")
+		cs.LoggerField.Error("Missing URL for matching link")
 		return
 	}
 
+	cs.incrementMatchedLinks()
+	cs.LoggerField.Debug("Incremented matched links count")
+
+	pageData.UpdatePageData(href, matchingTerms)
+	cs.AppendResult(options, pageData)
+}
+
+func (cs *CrawlManager) incrementMatchedLinks() {
 	cs.StatsManager.LinkStats.IncrementMatchedLinks()
-	cs.Debug("Incremented matched links count")
-
-	if err := cs.MatchedLinkProcessor.HandleMatchingLinks(href); err != nil {
-		cs.Error("[ProcessMatchingLinkAndUpdateStats] Error handling matching links", "error", err)
-		return
-	}
-
-	cs.MatchedLinkProcessor.UpdatePageData(&pageData, href, matchingTerms)
-	cs.MatchedLinkProcessor.AppendResult(options, pageData)
-}
-
-func (cs *CrawlManager) incrementMatchedLinks(options *CrawlOptions, linkStats *stats.Stats) {
-	linkStats.IncrementMatchedLinks()
-}
-
-func (cs *CrawlManager) updatePageData(pageData *PageData, href string, matchingTerms []string) {
-	pageData.MatchingTerms = matchingTerms
-	pageData.ParentURL = href // Store the parent URL
-}
-
-func (cs *CrawlManager) appendResult(options *CrawlOptions, pageData PageData) {
-	*options.Results = append(*options.Results, pageData)
 }
 
 func (cs *CrawlManager) incrementNonMatchedLinkCount(options *CrawlOptions) {
 	cs.StatsManager.LinkStats.IncrementNotMatchedLinks()
-	cs.Debug("Incremented not matched links count")
+	cs.LoggerField.Debug("Incremented not matched links count")
 }
 
 func (cs *CrawlManager) createLimitRule() *colly.LimitRule {
@@ -149,5 +129,22 @@ func (cs *CrawlManager) splitSearchTerms(searchTerms string) []string {
 
 func (cs *CrawlManager) createStartCrawlingOptions(crawlSiteID string, searchTerms []string, debug bool) *CrawlOptions {
 	var results []PageData
-	return NewCrawlOptions(crawlSiteID, searchTerms, debug, &results, stats.NewStats())
+	return NewCrawlOptions(crawlSiteID, searchTerms, debug, &results)
+}
+
+// GetHostFromURL extracts the host from the given URL.
+func GetHostFromURL(inputURL string, appLogger logger.Logger) (string, error) {
+	parsedURL, err := url.Parse(inputURL)
+	if err != nil {
+		appLogger.Error("Failed to parse URL", "url", inputURL, "error", err)
+		return "", err
+	}
+
+	host := parsedURL.Hostname()
+	if host == "" {
+		appLogger.Errorf("failed to extract host from URL")
+		return "", errors.New("failed to extract host from URL")
+	}
+
+	return host, nil
 }

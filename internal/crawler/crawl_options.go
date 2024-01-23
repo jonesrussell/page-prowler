@@ -1,8 +1,6 @@
 package crawler
 
-import "github.com/jonesrussell/page-prowler/internal/stats"
-
-func NewCrawlOptions(crawlSiteID string, searchTerms []string, debug bool, results *[]PageData, linkStats *stats.Stats) *CrawlOptions {
+func NewCrawlOptions(crawlSiteID string, searchTerms []string, debug bool, results *[]PageData) *CrawlOptions {
 	return &CrawlOptions{
 		CrawlSiteID: crawlSiteID,
 		SearchTerms: searchTerms,

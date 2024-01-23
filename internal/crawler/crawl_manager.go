@@ -1,7 +1,6 @@
 package crawler
 
 import (
-	"context"
 	"errors"
 	"sync"
 
@@ -12,21 +11,26 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/stats"
 )
 
+type CrawlManager struct {
+	LoggerField    logger.Logger
+	Client         prowlredis.ClientInterface
+	MongoDBWrapper mongodbwrapper.MongoDBInterface
+	Collector      *colly.Collector
+	CrawlingMu     *sync.Mutex
+	StatsManager   *StatsManager
+}
+
 // NewCrawlManager creates a new instance of CrawlManager.
 func NewCrawlManager(
-	logger logger.Logger,
+	loggerField logger.Logger,
 	client prowlredis.ClientInterface,
 	mongoDBWrapper mongodbwrapper.MongoDBInterface,
 ) *CrawlManager {
-	cm := &CrawlManager{
-		LoggerField:    logger,
+	return &CrawlManager{
+		LoggerField:    loggerField,
 		Client:         client,
 		MongoDBWrapper: mongoDBWrapper,
-		Collector:      colly.NewCollector(),
-		VisitedPages:   make(map[string]bool),
 	}
-	cm.MatchedLinkProcessor = &ConcreteMatchedLinkProcessor{CrawlManager: cm}
-	return cm
 }
 
 type StatsManager struct {
@@ -34,47 +38,12 @@ type StatsManager struct {
 	LinkStatsMu sync.RWMutex
 }
 
-func (cs *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool) error {
-	// Initialize LinkStats...
-	cs.StatsManager = &StatsManager{
+// NewStatsManager creates a new StatsManager with initialized fields.
+func NewStatsManager() *StatsManager {
+	return &StatsManager{
 		LinkStats:   &stats.Stats{},
 		LinkStatsMu: sync.RWMutex{},
 	}
-	cs.CrawlingMu.Lock()
-	defer cs.CrawlingMu.Unlock()
-
-	host, err := GetHostFromURL(url, cs.Logger())
-	if err != nil {
-		cs.Error("Failed to parse URL", "url", url, "error", err)
-		return err
-	}
-
-	cs.Debug("Extracted host from URL", "host", host)
-
-	err = cs.ConfigureCollector([]string{host}, maxDepth)
-	if err != nil {
-		cs.Logger().Fatal("Failed to configure collector", "error", err)
-		return err
-	}
-
-	splitSearchTerms := cs.splitSearchTerms(searchTerms)
-	options := cs.createStartCrawlingOptions(crawlSiteID, splitSearchTerms, debug)
-
-	results, err := cs.Crawl(url, options)
-	if err != nil {
-		return err
-	}
-
-	cs.logCrawlingStatistics(options)
-
-	err = cs.SaveResultsToRedis(ctx, results, crawlSiteID)
-	if err != nil {
-		return err
-	}
-
-	logResults(cs, results)
-
-	return nil
 }
 
 func (cs *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int) error {
@@ -83,7 +52,7 @@ func (cs *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 		colly.MaxDepth(maxDepth),
 	)
 
-	cs.Debug("Allowed Domains", "domains", allowedDomains)
+	cs.LoggerField.Debug("Allowed Domains", "domains", allowedDomains)
 	cs.Collector.AllowedDomains = allowedDomains
 
 	limitRule := cs.createLimitRule()
@@ -118,21 +87,21 @@ func (cs *CrawlManager) logCrawlingStatistics(options *CrawlOptions) {
 }
 
 func (cs *CrawlManager) visitWithColly(url string) error {
-	cs.Debug("[visitWithColly] Visiting URL with Colly", "url", url)
+	cs.LoggerField.Debug("[visitWithColly] Visiting URL with Colly", "url", url)
 
 	err := cs.Collector.Visit(url)
 	if err != nil {
 		switch {
 		case errors.Is(err, colly.ErrAlreadyVisited):
-			cs.Debug("[visitWithColly] URL already visited", "url", url)
+			cs.LoggerField.Debug("[visitWithColly] URL already visited", "url", url)
 		case errors.Is(err, colly.ErrForbiddenDomain):
-			cs.Debug("[visitWithColly] Forbidden domain - Skipping visit", "url", url)
+			cs.LoggerField.Debug("[visitWithColly] Forbidden domain - Skipping visit", "url", url)
 		default:
-			cs.Debug("[visitWithColly] Error visiting URL", "url", url, "error", err)
+			cs.LoggerField.Debug("[visitWithColly] Error visiting URL", "url", url, "error", err)
 		}
 		return nil
 	}
 
-	cs.Debug("[visitWithColly] Successfully visited URL with Colly", "url", url)
+	cs.LoggerField.Debug("[visitWithColly] Successfully visited URL with Colly", "url", url)
 	return nil
 }
