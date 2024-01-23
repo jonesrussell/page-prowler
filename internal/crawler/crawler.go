@@ -3,7 +3,7 @@ package crawler
 import (
 	"context"
 	"errors"
-	"strings"
+	"fmt"
 	"sync"
 	"time"
 
@@ -13,17 +13,62 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
 	"github.com/jonesrussell/page-prowler/internal/stats"
-	"github.com/jonesrussell/page-prowler/internal/termmatcher"
 )
+
+const (
+	DefaultParallelism = 2
+	DefaultDelay       = 3000 * time.Millisecond
+)
+
+var ErrVisit = errors.New("error visiting URL")
+
+//go:generate mockery --name=CrawlManagerInterface
+type CrawlManagerInterface interface {
+	Crawl(url string, options *CrawlOptions) ([]PageData, error)
+	SetupHTMLParsingHandler(handler func(*colly.HTMLElement)) error
+	SetupErrorEventHandler(collector *colly.Collector)
+	SetupCrawlingLogic(options *CrawlOptions) error
+	CrawlURL(url string, options *CrawlOptions) error
+	HandleVisitError(url string, err error) error
+	LogError(message string, keysAndValues ...interface{})
+	Logger() logger.Logger
+	StartCrawling(ctx context.Context, url string, searchterms string, crawlsiteid string, maxdepth int, debug bool) error
+	GetMatchedLinkProcessor() MatchedLinkProcessor
+	ProcessMatchingLinkAndUpdateStats(options *CrawlOptions, href string, pageData PageData, matchingTerms []string)
+}
 
 // CrawlManager encapsulates shared dependencies for crawler functions.
 type CrawlManager struct {
-	Logger         logger.Logger
-	Client         prowlredis.ClientInterface
-	MongoDBWrapper mongodbwrapper.MongoDBInterface
-	Collector      *colly.Collector
-	CrawlingMu     sync.Mutex
+	LoggerField          logger.Logger
+	Client               prowlredis.ClientInterface
+	MongoDBWrapper       mongodbwrapper.MongoDBInterface
+	Collector            *colly.Collector
+	CrawlingMu           sync.Mutex
+	VisitedPages         map[string]bool
+	MatchedLinkProcessor MatchedLinkProcessor
 }
+
+func (cm *CrawlManager) Debug(msg string, keysAndValues ...interface{}) {
+	cm.LoggerField.Debug(msg, keysAndValues...)
+}
+
+func (cm *CrawlManager) Info(msg string, keysAndValues ...interface{}) {
+	cm.LoggerField.Info(msg, keysAndValues...)
+}
+
+func (cm *CrawlManager) Error(msg string, keysAndValues ...interface{}) {
+	cm.LoggerField.Error(msg, keysAndValues...)
+}
+
+func (cm *CrawlManager) Errorf(msg string, keysAndValues ...interface{}) {
+	cm.LoggerField.Errorf(msg, keysAndValues...)
+}
+
+func (cm *CrawlManager) Fatal(msg string, keysAndValues ...interface{}) {
+	cm.LoggerField.Fatal(msg, keysAndValues...)
+}
+
+var _ CrawlManagerInterface = &CrawlManager{}
 
 // CrawlOptions represents the options for configuring and initiating the crawling logic.
 type CrawlOptions struct {
@@ -35,236 +80,87 @@ type CrawlOptions struct {
 	Debug       bool
 }
 
-// NewCrawlManager creates a new instance of CrawlManager.
-func NewCrawlManager(
-	logger logger.Logger,
-	client prowlredis.ClientInterface,
-	mongoDBWrapper mongodbwrapper.MongoDBInterface,
-) *CrawlManager {
-	return &CrawlManager{
-		Logger:         logger,
-		Client:         client,
-		MongoDBWrapper: mongoDBWrapper,
-	}
+func (cm *CrawlManager) Logger() logger.Logger {
+	return cm.LoggerField
 }
 
-func (cs *CrawlManager) crawl(url string, options *CrawlOptions) ([]PageData, error) {
-	err := cs.setupCrawlingLogic(options)
+func (cm *CrawlManager) GetMatchedLinkProcessor() MatchedLinkProcessor {
+	return cm.MatchedLinkProcessor
+}
+
+// crawl starts the crawling process for a given URL with the provided options.
+func (cs *CrawlManager) Crawl(url string, options *CrawlOptions) ([]PageData, error) {
+	err := cs.SetupCrawlingLogic(options)
 	if err != nil {
 		return nil, err
 	}
 
-	cs.visitURL(url)
+	err = cs.CrawlURL(url, options)
+	if err != nil {
+		return nil, err
+	}
 
-	return cs.handleResults(options), nil
+	return *options.Results, nil
 }
 
-// setupHTMLParsingHandler sets up the handler for HTML parsing with gocolly, using the provided parameters.
-func (cs *CrawlManager) setupHTMLParsingHandler(handler func(*colly.HTMLElement)) error {
+// SetupHTMLParsingHandler sets up the handler for HTML parsing with gocolly, using the provided parameters.
+func (cs *CrawlManager) SetupHTMLParsingHandler(handler func(*colly.HTMLElement)) error {
 	cs.Collector.OnHTML("a[href]", handler)
 	return nil
 }
 
-func (cs *CrawlManager) getAnchorElementHandler(options *CrawlOptions) func(e *colly.HTMLElement) {
-	return func(e *colly.HTMLElement) {
-		href := e.Request.AbsoluteURL(e.Attr("href"))
-		if href == "" {
-			cs.Logger.Debug("Found anchor element with no href attribute")
-			return
-		}
-		cs.Logger.Debug("Processing link", "href", href)
-		anchorText := e.Text
-		options.LinkStatsMu.Lock()
-		options.LinkStats.IncrementTotalLinks()
-		options.LinkStatsMu.Unlock()
-		cs.Logger.Debug("Incremented total links count")
-		cs.Logger.Debug("Current URL being crawled", "url", e.Request.URL.String()) // Log the current URL
-		pageData := PageData{
-			URL: href,
-		}
-		cs.Logger.Debug("Search terms", "terms", options.SearchTerms)
-		matchingTerms := termmatcher.GetMatchingTerms(href, anchorText, options.SearchTerms, cs.Logger)
-		if len(matchingTerms) > 0 {
-			cs.processMatchingLinkAndUpdateStats(options, e.Request.URL.String(), pageData, matchingTerms)
-		} else {
-			cs.incrementNonMatchedLinkCount(options)
-		}
-	}
-}
-
-// handleMatchingLinks is responsible for handling the links that match the search criteria during crawling.
-func (cs *CrawlManager) handleMatchingLinks(href string) error {
-	cs.Logger.Debug("Start handling matching links", "url", href)
-
-	err := cs.visit(href)
-	if err != nil {
-		cs.Logger.Error("Error visiting URL", "url", href, "error", err)
-		return err
-	}
-
-	cs.Logger.Debug("End handling matching links", "url", href)
-	return nil
-}
-
-// setupErrorEventHandler sets up the error handling for the colly collector.
-func (cs *CrawlManager) setupErrorEventHandler(collector *colly.Collector) {
+// SetupErrorEventHandler sets up the HTTP request error handling for the colly collector.
+func (cs *CrawlManager) SetupErrorEventHandler(collector *colly.Collector) {
 	collector.OnError(func(r *colly.Response, err error) {
 		statusCode := r.StatusCode
 		requestURL := r.Request.URL.String()
 
-		if statusCode != 404 {
-			cs.Logger.Error("Request URL failed request_url=", requestURL, "status_code=", statusCode, "error=", err)
+		if statusCode == 500 {
+			// Handle 500 Internal Server Error without printing the stack trace
+			cs.Debug("[SetupErrorEventHandler] Internal Server Error",
+				"request_url", requestURL,
+				"status_code", fmt.Sprintf("%d", statusCode))
+		} else if statusCode != 404 {
+			// Handle other errors normally
+			cs.Debug("[SetupErrorEventHandler] Request URL failed",
+				"request_url", requestURL,
+				"status_code", fmt.Sprintf("%d", statusCode))
 		}
 	})
 }
 
-// setupCrawlingLogic configures and initiates the crawling logic.
-func (cs *CrawlManager) setupCrawlingLogic(options *CrawlOptions) error {
-	err := cs.setupHTMLParsingHandler(cs.getAnchorElementHandler(options))
+// SetupCrawlingLogic configures and initiates the crawling logic.
+func (cs *CrawlManager) SetupCrawlingLogic(options *CrawlOptions) error {
+	err := cs.SetupHTMLParsingHandler(cs.getAnchorElementHandler(options))
 	if err != nil {
-		return err
+		return cs.handleSetupError(err)
 	}
 
-	cs.setupErrorEventHandler(cs.Collector)
+	cs.SetupErrorEventHandler(cs.Collector)
 
 	return nil
 }
 
-func (cs *CrawlManager) visitURL(url string) {
-	cs.Logger.Debug("Visiting URL", "url", url)
-	err := cs.visit(url)
+// CrawlURL visits the given URL and performs the crawling operation.
+func (cs *CrawlManager) CrawlURL(url string, options *CrawlOptions) error {
+	cs.Logger().Debug("Visiting URL", "url", url)
+	err := cs.visitWithColly(url)
 	if err != nil {
-		cs.Logger.Error("Error visiting URL", "url", url, "error", err)
+		return cs.HandleVisitError(url, err)
 	}
-
+	cs.trackVisitedPage(url, options)
 	cs.Collector.Wait()
-	cs.Logger.Info("Crawling completed.")
-}
-
-func (cs *CrawlManager) handleResults(options *CrawlOptions) []PageData {
-	results := *options.Results
-
-	return results
-}
-
-func (cs *CrawlManager) processMatchingLinkAndUpdateStats(options *CrawlOptions, href string, pageData PageData, matchingTerms []string) {
-	if href == "" {
-		cs.Logger.Error("Missing URL for matching link")
-		return
-	}
-
-	options.LinkStatsMu.Lock()
-	options.LinkStats.IncrementMatchedLinks()
-	options.LinkStatsMu.Unlock()
-	cs.Logger.Debug("Incremented matched links count")
-	if err := cs.handleMatchingLinks(href); err != nil {
-		cs.Logger.Error("Error handling matching links", "error", err)
-	}
-	pageData.MatchingTerms = matchingTerms
-	pageData.ParentURL = href // Store the parent URL
-	options.LinkStatsMu.Lock()
-	*options.Results = append(*options.Results, pageData)
-	options.LinkStatsMu.Unlock()
-}
-
-func (cs *CrawlManager) incrementNonMatchedLinkCount(options *CrawlOptions) {
-	options.LinkStatsMu.Lock()
-	options.LinkStats.IncrementNotMatchedLinks()
-	options.LinkStatsMu.Unlock()
-	cs.Logger.Debug("Incremented not matched links count")
-}
-
-// ConfigureCollector initializes a new gocolly collector with the specified domains and depth.
-func (cs *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int) error {
-	collector := colly.NewCollector(
-		colly.Async(false),
-		colly.MaxDepth(maxDepth),
-	)
-
-	collector.AllowedDomains = allowedDomains
-
-	limitRule := &colly.LimitRule{
-		DomainGlob:  "*",
-		Parallelism: 2,
-		Delay:       3000 * time.Millisecond,
-	}
-
-	if err := collector.Limit(limitRule); err != nil {
-		cs.Logger.Errorf("Failed to set limit rule: %v", err)
-		return err
-	}
-
-	cs.Collector = collector
-
-	// Respect robots.txt
-	cs.Collector.AllowURLRevisit = false
-	cs.Collector.IgnoreRobotsTxt = false
-
+	cs.Logger().Info("Crawling completed.")
 	return nil
 }
 
-// StartCrawling starts the crawling process.
-func (cs *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool) error {
-	cs.CrawlingMu.Lock()
-	defer cs.CrawlingMu.Unlock()
-
-	splitSearchTerms := strings.Split(searchTerms, ",")
-	host, err := GetHostFromURL(url, cs.Logger)
-	if err != nil {
-		cs.Logger.Error("Failed to parse URL", "url", url, "error", err)
-		return err
-	}
-
-	err = cs.ConfigureCollector([]string{host}, maxDepth)
-	if err != nil {
-		cs.Logger.Fatal("Failed to configure collector", "error", err)
-		return err
-	}
-
-	var results []PageData
-
-	options := CrawlOptions{
-		CrawlSiteID: crawlSiteID,
-		SearchTerms: splitSearchTerms,
-		Results:     &results,
-		LinkStats:   stats.NewStats(),
-		Debug:       debug,
-	}
-
-	results, err = cs.crawl(url, &options)
-	if err != nil {
-		return err
-	}
-
-	// Call the Report method after the crawling process is complete
-	report := options.LinkStats.Report()
-	cs.Logger.Info("Crawling statistics",
-		"TotalLinks", report["TotalLinks"],
-		"MatchedLinks", report["MatchedLinks"],
-		"NotMatchedLinks", report["NotMatchedLinks"],
-		"TotalPages", report["TotalPages"],
-	)
-
-	err = cs.SaveResultsToRedis(ctx, results, crawlSiteID)
-	if err != nil {
-		return err
-	}
-
-	logResults(cs, results)
-
-	return nil
+// HandleVisitError handles the error occurred during the visit of a URL.
+func (cs *CrawlManager) HandleVisitError(url string, err error) error {
+	cs.LogError("Error visiting URL", "url", url, "error", err)
+	return err
 }
 
-func (cs *CrawlManager) visit(url string) error {
-	err := cs.Collector.Visit(url)
-	if err != nil {
-		if errors.Is(err, colly.ErrAlreadyVisited) {
-			cs.Logger.Debug("URL already visited", "url", url)
-		} else if errors.Is(err, colly.ErrForbiddenDomain) {
-			cs.Logger.Debug("Forbidden domain - Skipping visit", "url", url)
-		} else {
-			return err
-		}
-	}
-	return nil
+// LogError logs the error message along with the provided key-value pairs.
+func (cs *CrawlManager) LogError(message string, keysAndValues ...interface{}) {
+	cs.Error(message, keysAndValues...)
 }

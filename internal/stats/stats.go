@@ -50,6 +50,20 @@ func (s *Stats) IncrementTotalPages() {
 	s.TotalPages++
 }
 
+// GetMatchedLinks retrieves the total number of not matched links.
+func (s *Stats) GetMatchedLinks() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.MatchedLinks
+}
+
+// GetNotMatchedLinks retrieves the total number of not matched links.
+func (s *Stats) GetNotMatchedLinks() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.NotMatchedLinks
+}
+
 // GetTotalPages retrieves the total number of pages crawled.
 func (s *Stats) GetTotalPages() int {
 	s.mu.Lock()

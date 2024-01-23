@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/jonesrussell/page-prowler/cmd/mocks"
+	crawlerMocks "github.com/jonesrussell/page-prowler/internal/crawler/mocks"
 )
 
 /*func TestMatchlinksCmd(t *testing.T) {
@@ -37,7 +37,7 @@ import (
 }*/
 
 func TestStartCrawlingIsCalledWithCorrectArguments(t *testing.T) {
-	mockManager := new(mocks.MockCrawlManager)
+	mockManager := new(crawlerMocks.CrawlManagerInterface)
 	ctx := context.Background()
 	url := "https://example.com"
 	searchterms := "test"
@@ -56,7 +56,7 @@ func TestStartCrawlingIsCalledWithCorrectArguments(t *testing.T) {
 }
 
 func TestStartCrawlingHandlesErrors(t *testing.T) {
-	mockManager := new(mocks.MockCrawlManager)
+	mockManager := new(crawlerMocks.CrawlManagerInterface)
 	ctx := context.Background()
 	url := "https://example.com"
 	searchterms := "test"

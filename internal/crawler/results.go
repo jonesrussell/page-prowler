@@ -46,45 +46,52 @@ func (p *PageData) UnmarshalBinary(data []byte) error {
 // logResults prints the results of the crawl.
 func logResults(crawlerService *CrawlManager, results []PageData) {
 	if len(results) == 0 {
-		crawlerService.Logger.Info("No results to print")
+		crawlerService.Info("No results to print")
 		return
 	}
 
 	jsonData, err := json.Marshal(results)
 	if err != nil {
-		crawlerService.Logger.Error("Error occurred during marshaling", "error", err)
+		crawlerService.Error("Error occurred during marshaling", "error", err)
 		return
 	}
 
-	crawlerService.Logger.Info(string(jsonData))
+	crawlerService.Info(string(jsonData))
 }
 
 func (cs *CrawlManager) SaveResultsToRedis(ctx context.Context, results []PageData, key string) error {
+	cs.Debug("SaveResultsToRedis: Number of results before processing", "count", len(results))
+
 	for _, result := range results {
-		data, err := result.MarshalBinary()
+		cs.Debug("SaveResultsToRedis: Processing result", "result", result)
+
+		data, err := json.Marshal(result)
 		if err != nil {
-			cs.Logger.Error("Error occurred during marshalling to binary", "error", err)
+			cs.Error("SaveResultsToRedis: Error occurred during marshalling to JSON", "error", err)
 			return err
 		}
 		str := string(data)
 		err = cs.Client.SAdd(ctx, key, str)
 		if err != nil {
-			cs.Logger.Error("Error occurred during saving to Redis", "error", err)
+			cs.Error("SaveResultsToRedis: Error occurred during saving to Redis", "error", err)
 			return err
 		}
-		cs.Logger.Debug("Added elements to the set")
+		cs.Debug("SaveResultsToRedis: Added elements to the set")
 
 		// Debugging: Verify that the result was saved correctly
 		isMember, err := cs.Client.SIsMember(ctx, key, str)
 		if err != nil {
-			cs.Logger.Error("Error occurred during checking membership in Redis set", "error", err)
+			cs.Error("SaveResultsToRedis: Error occurred during checking membership in Redis set", "error", err)
 			return err
 		}
 		if !isMember {
-			cs.Logger.Error("Result was not saved correctly in Redis set", "result", str)
+			cs.Error("SaveResultsToRedis: Result was not saved correctly in Redis set", "result", str)
 		} else {
-			cs.Logger.Debug("Result was saved correctly in Redis set", "result", str)
+			cs.Debug("SaveResultsToRedis: Result was saved correctly in Redis set", "result", str)
 		}
 	}
+
+	cs.Debug("SaveResultsToRedis: Number of results after processing", "count", len(results))
+
 	return nil
 }

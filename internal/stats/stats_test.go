@@ -138,3 +138,29 @@ func TestStats_IncrementNotMatchedLinks(t *testing.T) {
 		})
 	}
 }
+
+func TestGetMatchedLinks(t *testing.T) {
+	// Create a new Stats instance
+	stats := NewStats()
+
+	// Increment the NotMatchedLinks counter
+	stats.IncrementMatchedLinks()
+
+	// Check the result
+	if stats.GetMatchedLinks() != 1 {
+		t.Errorf("Expected matched links count to be 1, got %d", stats.GetMatchedLinks())
+	}
+}
+
+func TestGetNotMatchedLinks(t *testing.T) {
+	// Create a new Stats instance
+	stats := NewStats()
+
+	// Increment the NotMatchedLinks counter
+	stats.IncrementNotMatchedLinks()
+
+	// Check the result
+	if stats.GetNotMatchedLinks() != 1 {
+		t.Errorf("Expected not matched links count to be 1, got %d", stats.GetNotMatchedLinks())
+	}
+}
