@@ -30,6 +30,7 @@ func NewCrawlManager(
 		LoggerField:    loggerField,
 		Client:         client,
 		MongoDBWrapper: mongoDBWrapper,
+		CrawlingMu:     &sync.Mutex{},
 	}
 }
 
