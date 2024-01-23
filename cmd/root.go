@@ -178,5 +178,6 @@ func InitializeManager(
 	if mongoDBWrapper == nil {
 		return nil, errors.New("mongoDBWrapper cannot be nil")
 	}
+
 	return crawler.NewCrawlManager(appLogger, redisClient, mongoDBWrapper), nil
 }
