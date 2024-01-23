@@ -34,9 +34,7 @@ func (cs *CrawlManager) getHref(e *colly.HTMLElement) string {
 }
 
 func (cs *CrawlManager) incrementTotalLinks(options *CrawlOptions) {
-	cs.LinkStatsMu.Lock()
-	cs.LinkStats.IncrementTotalLinks()
-	cs.LinkStatsMu.Unlock()
+	cs.StatsManager.LinkStats.IncrementTotalLinks()
 	cs.Debug("Incremented total links count")
 }
 
@@ -80,11 +78,6 @@ func (cs *CrawlManager) processLink(e *colly.HTMLElement, href string, options *
 func (cs *CrawlManager) handleMatchingLinks(href string) error {
 	cs.Debug("[handleMatchingLinks] Start handling matching links", "url", href)
 
-	/*err := cs.visitWithColly(href)
-	if err != nil {
-		return err
-	}*/
-
 	cs.Debug("End handling matching links", "url", href)
 	return nil
 }
@@ -105,7 +98,7 @@ func (cs *CrawlManager) ProcessMatchingLinkAndUpdateStats(options *CrawlOptions,
 		return
 	}
 
-	cs.MatchedLinkProcessor.IncrementMatchedLinks(options)
+	cs.StatsManager.LinkStats.IncrementMatchedLinks()
 	cs.Debug("Incremented matched links count")
 
 	if err := cs.MatchedLinkProcessor.HandleMatchingLinks(href); err != nil {
@@ -117,10 +110,8 @@ func (cs *CrawlManager) ProcessMatchingLinkAndUpdateStats(options *CrawlOptions,
 	cs.MatchedLinkProcessor.AppendResult(options, pageData)
 }
 
-func (cs *CrawlManager) incrementMatchedLinks(options *CrawlOptions) {
-	cs.LinkStatsMu.Lock()
-	defer cs.LinkStatsMu.Unlock()
-	cs.LinkStats.IncrementMatchedLinks()
+func (cs *CrawlManager) incrementMatchedLinks(options *CrawlOptions, linkStats *stats.Stats) {
+	linkStats.IncrementMatchedLinks()
 }
 
 func (cs *CrawlManager) updatePageData(pageData *PageData, href string, matchingTerms []string) {
@@ -129,15 +120,11 @@ func (cs *CrawlManager) updatePageData(pageData *PageData, href string, matching
 }
 
 func (cs *CrawlManager) appendResult(options *CrawlOptions, pageData PageData) {
-	cs.LinkStatsMu.Lock()
 	*options.Results = append(*options.Results, pageData)
-	cs.LinkStatsMu.Unlock()
 }
 
 func (cs *CrawlManager) incrementNonMatchedLinkCount(options *CrawlOptions) {
-	cs.LinkStatsMu.Lock()
-	cs.LinkStats.IncrementNotMatchedLinks()
-	cs.LinkStatsMu.Unlock()
+	cs.StatsManager.LinkStats.IncrementNotMatchedLinks()
 	cs.Debug("Incremented not matched links count")
 }
 

@@ -3,6 +3,7 @@ package crawler
 import (
 	"context"
 	"errors"
+	"sync"
 
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/logger"
@@ -28,10 +29,17 @@ func NewCrawlManager(
 	return cm
 }
 
+type StatsManager struct {
+	LinkStats   *stats.Stats
+	LinkStatsMu sync.RWMutex
+}
+
 func (cs *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool) error {
 	// Initialize LinkStats...
-	cs.LinkStats = &stats.Stats{}
-
+	cs.StatsManager = &StatsManager{
+		LinkStats:   &stats.Stats{},
+		LinkStatsMu: sync.RWMutex{},
+	}
 	cs.CrawlingMu.Lock()
 	defer cs.CrawlingMu.Unlock()
 
@@ -91,16 +99,16 @@ func (cs *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 	// Register OnScraped callback
 	cs.Collector.OnScraped(func(r *colly.Response) {
 		cs.Logger().Debug("[OnScraped] Page scraped", "url", r.Request.URL)
-		cs.LinkStatsMu.Lock()
-		defer cs.LinkStatsMu.Unlock()
-		cs.LinkStats.IncrementTotalPages()
+		cs.StatsManager.LinkStatsMu.Lock()
+		defer cs.StatsManager.LinkStatsMu.Unlock()
+		cs.StatsManager.LinkStats.IncrementTotalPages()
 	})
 
 	return nil
 }
 
 func (cs *CrawlManager) logCrawlingStatistics(options *CrawlOptions) {
-	report := cs.LinkStats.Report()
+	report := cs.StatsManager.LinkStats.Report()
 	cs.Logger().Info("Crawling statistics",
 		"TotalLinks", report["TotalLinks"],
 		"MatchedLinks", report["MatchedLinks"],

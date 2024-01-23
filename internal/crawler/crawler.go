@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
-	"github.com/jonesrussell/page-prowler/internal/stats"
 
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/logger"
@@ -27,14 +26,14 @@ type CrawlManagerInterface interface {
 	Crawl(url string, options *CrawlOptions) ([]PageData, error)
 	SetupHTMLParsingHandler(handler func(*colly.HTMLElement)) error
 	SetupErrorEventHandler(collector *colly.Collector)
-	SetupCrawlingLogic(options *CrawlOptions) error
+	SetupCrawlingLogic(*CrawlOptions) error
 	CrawlURL(url string, options *CrawlOptions) error
 	HandleVisitError(url string, err error) error
 	LogError(message string, keysAndValues ...interface{})
 	Logger() logger.Logger
 	StartCrawling(ctx context.Context, url string, searchterms string, crawlsiteid string, maxdepth int, debug bool) error
 	GetMatchedLinkProcessor() MatchedLinkProcessor
-	ProcessMatchingLinkAndUpdateStats(options *CrawlOptions, href string, pageData PageData, matchingTerms []string)
+	ProcessMatchingLinkAndUpdateStats(*CrawlOptions, string, PageData, []string)
 }
 
 // CrawlManager encapsulates shared dependencies for crawler functions.
@@ -46,8 +45,7 @@ type CrawlManager struct {
 	CrawlingMu           sync.Mutex
 	VisitedPages         map[string]bool
 	MatchedLinkProcessor MatchedLinkProcessor
-	LinkStats            *stats.Stats
-	LinkStatsMu          sync.Mutex // Mutex for LinkStats
+	StatsManager         *StatsManager
 }
 
 func (cm *CrawlManager) Debug(msg string, keysAndValues ...interface{}) {
