@@ -24,5 +24,6 @@
 	],
 	"forwardPorts": [
 		3000
-	]
+	],
+	"postCreateCommand": "go install github.com/go-delve/delve/cmd/dlv@latest"
 }

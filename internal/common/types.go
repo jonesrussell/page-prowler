@@ -1,5 +1,12 @@
 package common
 
-type CrawlManagerKeyType string
+import "github.com/jonesrussell/page-prowler/internal/crawler"
 
-const CrawlManagerKey = CrawlManagerKeyType("cm")
+type CrawlManagerKeyType = crawler.CrawlManagerInterface
+
+var crawlManagerKey crawler.CrawlManagerInterface
+
+// CrawlManagerKey is the key for storing and retrieving the CrawlManagerInterface from the context.
+var CrawlManagerKey = &crawlManagerKey
+
+const CrawlManagerKeyStr = "crawlManagerKey"

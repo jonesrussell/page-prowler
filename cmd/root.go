@@ -17,7 +17,7 @@ import (
 
 var (
 	Debug       bool
-	crawlsiteid string
+	Crawlsiteid string
 )
 
 var ErrCrawlManagerNotInitialized = errors.New("CrawlManager is not initialized")
@@ -118,7 +118,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// Define the crawlsiteid flag as a persistent flag on the rootCmd
-	rootCmd.PersistentFlags().StringVarP(&crawlsiteid, "crawlsiteid", "s", "", "CrawlSite ID")
+	rootCmd.PersistentFlags().StringVarP(&Crawlsiteid, "crawlsiteid", "s", "", "CrawlSite ID")
 	rootCmd.PersistentFlags().BoolVar(&Debug, "debug", false, "Enable debug mode")
 
 	// Bind the debug flag to the viper configuration
@@ -143,6 +143,11 @@ func initConfig() {
 
 	if err := viper.ReadInConfig(); err != nil {
 		log.Printf("Error reading config file: %v", err)
+	}
+
+	// Set the default value of the debug flag from the viper configuration
+	if err := rootCmd.PersistentFlags().Lookup("debug").Value.Set(viper.GetString("DEBUG")); err != nil {
+		log.Fatalf("Failed to set debug flag: %v", err)
 	}
 
 	// Set the default value of the crawlsiteid flag from the viper configuration

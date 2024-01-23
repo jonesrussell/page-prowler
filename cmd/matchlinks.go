@@ -22,12 +22,12 @@ var matchlinksCmd = &cobra.Command{
 		// Access the CrawlManager from the context
 		value := ctx.Value(common.CrawlManagerKey)
 		if value == nil {
-			log.Fatalf("common.ManagerKey not found in context")
+			log.Fatalf("common.CrawlManagerKey not found in context")
 		}
 
-		manager, ok := value.(*crawler.CrawlManager)
+		manager, ok := value.(crawler.CrawlManagerInterface)
 		if !ok {
-			log.Fatalf("common.ManagerKey in context is not of type *crawler.CrawlManager")
+			log.Fatalf("Value in context is not of type crawler.CrawlManagerInterface")
 		}
 		if manager == nil {
 			log.Fatalf("manager is nil")
@@ -49,18 +49,18 @@ var matchlinksCmd = &cobra.Command{
 		}
 
 		if Debug {
-			manager.Logger.Info("\nFlags:")
+			manager.Logger().Info("\nFlags:")
 			cmd.Flags().VisitAll(func(flag *pflag.Flag) {
-				manager.Logger.Infof(" %-12s : %v\n", flag.Name, flag.Value)
+				manager.Logger().Infof(" %-12s : %v\n", flag.Name, flag.Value)
 			})
 
-			manager.Logger.Info("\nRedis Environment Variables:")
-			manager.Logger.Infof(" %-12s : %s\n", "REDIS_HOST", viper.GetString("REDIS_HOST"))
-			manager.Logger.Infof(" %-12s : %s\n", "REDIS_PORT", viper.GetString("REDIS_PORT"))
-			manager.Logger.Infof(" %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH"))
+			manager.Logger().Info("\nRedis Environment Variables:")
+			manager.Logger().Infof(" %-12s : %s\n", "REDIS_HOST", viper.GetString("REDIS_HOST"))
+			manager.Logger().Infof(" %-12s : %s\n", "REDIS_PORT", viper.GetString("REDIS_PORT"))
+			manager.Logger().Infof(" %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH"))
 		}
 
-		err := manager.StartCrawling(ctx, url, searchterms, crawlsiteid, viper.GetInt("maxdepth"), Debug)
+		err := manager.StartCrawling(ctx, url, searchterms, crawlsiteid, viper.GetInt("maxdepth"), viper.GetBool("debug"))
 		if err != nil {
 			log.Fatalf("Error starting crawling: %v", err)
 		}
@@ -70,10 +70,6 @@ var matchlinksCmd = &cobra.Command{
 }
 
 func init() {
-	matchlinksCmd.Flags().StringP("crawlsiteid", "s", "", "CrawlSite ID")
-	if err := viper.BindPFlag("crawlsiteid", matchlinksCmd.Flags().Lookup("crawlsiteid")); err != nil {
-		log.Fatalf("Error binding flag: %v", err)
-	}
 
 	matchlinksCmd.Flags().StringP("url", "u", "", "URL to crawl")
 	if err := viper.BindPFlag("url", matchlinksCmd.Flags().Lookup("url")); err != nil {

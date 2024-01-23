@@ -16,8 +16,8 @@ func TestClearlinksCmd_RunE(t *testing.T) {
 	ctx := context.Background()
 	mockLogger := mocks.NewMockLogger()
 	cm := &crawler.CrawlManager{
-		Logger: mockLogger,
-		Client: prowlredis.NewMockClient(),
+		LoggerField: mockLogger,
+		Client:      prowlredis.NewMockClient(),
 	}
 	ctx = context.WithValue(ctx, common.CrawlManagerKey, cm)
 
@@ -28,7 +28,7 @@ func TestClearlinksCmd_RunE(t *testing.T) {
 			return ClearlinksCmd.RunE(cmd, []string{})
 		},
 	}
-	cmd.Flags().StringVarP(&crawlsiteid, "crawlsiteid", "s", "", "CrawlSite ID")
+	cmd.Flags().StringVarP(&Crawlsiteid, "crawlsiteid", "s", "", "CrawlSite ID")
 	cmd.SetArgs([]string{"--crawlsiteid=test"})
 
 	err := cmd.ExecuteContext(ctx)

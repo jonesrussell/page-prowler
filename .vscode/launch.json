@@ -5,19 +5,28 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug with delve",
+            "name": "Run Page Prowler",
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "program": "${workspaceFolder}/main.go",
-            "env": {
-                "GOOS": "linux",
-                "GOARCH": "amd64"
-            },
-            "args": [],
-            "delve": {
-                "preLaunchTask": "build"
-            }
+            "program": "${workspaceFolder}",
+            "args": [
+                "matchlinks",
+                "-s=jr42",
+                "-t=PRIVACY",
+                "-u=https://www.jonesrussell42.xyz/",
+                "--maxdepth=1",
+                "--debug"
+            ]
+        },
+        {
+            "name": "Connect to Delve",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "remotePath": "${workspaceFolder}",
+            "port": 2345,
+            "host": "127.0.0.1"
         },
         {
             "name": "Debug TestPostMatchlinks",
@@ -25,8 +34,13 @@
             "request": "launch",
             "mode": "test",
             "program": "${workspaceFolder}/cmd",
-            "args": ["-test.run", "TestPostMatchlinks"],
-            "env": {"GOFLAGS": "-v"}
+            "args": [
+                "-test.run",
+                "TestPostMatchlinks"
+            ],
+            "env": {
+                "GOFLAGS": "-v"
+            }
         },
         {
             "name": "Launch Crawler Mid North Monitor",

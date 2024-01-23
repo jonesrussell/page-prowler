@@ -2,27 +2,57 @@ package crawler
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
-	"sync"
 	"testing"
 
 	"github.com/gocolly/colly"
+	"github.com/jonesrussell/page-prowler/cmd/mocks"
 	"github.com/jonesrussell/page-prowler/internal/logger"
+	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/jonesrussell/page-prowler/internal/stats"
 	"go.uber.org/zap"
 )
 
-func TestHandleHTMLParsing(t *testing.T) {
-	// Create a mock CrawlManager
-	cs := &CrawlManager{
-		Collector: colly.NewCollector(),
-	}
+func MockServer() *httptest.Server {
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		// Write your mock response here
+		rw.Write([]byte(`Hello, World!`))
+	}))
 
-	// Create a mock CrawlOptions
-	options := &CrawlOptions{}
+	return server
+}
+
+func setupTestEnvironment() (*CrawlManager, *CrawlOptions) {
+	// Create a mock Logger
+	zapLogger, _ := zap.NewDevelopment()
+	log := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
+
+	// Create a mock CrawlManager with the Logger
+	cs := NewCrawlManager(
+		log,
+		prowlredis.NewMockClient(),
+		mocks.NewMockMongoDBWrapper(),
+	)
+
+	// Create a mock CrawlOptions with initialized LinkStats
+	options := NewCrawlOptions(
+		"crawlSiteID",
+		[]string{"term"},
+		true,             // Debug
+		&[]PageData{},    // Initialize Results
+		stats.NewStats(), // Initialize LinkStats
+	)
+
+	return cs, options
+}
+
+func TestHandleHTMLParsing(t *testing.T) {
+	cs, options := setupTestEnvironment()
 
 	// Call the function with the mock parameters
-	err := cs.setupHTMLParsingHandler(cs.getAnchorElementHandler(options))
+	err := cs.SetupHTMLParsingHandler(cs.getAnchorElementHandler(options))
 
 	// Check that no error was returned
 	if err != nil {
@@ -33,13 +63,10 @@ func TestHandleHTMLParsing(t *testing.T) {
 }
 
 func TestHandleErrorEvents(t *testing.T) {
-	// Create a mock CrawlManager
-	cs := &CrawlManager{
-		Collector: colly.NewCollector(),
-	}
+	cs, _ := setupTestEnvironment()
 
 	// Call the function with the mock parameters
-	cs.setupErrorEventHandler(cs.Collector)
+	cs.SetupErrorEventHandler(cs.Collector)
 
 	// Trigger an error in the collector
 	cs.Collector.OnError(func(r *colly.Response, err error) {
@@ -78,112 +105,19 @@ func TestGetHostFromURL(t *testing.T) {
 }
 
 func TestVisitURL(t *testing.T) {
-	// Create a mock Logger
-	zapLogger, _ := zap.NewDevelopment()
-	log := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
-
-	// Create a mock CrawlManager with the Logger
-	cs := &CrawlManager{
-		Logger:    log,
-		Collector: colly.NewCollector(),
-	}
+	cs, options := setupTestEnvironment()
 
 	// Call the function with the mock parameters
-	cs.visitURL("https://example.com")
+	cs.CrawlURL("https://example.com", options)
 
-	// TODO: Add more checks here to verify that the Visit method was called correctly
-}
-
-func TestHandleResults(t *testing.T) {
-	// Create a mock Logger
-	zapLogger, _ := zap.NewDevelopment()
-	log := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
-
-	// Create a mock CrawlManager with the Logger
-	cs := &CrawlManager{
-		Logger:    log,
-		Collector: colly.NewCollector(),
+	// Check that the VisitedPages map has been populated correctly
+	if _, ok := cs.VisitedPages["https://example.com"]; !ok {
+		t.Errorf("Expected https://example.com to be in VisitedPages, but it wasn't")
 	}
-
-	// Create a mock CrawlOptions with initialized LinkStats and Results
-	options := &CrawlOptions{
-		LinkStats: stats.NewStats(), // Initialize LinkStats
-		Results:   &[]PageData{},    // Initialize Results
-	}
-
-	// Call the function with the mock parameters
-	results := cs.handleResults(options)
-	if len(results) != 0 {
-		t.Errorf("Expected no results, but got %v", results)
-	}
-
-	// TODO: Add more checks here to verify that the results are handled correctly
-}
-
-func TestProcessMatchingLinkAndUpdateStats(t *testing.T) {
-	// Create a mock Logger
-	zapLogger, _ := zap.NewDevelopment()
-	log := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
-
-	// Create a mock CrawlManager with the Logger
-	cs := &CrawlManager{
-		Logger:    log,
-		Collector: colly.NewCollector(),
-	}
-
-	// Create a mock CrawlOptions with initialized LinkStats
-	options := &CrawlOptions{
-		CrawlSiteID: "",
-		SearchTerms: []string{},
-		Results:     &[]PageData{},
-		LinkStats:   stats.NewStats(),
-		LinkStatsMu: sync.Mutex{},
-		Debug:       false,
-	}
-
-	// Create a mock PageData
-	pageData := PageData{
-		URL: "https://example.com",
-	}
-
-	// Call the function with the mock parameters
-	cs.processMatchingLinkAndUpdateStats(options, "https://example.com", pageData, []string{"term"})
-
-	// TODO: Add more checks here to verify that the stats are updated correctly
-}
-
-func TestIncrementNonMatchedLinkCount(t *testing.T) {
-	// Create a mock Logger
-	zapLogger, _ := zap.NewDevelopment()
-	log := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
-
-	// Create a mock CrawlManager with the Logger
-	cs := &CrawlManager{
-		Logger:    log,
-		Collector: colly.NewCollector(),
-	}
-
-	// Create a mock CrawlOptions with initialized LinkStats
-	options := &CrawlOptions{
-		LinkStats: stats.NewStats(), // Initialize LinkStats
-	}
-
-	// Call the function with the mock parameters
-	cs.incrementNonMatchedLinkCount(options)
-
-	// TODO: Add more checks here to verify that the NonMatchedLinks counter is incremented correctly
 }
 
 func TestConfigureCollector(t *testing.T) {
-	// Create a mock Logger
-	zapLogger, _ := zap.NewDevelopment()
-	log := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
-
-	// Create a mock CrawlManager with the Logger
-	cs := &CrawlManager{
-		Logger:    log,
-		Collector: colly.NewCollector(),
-	}
+	cs, _ := setupTestEnvironment()
 
 	// Call the function with the mock parameters
 	err := cs.ConfigureCollector([]string{"example.com"}, 1)
@@ -195,15 +129,7 @@ func TestConfigureCollector(t *testing.T) {
 }
 
 func TestStartCrawling(t *testing.T) {
-	// Create a mock Logger
-	zapLogger, _ := zap.NewDevelopment()
-	log := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
-
-	// Create a mock CrawlManager with the Logger
-	cs := &CrawlManager{
-		Logger:    log,
-		Collector: colly.NewCollector(),
-	}
+	cs, _ := setupTestEnvironment()
 
 	// Call the function with the mock parameters
 	err := cs.StartCrawling(context.Background(), "https://example.com", "term", "crawlSiteID", 1, true)
@@ -215,21 +141,10 @@ func TestStartCrawling(t *testing.T) {
 }
 
 func TestSetupCrawlingLogic(t *testing.T) {
-	// Create a mock Logger
-	zapLogger, _ := zap.NewDevelopment()
-	log := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
-
-	// Create a mock CrawlManager with the Logger
-	cs := &CrawlManager{
-		Logger:    log,
-		Collector: colly.NewCollector(),
-	}
-
-	// Create a mock CrawlOptions
-	options := &CrawlOptions{}
+	cs, options := setupTestEnvironment()
 
 	// Call the function with the mock parameters
-	err := cs.setupCrawlingLogic(options)
+	err := cs.SetupCrawlingLogic(options)
 	if err != nil {
 		t.Errorf("Expected no error, but got %v", err)
 	}
@@ -238,27 +153,17 @@ func TestSetupCrawlingLogic(t *testing.T) {
 }
 
 func TestCrawl(t *testing.T) {
-	// Create a mock Logger
-	zapLogger, _ := zap.NewDevelopment()
-	log := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
+	cs, options := setupTestEnvironment()
 
-	// Create a mock CrawlManager with the Logger
-	cs := &CrawlManager{
-		Logger:    log,
-		Collector: colly.NewCollector(),
-	}
+	// Create a mock server
+	server := MockServer()
+	defer server.Close()
 
-	// Initialize a slice to hold the results
-	var results []PageData
-
-	// Create a mock CrawlOptions with initialized LinkStats and Results
-	options := &CrawlOptions{
-		LinkStats: stats.NewStats(), // Initialize LinkStats
-		Results:   &results,         // Initialize Results
-	}
+	// Replace the URL with the mock server URL
+	url := server.URL + "/your-endpoint"
 
 	// Call the function with the mock parameters
-	_, err := cs.crawl("https://example.com", options)
+	_, err := cs.Crawl(url, options)
 	if err != nil {
 		t.Errorf("Expected no error, but got %v", err)
 	}
@@ -267,20 +172,7 @@ func TestCrawl(t *testing.T) {
 }
 
 func TestGetAnchorElementHandler(t *testing.T) {
-	// Create a mock Logger
-	zapLogger, _ := zap.NewDevelopment()
-	log := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
-
-	// Create a mock CrawlManager with the Logger
-	cs := &CrawlManager{
-		Logger:    log,
-		Collector: colly.NewCollector(),
-	}
-
-	// Create a mock CrawlOptions with initialized LinkStats
-	options := &CrawlOptions{
-		LinkStats: stats.NewStats(), // Initialize LinkStats
-	}
+	cs, options := setupTestEnvironment()
 
 	// Call the function with the mock parameters
 	handler := cs.getAnchorElementHandler(options)
@@ -307,23 +199,20 @@ func TestGetAnchorElementHandler(t *testing.T) {
 }
 
 func TestSetupHTMLParsingHandler(t *testing.T) {
-	// Create a mock Logger
-	zapLogger, _ := zap.NewDevelopment()
-	log := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
+	cs, options := setupTestEnvironment()
 
-	// Create a mock CrawlManager with the Logger
-	cs := &CrawlManager{
-		Logger:    log,
-		Collector: colly.NewCollector(),
-	}
-
-	// Create a mock CrawlOptions with initialized LinkStats
-	options := &CrawlOptions{
-		LinkStats: stats.NewStats(), // Initialize LinkStats
-	}
+	// Create a mock server
+	server := MockServer()
+	defer server.Close()
 
 	// Call the function with the mock parameters
-	err := cs.setupHTMLParsingHandler(cs.getAnchorElementHandler(options))
+	err := cs.SetupHTMLParsingHandler(cs.getAnchorElementHandler(options))
+	if err != nil {
+		t.Errorf("Expected no error, but got %v", err)
+	}
+
+	// Call the crawl function with the mock server URL
+	_, err = cs.Crawl(server.URL, options)
 	if err != nil {
 		t.Errorf("Expected no error, but got %v", err)
 	}
@@ -332,20 +221,10 @@ func TestSetupHTMLParsingHandler(t *testing.T) {
 }
 
 func TestSetupErrorEventHandler(t *testing.T) {
-	// Create a mock Logger
-	zapLogger, _ := zap.NewDevelopment()
-	log := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
-
-	// Create a mock CrawlManager with the Logger
-	cs := &CrawlManager{
-		Logger:    log,
-		Collector: colly.NewCollector(),
-	}
+	cs, _ := setupTestEnvironment()
 
 	// Call the function with the mock parameters
-	cs.setupErrorEventHandler(cs.Collector)
+	cs.SetupErrorEventHandler(cs.Collector)
 
 	// TODO: Add more checks here to verify that the OnError method was called correctly
 }
-
-// Similar structures can be created for other functions

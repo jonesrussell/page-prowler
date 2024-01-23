@@ -73,7 +73,7 @@ func TestGetLinksCmd(t *testing.T) {
 			// Initialize a CrawlManager
 			manager := &crawler.CrawlManager{
 				Client:         prowlredis.NewMockClient().(*prowlredis.MockClient),
-				Logger:         mocks.NewMockLogger(),
+				LoggerField:    mocks.NewMockLogger(),
 				MongoDBWrapper: mocks.NewMockMongoDBWrapper(),
 			}
 

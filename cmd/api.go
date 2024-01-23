@@ -73,7 +73,7 @@ func CrawlManagerMiddleware(manager *crawler.CrawlManager) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			// Set the CrawlManager in the context using the string constant as the key
-			c.Set(string(common.CrawlManagerKey), manager)
+			c.Set(common.CrawlManagerKeyStr, manager)
 			return next(c)
 		}
 	}
