@@ -7,11 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jonesrussell/page-prowler/internal/prowlredis"
-
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/logger"
-	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
+	"github.com/jonesrussell/page-prowler/internal/stats"
 )
 
 const (
@@ -32,40 +30,7 @@ type CrawlManagerInterface interface {
 	LogError(message string, keysAndValues ...interface{})
 	Logger() logger.Logger
 	StartCrawling(ctx context.Context, url string, searchterms string, crawlsiteid string, maxdepth int, debug bool) error
-	GetMatchedLinkProcessor() MatchedLinkProcessor
 	ProcessMatchingLinkAndUpdateStats(*CrawlOptions, string, PageData, []string)
-}
-
-// CrawlManager encapsulates shared dependencies for crawler functions.
-type CrawlManager struct {
-	LoggerField          logger.Logger
-	Client               prowlredis.ClientInterface
-	MongoDBWrapper       mongodbwrapper.MongoDBInterface
-	Collector            *colly.Collector
-	CrawlingMu           sync.Mutex
-	VisitedPages         map[string]bool
-	MatchedLinkProcessor MatchedLinkProcessor
-	StatsManager         *StatsManager
-}
-
-func (cm *CrawlManager) Debug(msg string, keysAndValues ...interface{}) {
-	cm.LoggerField.Debug(msg, keysAndValues...)
-}
-
-func (cm *CrawlManager) Info(msg string, keysAndValues ...interface{}) {
-	cm.LoggerField.Info(msg, keysAndValues...)
-}
-
-func (cm *CrawlManager) Error(msg string, keysAndValues ...interface{}) {
-	cm.LoggerField.Error(msg, keysAndValues...)
-}
-
-func (cm *CrawlManager) Errorf(msg string, keysAndValues ...interface{}) {
-	cm.LoggerField.Errorf(msg, keysAndValues...)
-}
-
-func (cm *CrawlManager) Fatal(msg string, keysAndValues ...interface{}) {
-	cm.LoggerField.Fatal(msg, keysAndValues...)
 }
 
 var _ CrawlManagerInterface = &CrawlManager{}
@@ -82,8 +47,51 @@ func (cm *CrawlManager) Logger() logger.Logger {
 	return cm.LoggerField
 }
 
-func (cm *CrawlManager) GetMatchedLinkProcessor() MatchedLinkProcessor {
-	return cm.MatchedLinkProcessor
+func (cs *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool) error {
+	if url == "" || searchTerms == "" || crawlSiteID == "" || maxDepth <= 0 {
+		return errors.New("invalid parameters")
+	}
+
+	// Initialize LinkStats...
+	cs.StatsManager = &StatsManager{
+		LinkStats:   &stats.Stats{},
+		LinkStatsMu: sync.RWMutex{},
+	}
+	cs.CrawlingMu.Lock()
+	defer cs.CrawlingMu.Unlock()
+
+	host, err := GetHostFromURL(url, cs.Logger())
+	if err != nil {
+		cs.LoggerField.Error("Failed to parse URL", "url", url, "error", err)
+		return err
+	}
+
+	cs.LoggerField.Debug("Extracted host from URL", "host", host)
+
+	err = cs.ConfigureCollector([]string{host}, maxDepth)
+	if err != nil {
+		cs.Logger().Fatal("Failed to configure collector", "error", err)
+		return err
+	}
+
+	splitSearchTerms := cs.splitSearchTerms(searchTerms)
+	options := cs.createStartCrawlingOptions(crawlSiteID, splitSearchTerms, debug)
+
+	results, err := cs.Crawl(url, options)
+	if err != nil {
+		return err
+	}
+
+	cs.logCrawlingStatistics(options)
+
+	err = cs.SaveResultsToRedis(ctx, results, crawlSiteID)
+	if err != nil {
+		return err
+	}
+
+	logResults(cs, results)
+
+	return nil
 }
 
 // crawl starts the crawling process for a given URL with the provided options.
@@ -115,12 +123,12 @@ func (cs *CrawlManager) SetupErrorEventHandler(collector *colly.Collector) {
 
 		if statusCode == 500 {
 			// Handle 500 Internal Server Error without printing the stack trace
-			cs.Debug("[SetupErrorEventHandler] Internal Server Error",
+			cs.LoggerField.Debug("[SetupErrorEventHandler] Internal Server Error",
 				"request_url", requestURL,
 				"status_code", fmt.Sprintf("%d", statusCode))
 		} else if statusCode != 404 {
 			// Handle other errors normally
-			cs.Debug("[SetupErrorEventHandler] Request URL failed",
+			cs.LoggerField.Debug("[SetupErrorEventHandler] Request URL failed",
 				"request_url", requestURL,
 				"status_code", fmt.Sprintf("%d", statusCode))
 		}
@@ -160,5 +168,5 @@ func (cs *CrawlManager) HandleVisitError(url string, err error) error {
 
 // LogError logs the error message along with the provided key-value pairs.
 func (cs *CrawlManager) LogError(message string, keysAndValues ...interface{}) {
-	cs.Error(message, keysAndValues...)
+	cs.LoggerField.Error(message, keysAndValues...)
 }

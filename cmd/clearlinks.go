@@ -34,7 +34,7 @@ var ClearlinksCmd = &cobra.Command{
 		}
 
 		if Debug {
-			manager.Debug("Debugging enabled. Clearing Redis set...")
+			manager.LoggerField.Debug("Debugging enabled. Clearing Redis set...")
 		}
 
 		manager.Logger().Info("Redis set cleared successfully")

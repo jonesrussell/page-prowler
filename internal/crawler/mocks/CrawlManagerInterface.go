@@ -67,26 +67,6 @@ func (_m *CrawlManagerInterface) CrawlURL(url string, options *crawler.CrawlOpti
 	return r0
 }
 
-// GetMatchedLinkProcessor provides a mock function with given fields:
-func (_m *CrawlManagerInterface) GetMatchedLinkProcessor() crawler.MatchedLinkProcessor {
-	ret := _m.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetMatchedLinkProcessor")
-	}
-
-	var r0 crawler.MatchedLinkProcessor
-	if rf, ok := ret.Get(0).(func() crawler.MatchedLinkProcessor); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(crawler.MatchedLinkProcessor)
-		}
-	}
-
-	return r0
-}
-
 // HandleVisitError provides a mock function with given fields: url, err
 func (_m *CrawlManagerInterface) HandleVisitError(url string, err error) error {
 	ret := _m.Called(url, err)
@@ -133,14 +113,14 @@ func (_m *CrawlManagerInterface) Logger() logger.Logger {
 	return r0
 }
 
-// ProcessMatchingLinkAndUpdateStats provides a mock function with given fields: options, href, pageData, matchingTerms
-func (_m *CrawlManagerInterface) ProcessMatchingLinkAndUpdateStats(options *crawler.CrawlOptions, href string, pageData crawler.PageData, matchingTerms []string) {
-	_m.Called(options, href, pageData, matchingTerms)
+// ProcessMatchingLinkAndUpdateStats provides a mock function with given fields: _a0, _a1, _a2, _a3
+func (_m *CrawlManagerInterface) ProcessMatchingLinkAndUpdateStats(_a0 *crawler.CrawlOptions, _a1 string, _a2 crawler.PageData, _a3 []string) {
+	_m.Called(_a0, _a1, _a2, _a3)
 }
 
-// SetupCrawlingLogic provides a mock function with given fields: options
-func (_m *CrawlManagerInterface) SetupCrawlingLogic(options *crawler.CrawlOptions) error {
-	ret := _m.Called(options)
+// SetupCrawlingLogic provides a mock function with given fields: _a0
+func (_m *CrawlManagerInterface) SetupCrawlingLogic(_a0 *crawler.CrawlOptions) error {
+	ret := _m.Called(_a0)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SetupCrawlingLogic")
@@ -148,7 +128,7 @@ func (_m *CrawlManagerInterface) SetupCrawlingLogic(options *crawler.CrawlOption
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*crawler.CrawlOptions) error); ok {
-		r0 = rf(options)
+		r0 = rf(_a0)
 	} else {
 		r0 = ret.Error(0)
 	}

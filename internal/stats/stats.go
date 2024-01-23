@@ -3,18 +3,14 @@ package stats
 
 import "sync"
 
-type fields struct {
+// Stats holds counters for various metrics related to web crawling.
+type Stats struct {
 	TotalLinks      int
 	MatchedLinks    int
 	NotMatchedLinks int
 	TotalPages      int
 	Links           []string
-}
-
-// Stats holds counters for various metrics related to web crawling.
-type Stats struct {
-	fields
-	mu sync.Mutex
+	mu              sync.Mutex
 }
 
 // NewStats creates and returns a new Stats instance with all counters set to zero.

@@ -37,12 +37,10 @@ func TestNewStats(t *testing.T) {
 		{
 			name: "Test NewStats",
 			want: &Stats{
-				fields: fields{
-					TotalLinks:      0,
-					MatchedLinks:    0,
-					NotMatchedLinks: 0,
-					Links:           nil,
-				},
+				TotalLinks:      0,
+				MatchedLinks:    0,
+				NotMatchedLinks: 0,
+				Links:           nil,
 			},
 		},
 	}
@@ -57,26 +55,18 @@ func TestNewStats(t *testing.T) {
 
 func TestStats_IncrementTotalLinks(t *testing.T) {
 	tests := []struct {
-		name   string
-		fields fields
+		name       string
+		TotalLinks int
 	}{
 		{
-			name: "Test IncrementTotalLinks",
-			fields: fields{
-				TotalLinks:      0,
-				MatchedLinks:    0,
-				NotMatchedLinks: 0,
-				Links:           nil,
-			},
+			name:       "Test IncrementTotalLinks",
+			TotalLinks: 0,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewStats()
-			s.TotalLinks = tt.fields.TotalLinks
-			s.MatchedLinks = tt.fields.MatchedLinks
-			s.NotMatchedLinks = tt.fields.NotMatchedLinks
-			s.Links = tt.fields.Links
+			s.TotalLinks = tt.TotalLinks
 			s.IncrementTotalLinks()
 			assert.Equal(t, 1, s.TotalLinks)
 		})
@@ -85,26 +75,27 @@ func TestStats_IncrementTotalLinks(t *testing.T) {
 
 func TestStats_IncrementMatchedLinks(t *testing.T) {
 	tests := []struct {
-		name   string
-		fields fields
+		name            string
+		TotalLinks      int
+		MatchedLinks    int
+		NotMatchedLinks int
+		Links           []string
 	}{
 		{
-			name: "Test IncrementMatchedLinks",
-			fields: fields{
-				TotalLinks:      0,
-				MatchedLinks:    0,
-				NotMatchedLinks: 0,
-				Links:           nil,
-			},
+			name:            "Test IncrementMatchedLinks",
+			TotalLinks:      0,
+			MatchedLinks:    0,
+			NotMatchedLinks: 0,
+			Links:           nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewStats()
-			s.TotalLinks = tt.fields.TotalLinks
-			s.MatchedLinks = tt.fields.MatchedLinks
-			s.NotMatchedLinks = tt.fields.NotMatchedLinks
-			s.Links = tt.fields.Links
+			s.TotalLinks = tt.TotalLinks
+			s.MatchedLinks = tt.MatchedLinks
+			s.NotMatchedLinks = tt.NotMatchedLinks
+			s.Links = tt.Links
 			s.IncrementMatchedLinks()
 			assert.Equal(t, 1, s.MatchedLinks)
 		})
@@ -113,26 +104,27 @@ func TestStats_IncrementMatchedLinks(t *testing.T) {
 
 func TestStats_IncrementNotMatchedLinks(t *testing.T) {
 	tests := []struct {
-		name   string
-		fields fields
+		name            string
+		TotalLinks      int
+		MatchedLinks    int
+		NotMatchedLinks int
+		Links           []string
 	}{
 		{
-			name: "Test IncrementNotMatchedLinks",
-			fields: fields{
-				TotalLinks:      0,
-				MatchedLinks:    0,
-				NotMatchedLinks: 0,
-				Links:           nil,
-			},
+			name:            "Test IncrementNotMatchedLinks",
+			TotalLinks:      0,
+			MatchedLinks:    0,
+			NotMatchedLinks: 0,
+			Links:           nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewStats()
-			s.TotalLinks = tt.fields.TotalLinks
-			s.MatchedLinks = tt.fields.MatchedLinks
-			s.NotMatchedLinks = tt.fields.NotMatchedLinks
-			s.Links = tt.fields.Links
+			s.TotalLinks = tt.TotalLinks
+			s.MatchedLinks = tt.MatchedLinks
+			s.NotMatchedLinks = tt.NotMatchedLinks
+			s.Links = tt.Links
 			s.IncrementNotMatchedLinks()
 			assert.Equal(t, 1, s.NotMatchedLinks)
 		})
