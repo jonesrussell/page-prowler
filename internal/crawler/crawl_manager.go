@@ -8,6 +8,7 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
+	"github.com/jonesrussell/page-prowler/internal/stats"
 )
 
 // NewCrawlManager creates a new instance of CrawlManager.
@@ -28,6 +29,9 @@ func NewCrawlManager(
 }
 
 func (cs *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool) error {
+	// Initialize LinkStats...
+	cs.LinkStats = &stats.Stats{}
+
 	cs.CrawlingMu.Lock()
 	defer cs.CrawlingMu.Unlock()
 
@@ -84,11 +88,19 @@ func (cs *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 	cs.Collector.AllowURLRevisit = false
 	cs.Collector.IgnoreRobotsTxt = false
 
+	// Register OnScraped callback
+	cs.Collector.OnScraped(func(r *colly.Response) {
+		cs.Logger().Debug("[OnScraped] Page scraped", "url", r.Request.URL)
+		cs.LinkStatsMu.Lock()
+		defer cs.LinkStatsMu.Unlock()
+		cs.LinkStats.IncrementTotalPages()
+	})
+
 	return nil
 }
 
 func (cs *CrawlManager) logCrawlingStatistics(options *CrawlOptions) {
-	report := options.LinkStats.Report()
+	report := cs.LinkStats.Report()
 	cs.Logger().Info("Crawling statistics",
 		"TotalLinks", report["TotalLinks"],
 		"MatchedLinks", report["MatchedLinks"],
@@ -98,7 +110,7 @@ func (cs *CrawlManager) logCrawlingStatistics(options *CrawlOptions) {
 }
 
 func (cs *CrawlManager) visitWithColly(url string) error {
-	cs.Debug("Visiting URL with Colly", "url", url)
+	cs.Debug("[visitWithColly] Visiting URL with Colly", "url", url)
 
 	err := cs.Collector.Visit(url)
 	if err != nil {
