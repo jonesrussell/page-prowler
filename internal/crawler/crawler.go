@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
+	"github.com/jonesrussell/page-prowler/internal/stats"
 
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
-	"github.com/jonesrussell/page-prowler/internal/stats"
 )
 
 const (
@@ -46,6 +46,8 @@ type CrawlManager struct {
 	CrawlingMu           sync.Mutex
 	VisitedPages         map[string]bool
 	MatchedLinkProcessor MatchedLinkProcessor
+	LinkStats            *stats.Stats
+	LinkStatsMu          sync.Mutex // Mutex for LinkStats
 }
 
 func (cm *CrawlManager) Debug(msg string, keysAndValues ...interface{}) {
@@ -75,8 +77,6 @@ type CrawlOptions struct {
 	CrawlSiteID string
 	SearchTerms []string
 	Results     *[]PageData
-	LinkStats   *stats.Stats
-	LinkStatsMu sync.Mutex // Mutex for LinkStats
 	Debug       bool
 }
 
@@ -143,14 +143,14 @@ func (cs *CrawlManager) SetupCrawlingLogic(options *CrawlOptions) error {
 
 // CrawlURL visits the given URL and performs the crawling operation.
 func (cs *CrawlManager) CrawlURL(url string, options *CrawlOptions) error {
-	cs.Logger().Debug("Visiting URL", "url", url)
+	cs.Logger().Debug("[CrawlURL] Visiting URL", "url", url)
 	err := cs.visitWithColly(url)
 	if err != nil {
 		return cs.HandleVisitError(url, err)
 	}
-	cs.trackVisitedPage(url, options)
+	//	cs.trackVisitedPage(url, options)
 	cs.Collector.Wait()
-	cs.Logger().Info("Crawling completed.")
+	cs.Logger().Info("[CrawlURL] Crawling completed.")
 	return nil
 }
 

@@ -7,7 +7,6 @@ func NewCrawlOptions(crawlSiteID string, searchTerms []string, debug bool, resul
 		CrawlSiteID: crawlSiteID,
 		SearchTerms: searchTerms,
 		Results:     results,
-		LinkStats:   linkStats,
 		Debug:       debug,
 	}
 }

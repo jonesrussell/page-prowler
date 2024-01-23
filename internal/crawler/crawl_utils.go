@@ -34,9 +34,9 @@ func (cs *CrawlManager) getHref(e *colly.HTMLElement) string {
 }
 
 func (cs *CrawlManager) incrementTotalLinks(options *CrawlOptions) {
-	options.LinkStatsMu.Lock()
-	options.LinkStats.IncrementTotalLinks()
-	options.LinkStatsMu.Unlock()
+	cs.LinkStatsMu.Lock()
+	cs.LinkStats.IncrementTotalLinks()
+	cs.LinkStatsMu.Unlock()
 	cs.Debug("Incremented total links count")
 }
 
@@ -78,12 +78,12 @@ func (cs *CrawlManager) processLink(e *colly.HTMLElement, href string, options *
 
 // handleMatchingLinks is responsible for handling the links that match the search criteria during crawling.
 func (cs *CrawlManager) handleMatchingLinks(href string) error {
-	cs.Debug("Start handling matching links", "url", href)
+	cs.Debug("[handleMatchingLinks] Start handling matching links", "url", href)
 
-	err := cs.visitWithColly(href)
+	/*err := cs.visitWithColly(href)
 	if err != nil {
 		return err
-	}
+	}*/
 
 	cs.Debug("End handling matching links", "url", href)
 	return nil
@@ -92,13 +92,6 @@ func (cs *CrawlManager) handleMatchingLinks(href string) error {
 func (cs *CrawlManager) handleSetupError(err error) error {
 	cs.Error("Error setting up crawling logic", "error", err)
 	return err
-}
-
-func (cs *CrawlManager) trackVisitedPage(url string, options *CrawlOptions) {
-	if !cs.VisitedPages[url] {
-		cs.VisitedPages[url] = true
-		options.LinkStats.IncrementTotalPages()
-	}
 }
 
 func (cs *CrawlManager) ProcessMatchingLinkAndUpdateStats(options *CrawlOptions, href string, pageData PageData, matchingTerms []string) {
@@ -125,9 +118,9 @@ func (cs *CrawlManager) ProcessMatchingLinkAndUpdateStats(options *CrawlOptions,
 }
 
 func (cs *CrawlManager) incrementMatchedLinks(options *CrawlOptions) {
-	options.LinkStatsMu.Lock()
-	defer options.LinkStatsMu.Unlock()
-	options.LinkStats.IncrementMatchedLinks()
+	cs.LinkStatsMu.Lock()
+	defer cs.LinkStatsMu.Unlock()
+	cs.LinkStats.IncrementMatchedLinks()
 }
 
 func (cs *CrawlManager) updatePageData(pageData *PageData, href string, matchingTerms []string) {
@@ -136,15 +129,15 @@ func (cs *CrawlManager) updatePageData(pageData *PageData, href string, matching
 }
 
 func (cs *CrawlManager) appendResult(options *CrawlOptions, pageData PageData) {
-	options.LinkStatsMu.Lock()
+	cs.LinkStatsMu.Lock()
 	*options.Results = append(*options.Results, pageData)
-	options.LinkStatsMu.Unlock()
+	cs.LinkStatsMu.Unlock()
 }
 
 func (cs *CrawlManager) incrementNonMatchedLinkCount(options *CrawlOptions) {
-	options.LinkStatsMu.Lock()
-	options.LinkStats.IncrementNotMatchedLinks()
-	options.LinkStatsMu.Unlock()
+	cs.LinkStatsMu.Lock()
+	cs.LinkStats.IncrementNotMatchedLinks()
+	cs.LinkStatsMu.Unlock()
 	cs.Debug("Incremented not matched links count")
 }
 
