@@ -121,10 +121,10 @@ paths:
           $ref: "#/components/responses/DefaultError"
   /getlinks:
     get:
-      summary: Get the list of links for a given crawlsiteid
-      description: This operation retrieves the list of links for a given crawlsiteid.
+      summary: Get the list of links for a given siteid
+      description: This operation retrieves the list of links for a given siteid.
       parameters:
-        - name: crawlsiteid
+        - name: siteid
           in: query
           required: true
           schema:
@@ -146,7 +146,7 @@ components:
     Output:
       type: object
       properties:
-        crawlsiteid:
+        siteid:
           type: string
         timestamp:
           type: string

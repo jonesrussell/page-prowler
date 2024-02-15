@@ -23,13 +23,13 @@ func TestClearlinksCmd_RunE(t *testing.T) {
 
 	cmd := &cobra.Command{
 		Use:   "clearlinks",
-		Short: "Clear the Redis set for a given crawlsiteid",
+		Short: "Clear the Redis set for a given siteid",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return ClearlinksCmd.RunE(cmd, []string{})
 		},
 	}
-	cmd.Flags().StringVarP(&Crawlsiteid, "crawlsiteid", "s", "", "CrawlSite ID")
-	cmd.SetArgs([]string{"--crawlsiteid=test"})
+	cmd.Flags().StringVarP(&Siteid, "siteid", "s", "", "CrawlSite ID")
+	cmd.SetArgs([]string{"--siteid=test"})
 
 	err := cmd.ExecuteContext(ctx)
 	assert.Nil(t, err)

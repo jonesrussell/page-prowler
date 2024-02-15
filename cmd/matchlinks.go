@@ -33,9 +33,9 @@ var matchlinksCmd = &cobra.Command{
 			log.Fatalf("manager is nil")
 		}
 
-		crawlsiteid := viper.GetString("crawlsiteid")
-		if crawlsiteid == "" {
-			return ErrCrawlsiteidRequired
+		siteid := viper.GetString("siteid")
+		if siteid == "" {
+			return ErrSiteidRequired
 		}
 
 		searchterms := viper.GetString("searchterms")
@@ -60,7 +60,7 @@ var matchlinksCmd = &cobra.Command{
 			manager.Logger().Infof(" %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH"))
 		}
 
-		err := manager.StartCrawling(ctx, url, searchterms, crawlsiteid, viper.GetInt("maxdepth"), viper.GetBool("debug"))
+		err := manager.StartCrawling(ctx, url, searchterms, siteid, viper.GetInt("maxdepth"), viper.GetBool("debug"))
 		if err != nil {
 			log.Fatalf("Error starting crawling: %v", err)
 		}

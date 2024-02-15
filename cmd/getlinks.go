@@ -14,11 +14,11 @@ import (
 
 var GetLinksCmd = &cobra.Command{
 	Use:   "getlinks",
-	Short: "Get the list of links for a given crawlsiteid",
+	Short: "Get the list of links for a given siteid",
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		crawlsiteid, _ := cmd.Flags().GetString("crawlsiteid")
-		if crawlsiteid == "" {
-			return errors.New("crawlsiteid is required")
+		siteid, _ := cmd.Flags().GetString("siteid")
+		if siteid == "" {
+			return errors.New("siteid is required")
 		}
 
 		manager, ok := cmd.Context().Value(common.CrawlManagerKey).(*crawler.CrawlManager)
@@ -26,7 +26,7 @@ var GetLinksCmd = &cobra.Command{
 			return fmt.Errorf("CrawlManager is not initialized")
 		}
 
-		err := printLinks(cmd.Context(), manager, crawlsiteid)
+		err := printLinks(cmd.Context(), manager, siteid)
 		if err != nil {
 			log.Printf("Failed to print links: %v\n", err)
 			return err
@@ -48,13 +48,13 @@ func printJSON(jsonOutput []byte) error {
 	return nil
 }
 
-func printLinks(ctx context.Context, manager *crawler.CrawlManager, crawlsiteid string) error {
-	links, err := consumer.RetrieveAndUnmarshalLinks(ctx, manager, crawlsiteid)
+func printLinks(ctx context.Context, manager *crawler.CrawlManager, siteid string) error {
+	links, err := consumer.RetrieveAndUnmarshalLinks(ctx, manager, siteid)
 	if err != nil {
 		return err
 	}
 
-	output := consumer.CreateOutput(crawlsiteid, links)
+	output := consumer.CreateOutput(siteid, links)
 
 	jsonOutput, err := consumer.MarshalOutput(output)
 	if err != nil {

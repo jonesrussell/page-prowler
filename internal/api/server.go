@@ -24,9 +24,9 @@ type ServerApiInterface struct {
 }
 
 func (msi *ServerApiInterface) GetGetlinks(ctx echo.Context, params GetGetlinksParams) error {
-	crawlsiteid := params.Crawlsiteid
-	if crawlsiteid == "" {
-		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "crawlsiteid cannot be empty"})
+	siteid := params.Siteid
+	if siteid == "" {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "siteid cannot be empty"})
 	}
 
 	manager, ok := ctx.Get(string(common.CrawlManagerKeyStr)).(*crawler.CrawlManager)
@@ -34,12 +34,12 @@ func (msi *ServerApiInterface) GetGetlinks(ctx echo.Context, params GetGetlinksP
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "CrawlManager not found in context"})
 	}
 
-	links, err := consumer.RetrieveAndUnmarshalLinks(ctx.Request().Context(), manager, crawlsiteid)
+	links, err := consumer.RetrieveAndUnmarshalLinks(ctx.Request().Context(), manager, siteid)
 	if err != nil {
 		return err
 	}
 
-	output := consumer.CreateOutput(crawlsiteid, links)
+	output := consumer.CreateOutput(siteid, links)
 
 	jsonOutput, err := consumer.MarshalOutput(output)
 	if err != nil {

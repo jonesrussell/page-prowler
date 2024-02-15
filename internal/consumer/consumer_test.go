@@ -15,17 +15,17 @@ func TestRetrieveAndUnmarshalLinks(t *testing.T) {
 	manager := &crawler.CrawlManager{
 		Client: prowlredis.NewMockClient(), // Use the mock client
 	}
-	crawlsiteid := "testsite"
+	siteid := "testsite"
 
 	// Add some mock data to the client
 	link1 := `{"url": "https://example.com/1", "matching_terms": ["term1", "term2"]}`
 	link2 := `{"url": "https://example.com/2", "matching_terms": ["term3", "term4"]}`
-	err := manager.Client.SAdd(ctx, crawlsiteid, link1, link2)
+	err := manager.Client.SAdd(ctx, siteid, link1, link2)
 	if err != nil {
 		return
 	}
 
-	links, err := RetrieveAndUnmarshalLinks(ctx, manager, crawlsiteid)
+	links, err := RetrieveAndUnmarshalLinks(ctx, manager, siteid)
 	assert.NoError(t, err)
 	assert.NotNil(t, links)
 }
@@ -35,21 +35,21 @@ func TestRetrieveAndUnmarshalLinksEmptySet(t *testing.T) {
 	manager := &crawler.CrawlManager{
 		Client: prowlredis.NewMockClient(), // Use the mock client
 	}
-	crawlsiteid := "emptyset"
+	siteid := "emptyset"
 
 	// No mock data added to the client
 
-	links, err := RetrieveAndUnmarshalLinks(ctx, manager, crawlsiteid)
+	links, err := RetrieveAndUnmarshalLinks(ctx, manager, siteid)
 	assert.NoError(t, err)
 	assert.Nil(t, links)
 }
 
 func TestCreateOutput(t *testing.T) {
-	crawlsiteid := "testsite"
+	siteid := "testsite"
 	var links []Link // Initialize with mock data
 
-	output := CreateOutput(crawlsiteid, links)
-	assert.Equal(t, crawlsiteid, output.Crawlsiteid)
+	output := CreateOutput(siteid, links)
+	assert.Equal(t, siteid, output.Siteid)
 	assert.WithinDuration(t, time.Now(), output.Timestamp, time.Second)
 	assert.Equal(t, "success", output.Status)
 	assert.Equal(t, "Links retrieved successfully", output.Message)
