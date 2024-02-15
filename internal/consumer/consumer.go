@@ -10,11 +10,11 @@ import (
 )
 
 type Output struct {
-	Crawlsiteid string    `json:"crawlsiteid"`
-	Timestamp   time.Time `json:"timestamp"`
-	Status      string    `json:"status"`
-	Message     string    `json:"message"`
-	Links       []Link    `json:"links"`
+	Siteid    string    `json:"siteid"`
+	Timestamp time.Time `json:"timestamp"`
+	Status    string    `json:"status"`
+	Message   string    `json:"message"`
+	Links     []Link    `json:"links"`
 }
 
 type Link struct {
@@ -22,8 +22,8 @@ type Link struct {
 	MatchingTerms []string `json:"matching_terms"`
 }
 
-func RetrieveAndUnmarshalLinks(ctx context.Context, manager *crawler.CrawlManager, crawlsiteid string) ([]Link, error) {
-	links, err := manager.Client.SMembers(ctx, crawlsiteid)
+func RetrieveAndUnmarshalLinks(ctx context.Context, manager *crawler.CrawlManager, siteid string) ([]Link, error) {
+	links, err := manager.Client.SMembers(ctx, siteid)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get links from Redis: %v", err)
 	}
@@ -41,13 +41,13 @@ func RetrieveAndUnmarshalLinks(ctx context.Context, manager *crawler.CrawlManage
 	return linkStructs, nil
 }
 
-func CreateOutput(crawlsiteid string, links []Link) Output {
+func CreateOutput(siteid string, links []Link) Output {
 	return Output{
-		Crawlsiteid: crawlsiteid,
-		Timestamp:   time.Now(),
-		Status:      "success",
-		Message:     "Links retrieved successfully",
-		Links:       links,
+		Siteid:    siteid,
+		Timestamp: time.Now(),
+		Status:    "success",
+		Message:   "Links retrieved successfully",
+		Links:     links,
 	}
 }
 

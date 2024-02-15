@@ -12,13 +12,13 @@ import (
 
 var ClearlinksCmd = &cobra.Command{
 	Use:   "clearlinks",
-	Short: "Clear the Redis set for a given crawlsiteid",
+	Short: "Clear the Redis set for a given siteid",
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		log.Println("RunE function started")
 
-		crawlsiteid, _ := cmd.Flags().GetString("crawlsiteid")
-		if crawlsiteid == "" {
-			return errors.New("crawlsiteid is required")
+		siteid, _ := cmd.Flags().GetString("siteid")
+		if siteid == "" {
+			return errors.New("siteid is required")
 		}
 
 		manager, ok := cmd.Context().Value(common.CrawlManagerKey).(*crawler.CrawlManager)
@@ -28,7 +28,7 @@ var ClearlinksCmd = &cobra.Command{
 
 		redisClient := manager.Client
 
-		err := redisClient.Del(cmd.Context(), crawlsiteid)
+		err := redisClient.Del(cmd.Context(), siteid)
 		if err != nil {
 			return fmt.Errorf("failed to clear Redis set: %v", err)
 		}

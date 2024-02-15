@@ -16,12 +16,12 @@ import (
 )
 
 var (
-	Debug       bool
-	Crawlsiteid string
+	Debug  bool
+	Siteid string
 )
 
 var ErrCrawlManagerNotInitialized = errors.New("CrawlManager is not initialized")
-var ErrCrawlsiteidRequired = errors.New("crawlsiteid is required")
+var ErrSiteidRequired = errors.New("siteid is required")
 
 var rootCmd = &cobra.Command{
 	Use:   "page-prowler",
@@ -124,9 +124,9 @@ func init() {
 		log.Fatalf("Error binding debug flag: %v", err)
 	}
 
-	// Bind the crawlsiteid flag to the viper configuration
-	if err := viper.BindPFlag("crawlsiteid", rootCmd.PersistentFlags().Lookup("crawlsiteid")); err != nil {
-		log.Fatalf("Failed to bind crawlsiteid flag: %v", err)
+	// Bind the siteid flag to the viper configuration
+	if err := viper.BindPFlag("siteid", rootCmd.PersistentFlags().Lookup("siteid")); err != nil {
+		log.Fatalf("Failed to bind siteid flag: %v", err)
 	}
 
 	rootCmd.AddCommand(apiCmd)
@@ -146,11 +146,6 @@ func initConfig() {
 	// Set the default value of the debug flag from the viper configuration
 	if err := rootCmd.PersistentFlags().Lookup("debug").Value.Set(viper.GetString("DEBUG")); err != nil {
 		log.Fatalf("Failed to set debug flag: %v", err)
-	}
-
-	// Set the default value of the crawlsiteid flag from the viper configuration
-	if err := rootCmd.PersistentFlags().Lookup("crawlsiteid").Value.Set(viper.GetString("CRAWLSITEID")); err != nil {
-		log.Fatalf("Failed to set crawlsiteid flag: %v", err)
 	}
 }
 

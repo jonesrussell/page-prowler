@@ -29,7 +29,7 @@ type CrawlManagerInterface interface {
 	HandleVisitError(url string, err error) error
 	LogError(message string, keysAndValues ...interface{})
 	Logger() logger.Logger
-	StartCrawling(ctx context.Context, url string, searchterms string, crawlsiteid string, maxdepth int, debug bool) error
+	StartCrawling(ctx context.Context, url string, searchterms string, siteid string, maxdepth int, debug bool) error
 	ProcessMatchingLinkAndUpdateStats(*CrawlOptions, string, PageData, []string)
 }
 

@@ -25,7 +25,7 @@ type Link struct {
 
 // Output defines model for Output.
 type Output struct {
-	Crawlsiteid *string    `json:"crawlsiteid,omitempty"`
+	Siteid *string    `json:"siteid,omitempty"`
 	Links       *[]Link    `json:"links,omitempty"`
 	Message     *string    `json:"message,omitempty"`
 	Status      *string    `json:"status,omitempty"`
@@ -49,8 +49,8 @@ type DefaultError = ErrorResponse
 
 // GetGetlinksParams defines parameters for GetGetlinks.
 type GetGetlinksParams struct {
-	// Crawlsiteid The ID of the crawl site to retrieve links for.
-	Crawlsiteid string `form:"crawlsiteid" json:"crawlsiteid"`
+	// Siteid The ID of the crawl site to retrieve links for.
+	Siteid string `form:"siteid" json:"siteid"`
 }
 
 // PostMatchlinksJSONBody defines parameters for PostMatchlinks.
@@ -67,7 +67,7 @@ type PostMatchlinksJSONRequestBody PostMatchlinksJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Get the list of links for a given crawlsiteid
+	// Get the list of links for a given siteid
 	// (GET /getlinks)
 	GetGetlinks(ctx echo.Context, params GetGetlinksParams) error
 	// Get all matching tasks
@@ -98,11 +98,11 @@ func (w *ServerInterfaceWrapper) GetGetlinks(ctx echo.Context) error {
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetGetlinksParams
-	// ------------- Required query parameter "crawlsiteid" -------------
+	// ------------- Required query parameter "siteid" -------------
 
-	err = runtime.BindQueryParameter("form", true, true, "crawlsiteid", ctx.QueryParams(), &params.Crawlsiteid)
+	err = runtime.BindQueryParameter("form", true, true, "siteid", ctx.QueryParams(), &params.Siteid)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter crawlsiteid: %s", err))
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter siteid: %s", err))
 	}
 
 	// Invoke the callback with all the unmarshaled arguments

@@ -10,8 +10,8 @@ Page Prowler is a tool designed to find and extract links from websites based on
 
 - **api**: Starts the API server.
 - **matchlinks**: Crawls specific websites and extracts matchlinks that match the provided terms. Can be run from the command line or via a POST request to `/v1/matchlinks` on the API server.
-- **clearlinks**: Clears the Redis set for a given crawlsiteid.
-- **getlinks**: Gets the list of links for a given crawlsiteid.
+- **clearlinks**: Clears the Redis set for a given siteid.
+- **getlinks**: Gets the list of links for a given siteid.
 - **worker**: Starts the Asynq worker.
 - **help**: Displays help about any command.
 
@@ -36,7 +36,7 @@ This command will run fmt, lint, test, and build targets defined in the Makefile
 To search for matchlinks from the command line, use the following command:
 
 ```bash
-./page-prowler matchlinks --url="https://www.example.com" --searchterms="keyword1,keyword2" --crawlsiteid=siteID --maxdepth=1 --debug
+./page-prowler matchlinks --url="https://www.example.com" --searchterms="keyword1,keyword2" --siteid=siteID --maxdepth=1 --debug
 ```
 
 Replace `"https://www.example.com"` with the URL you want to crawl, `"keyword1,keyword2"` with the search terms you want to look for, `siteID` with your site ID, and `1` with the maximum depth of the crawl.

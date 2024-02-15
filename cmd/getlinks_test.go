@@ -18,13 +18,13 @@ func TestGetLinksCmd(t *testing.T) {
 	// Initialize the command
 	getLinksCmd := &cobra.Command{
 		Use:   "getlinks",
-		Short: "Get the list of links for a given crawlsiteid",
+		Short: "Get the list of links for a given siteid",
 		RunE:  cmd.GetLinksCmd.RunE,
 	}
 
-	// Set the 'crawlsiteid' flag
-	getLinksCmd.Flags().StringP("crawlsiteid", "s", "", "CrawlSite ID")
-	err := viper.BindPFlag("crawlsiteid", getLinksCmd.Flags().Lookup("crawlsiteid"))
+	// Set the 'siteid' flag
+	getLinksCmd.Flags().StringP("siteid", "s", "", "CrawlSite ID")
+	err := viper.BindPFlag("siteid", getLinksCmd.Flags().Lookup("siteid"))
 	if err != nil {
 		return
 	}
@@ -40,19 +40,19 @@ func TestGetLinksCmd(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Crawlsiteid empty, no env, no flag",
+			name:    "Siteid empty, no env, no flag",
 			env:     "",
 			flag:    "",
-			wantErr: true, // Assuming your command returns an error when crawlsiteid is not provided
+			wantErr: true, // Assuming your command returns an error when siteid is not provided
 		},
 		{
-			name:    "Crawlsiteid by flag, env not set",
+			name:    "Siteid by flag, env not set",
 			env:     "",
 			flag:    "flag_value",
 			wantErr: false,
 		},
 		{
-			name:    "Crawlsiteid by flag, env set",
+			name:    "Siteid by flag, env set",
 			env:     "env_value",
 			flag:    "flag_value",
 			wantErr: false,
@@ -61,14 +61,14 @@ func TestGetLinksCmd(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set the 'crawlsiteid' environment variable
-			err := os.Setenv("CRAWLSITEID", tt.env)
+			// Set the 'siteid' environment variable
+			err := os.Setenv("SITEID", tt.env)
 			if err != nil {
 				return
 			}
 
-			// Set the 'crawlsiteid' flag value
-			viper.Set("crawlsiteid", tt.flag)
+			// Set the 'siteid' flag value
+			viper.Set("siteid", tt.flag)
 
 			// Initialize a CrawlManager
 			manager := &crawler.CrawlManager{
@@ -83,8 +83,8 @@ func TestGetLinksCmd(t *testing.T) {
 			// Set the context in the command
 			getLinksCmd.SetContext(ctx)
 
-			// Execute the command with the 'crawlsiteid' flag and environment variable values
-			getLinksCmd.SetArgs([]string{"--crawlsiteid=" + tt.flag})
+			// Execute the command with the 'siteid' flag and environment variable values
+			getLinksCmd.SetArgs([]string{"--siteid=" + tt.flag})
 			err = getLinksCmd.Execute()
 
 			// Check for error
@@ -92,8 +92,8 @@ func TestGetLinksCmd(t *testing.T) {
 				t.Errorf("getLinksCmd.Execute() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			// Unset the 'crawlsiteid' environment variable
-			err = os.Unsetenv("CRAWLSITEID")
+			// Unset the 'siteid' environment variable
+			err = os.Unsetenv("SITEID")
 			if err != nil {
 				return
 			}

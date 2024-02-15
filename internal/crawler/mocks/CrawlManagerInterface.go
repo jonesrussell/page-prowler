@@ -159,9 +159,9 @@ func (_m *CrawlManagerInterface) SetupHTMLParsingHandler(handler func(*colly.HTM
 	return r0
 }
 
-// StartCrawling provides a mock function with given fields: ctx, url, searchterms, crawlsiteid, maxdepth, debug
-func (_m *CrawlManagerInterface) StartCrawling(ctx context.Context, url string, searchterms string, crawlsiteid string, maxdepth int, debug bool) error {
-	ret := _m.Called(ctx, url, searchterms, crawlsiteid, maxdepth, debug)
+// StartCrawling provides a mock function with given fields: ctx, url, searchterms, siteid, maxdepth, debug
+func (_m *CrawlManagerInterface) StartCrawling(ctx context.Context, url string, searchterms string, siteid string, maxdepth int, debug bool) error {
+	ret := _m.Called(ctx, url, searchterms, siteid, maxdepth, debug)
 
 	if len(ret) == 0 {
 		panic("no return value specified for StartCrawling")
@@ -169,7 +169,7 @@ func (_m *CrawlManagerInterface) StartCrawling(ctx context.Context, url string, 
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, int, bool) error); ok {
-		r0 = rf(ctx, url, searchterms, crawlsiteid, maxdepth, debug)
+		r0 = rf(ctx, url, searchterms, siteid, maxdepth, debug)
 	} else {
 		r0 = ret.Error(0)
 	}

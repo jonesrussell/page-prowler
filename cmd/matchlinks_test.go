@@ -15,12 +15,12 @@ import (
 	cmd := CreateTestCommand(matchlinksCmd.Use, matchlinksCmd.Short, matchlinksCmd.Long, matchlinksCmd.RunE)
 
 	// Define the flags
-	cmd.Flags().StringP("crawlsiteid", "s", "", "CrawlSite ID")
+	cmd.Flags().StringP("siteid", "s", "", "CrawlSite ID")
 	cmd.Flags().StringP("url", "u", "", "URL to crawl")
 	cmd.Flags().StringP("searchterms", "t", "", "Search terms for crawling")
 	cmd.Flags().IntP("maxdepth", "m", 1, "Max depth for crawling")
 
-	cmd.SetArgs([]string{"--crawlsiteid", "test", "--url", "http://example.com", "--searchterms", "test", "--maxdepth", "1"})
+	cmd.SetArgs([]string{"--siteid", "test", "--url", "http://example.com", "--searchterms", "test", "--maxdepth", "1"})
 
 	// Create a buffer to capture the output
 	var buf bytes.Buffer
@@ -41,13 +41,13 @@ func TestStartCrawlingIsCalledWithCorrectArguments(t *testing.T) {
 	ctx := context.Background()
 	url := "https://example.com"
 	searchterms := "test"
-	crawlsiteid := "123"
+	siteid := "123"
 	maxdepth := 1
 
-	mockManager.On("StartCrawling", ctx, url, searchterms, crawlsiteid, maxdepth, false).Return(nil)
+	mockManager.On("StartCrawling", ctx, url, searchterms, siteid, maxdepth, false).Return(nil)
 
 	// Call the function that uses StartCrawling here
-	err := mockManager.StartCrawling(ctx, url, searchterms, crawlsiteid, maxdepth, false)
+	err := mockManager.StartCrawling(ctx, url, searchterms, siteid, maxdepth, false)
 	if err != nil {
 		t.Errorf("error running matchlinks command: %v", err)
 	}
@@ -60,14 +60,14 @@ func TestStartCrawlingHandlesErrors(t *testing.T) {
 	ctx := context.Background()
 	url := "https://example.com"
 	searchterms := "test"
-	crawlsiteid := "123"
+	siteid := "123"
 	maxdepth := 1
 
 	// Set up the mock to return an error
-	mockManager.On("StartCrawling", ctx, url, searchterms, crawlsiteid, maxdepth, false).Return(errors.New("mock error"))
+	mockManager.On("StartCrawling", ctx, url, searchterms, siteid, maxdepth, false).Return(errors.New("mock error"))
 
 	// Call the function that uses StartCrawling here
-	err := mockManager.StartCrawling(ctx, url, searchterms, crawlsiteid, maxdepth, false)
+	err := mockManager.StartCrawling(ctx, url, searchterms, siteid, maxdepth, false)
 	if err == nil {
 		t.Errorf("expected error, got nil")
 	}
@@ -77,7 +77,7 @@ func TestStartCrawlingHandlesErrors(t *testing.T) {
 
 /*func TestFlagsAreBoundCorrectly(t *testing.T) {
 	// Define a flag
-	flagName := "crawlsiteid"
+	flagName := "siteid"
 	flagValue := "testvalue"
 
 	// Set the flag value
