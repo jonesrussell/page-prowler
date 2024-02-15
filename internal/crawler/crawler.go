@@ -96,6 +96,7 @@ func (cs *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, cra
 
 // crawl starts the crawling process for a given URL with the provided options.
 func (cs *CrawlManager) Crawl(url string, options *CrawlOptions) ([]PageData, error) {
+	cs.LoggerField.Debug("CrawlURL", "url", url)
 	err := cs.SetupCrawlingLogic(options)
 	if err != nil {
 		return nil, err
