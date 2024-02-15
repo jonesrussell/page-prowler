@@ -117,8 +117,6 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Define the crawlsiteid flag as a persistent flag on the rootCmd
-	rootCmd.PersistentFlags().StringVarP(&Crawlsiteid, "crawlsiteid", "s", "", "CrawlSite ID")
 	rootCmd.PersistentFlags().BoolVar(&Debug, "debug", false, "Enable debug mode")
 
 	// Bind the debug flag to the viper configuration
