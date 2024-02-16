@@ -16,8 +16,7 @@ import (
 )
 
 var (
-	Debug  bool
-	Siteid string
+	Debug bool
 )
 
 var ErrCrawlManagerNotInitialized = errors.New("CrawlManager is not initialized")
@@ -115,38 +114,20 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-
-	rootCmd.PersistentFlags().BoolVar(&Debug, "debug", false, "Enable debug mode")
-
-	// Bind the debug flag to the viper configuration
-	if err := viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug")); err != nil {
-		log.Fatalf("Error binding debug flag: %v", err)
-	}
-
-	// Bind the siteid flag to the viper configuration
-	if err := viper.BindPFlag("siteid", rootCmd.PersistentFlags().Lookup("siteid")); err != nil {
-		log.Fatalf("Failed to bind siteid flag: %v", err)
-	}
-
-	rootCmd.AddCommand(apiCmd)
-	rootCmd.AddCommand(matchlinksCmd)
-	rootCmd.AddCommand(workerCmd)
-}
-
-func initConfig() {
+	// Initialize Viper
+	viper.AutomaticEnv() // Read environment variables
 	viper.SetConfigFile(".env")
-	viper.SetConfigType("env")
-	viper.AutomaticEnv() // Automatically override values from the .env file with those from the environment.
-
-	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("Error reading config file: %v", err)
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Println("Could not read config file")
 	}
 
-	// Set the default value of the debug flag from the viper configuration
-	if err := rootCmd.PersistentFlags().Lookup("debug").Value.Set(viper.GetString("DEBUG")); err != nil {
-		log.Fatalf("Failed to set debug flag: %v", err)
-	}
+	err = viper.BindEnv("debug")
+	if err != nil {
+		log.Fatalf("Error binding debug flag: %v", err)
+	} // Bind the DEBUG environment variable to a config key
+
+	rootCmd.PersistentFlags().BoolVarP(&Debug, "debug", "d", viper.GetBool("debug"), "Enable debug output")
 }
 
 func initializeLogger(level logger.LogLevel) (logger.Logger, error) {

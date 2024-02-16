@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 
@@ -16,17 +15,18 @@ var GetLinksCmd = &cobra.Command{
 	Use:   "getlinks",
 	Short: "Get the list of links for a given siteid",
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		siteid, _ := cmd.Flags().GetString("siteid")
-		if siteid == "" {
-			return errors.New("siteid is required")
-		}
+		// siteid, _ := cmd.Flags().GetString("siteid")
+		// if siteid == "" {
+		// 	return errors.New("siteid is required")
+		// }
 
 		manager, ok := cmd.Context().Value(common.CrawlManagerKey).(*crawler.CrawlManager)
 		if !ok || manager == nil {
 			return fmt.Errorf("CrawlManager is not initialized")
 		}
 
-		err := printLinks(cmd.Context(), manager, siteid)
+		// log.Fatal("Siteid", Siteid)
+		err := printLinks(cmd.Context(), manager, Siteid)
 		if err != nil {
 			log.Printf("Failed to print links: %v\n", err)
 			return err
@@ -37,7 +37,7 @@ var GetLinksCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(GetLinksCmd)
+	resultsCmd.AddCommand(GetLinksCmd)
 }
 
 func printJSON(jsonOutput []byte) error {

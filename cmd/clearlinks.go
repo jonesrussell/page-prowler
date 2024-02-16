@@ -45,5 +45,5 @@ var ClearlinksCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(ClearlinksCmd)
+	resultsCmd.AddCommand(ClearlinksCmd)
 }

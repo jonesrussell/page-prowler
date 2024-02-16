@@ -70,7 +70,6 @@ var matchlinksCmd = &cobra.Command{
 }
 
 func init() {
-
 	matchlinksCmd.Flags().StringP("url", "u", "", "URL to crawl")
 	if err := viper.BindPFlag("url", matchlinksCmd.Flags().Lookup("url")); err != nil {
 		log.Fatalf("Error binding flag: %v", err)
@@ -85,4 +84,6 @@ func init() {
 	if err := viper.BindPFlag("maxdepth", matchlinksCmd.Flags().Lookup("maxdepth")); err != nil {
 		log.Fatalf("Error binding flag: %v", err)
 	}
+
+	rootCmd.AddCommand(matchlinksCmd)
 }

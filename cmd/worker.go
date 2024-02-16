@@ -16,3 +16,7 @@ var workerCmd = &cobra.Command{
 		worker.StartWorker(concurrency, manager, Debug)
 	},
 }
+
+func init() {
+	rootCmd.AddCommand(workerCmd)
+}
