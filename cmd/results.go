@@ -1,6 +1,3 @@
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -9,6 +6,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+var Siteid string
 
 // resultsCmd represents the results command
 var resultsCmd = &cobra.Command{
@@ -23,13 +22,20 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	rootCmd.AddCommand(resultsCmd)
-
-	// Set the default value of the siteid flag from the viper configuration
-	if err := rootCmd.PersistentFlags().Lookup("siteid").Value.Set(viper.GetString("CRAWLSITEID")); err != nil {
-		log.Fatalf("Failed to set siteid flag: %v", err)
+	viper.SetConfigFile(".env")
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Println("Could not read config file")
 	}
 
-	// Define the siteid flag as a persistent flag on the rootCmd
-	rootCmd.PersistentFlags().StringVarP(&Siteid, "siteid", "s", "", "Site ID")
+	// Bind the environment variable to the flag
+	err = viper.BindEnv("siteid")
+	if err != nil {
+		log.Fatalf("Failed to bind env var: %v", err)
+	}
+
+	// Define the siteid flag and set its default value from the environment variable
+	resultsCmd.PersistentFlags().StringVarP(&Siteid, "siteid", "s", viper.GetString("siteid"), "Set siteid for redis set key")
+
+	rootCmd.AddCommand(resultsCmd)
 }
