@@ -25,11 +25,11 @@ type Link struct {
 
 // Output defines model for Output.
 type Output struct {
-	Siteid *string    `json:"siteid,omitempty"`
-	Links       *[]Link    `json:"links,omitempty"`
-	Message     *string    `json:"message,omitempty"`
-	Status      *string    `json:"status,omitempty"`
-	Timestamp   *time.Time `json:"timestamp,omitempty"`
+	Siteid    *string    `json:"siteid,omitempty"`
+	Links     *[]Link    `json:"links,omitempty"`
+	Message   *string    `json:"message,omitempty"`
+	Status    *string    `json:"status,omitempty"`
+	Timestamp *time.Time `json:"timestamp,omitempty"`
 }
 
 // Task defines model for Task.

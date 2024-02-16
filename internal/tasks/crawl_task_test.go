@@ -1,4 +1,4 @@
-package tasks
+package tasks_test
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/hibiken/asynq"
+	"github.com/jonesrussell/page-prowler/internal/tasks"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -25,7 +26,7 @@ func (m *MockAsynqClient) Enqueue(task *asynq.Task, opts ...asynq.Option) (*asyn
 
 func TestEnqueueCrawlTask(t *testing.T) {
 	client := new(MockAsynqClient)
-	payload := &CrawlTaskPayload{
+	payload := &tasks.CrawlTaskPayload{
 		URL:         "https://example.com",
 		SearchTerms: "example",
 		CrawlSiteID: "site123",
@@ -36,7 +37,7 @@ func TestEnqueueCrawlTask(t *testing.T) {
 	// Define the expected behavior for the mock.
 	client.On("Enqueue", mock.Anything, mock.Anything).Return(&asynq.TaskInfo{ID: "123"}, nil)
 
-	id, err := EnqueueCrawlTask(client, payload)
+	id, err := tasks.EnqueueCrawlTask(client, payload)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -50,18 +51,18 @@ func TestEnqueueCrawlTask(t *testing.T) {
 
 func TestNewCrawlTask(t *testing.T) {
 	type args struct {
-		payload *CrawlTaskPayload
+		payload *tasks.CrawlTaskPayload
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    *CrawlTaskPayload
+		want    *tasks.CrawlTaskPayload
 		wantErr bool
 	}{
 		{
 			name: "valid payload",
 			args: args{
-				payload: &CrawlTaskPayload{
+				payload: &tasks.CrawlTaskPayload{
 					URL:         "https://example.com",
 					SearchTerms: "example",
 					CrawlSiteID: "site123",
@@ -69,7 +70,7 @@ func TestNewCrawlTask(t *testing.T) {
 					Debug:       false,
 				},
 			},
-			want: &CrawlTaskPayload{
+			want: &tasks.CrawlTaskPayload{
 				URL:         "https://example.com",
 				SearchTerms: "example",
 				CrawlSiteID: "site123",
@@ -81,13 +82,13 @@ func TestNewCrawlTask(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotTask, err := NewCrawlTask(tt.args.payload)
+			gotTask, err := tasks.NewCrawlTask(tt.args.payload)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewCrawlTask() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if gotTask != nil {
-				var gotPayload CrawlTaskPayload
+				var gotPayload tasks.CrawlTaskPayload
 				if err := json.Unmarshal(gotTask.Payload(), &gotPayload); err != nil {
 					t.Errorf("Failed to unmarshal payload: %v", err)
 					return
@@ -103,12 +104,12 @@ func TestNewCrawlTask(t *testing.T) {
 func TestNewCrawlTaskInvalidPayload(t *testing.T) {
 	tests := []struct {
 		name    string
-		payload *CrawlTaskPayload
+		payload *tasks.CrawlTaskPayload
 		wantErr bool
 	}{
 		{
 			name: "empty URL",
-			payload: &CrawlTaskPayload{
+			payload: &tasks.CrawlTaskPayload{
 				URL:         "",
 				SearchTerms: "example",
 				CrawlSiteID: "site123",
@@ -119,7 +120,7 @@ func TestNewCrawlTaskInvalidPayload(t *testing.T) {
 		},
 		{
 			name: "empty SearchTerms",
-			payload: &CrawlTaskPayload{
+			payload: &tasks.CrawlTaskPayload{
 				URL:         "https://example.com",
 				SearchTerms: "",
 				CrawlSiteID: "site123",
@@ -130,7 +131,7 @@ func TestNewCrawlTaskInvalidPayload(t *testing.T) {
 		},
 		{
 			name: "empty CrawlSiteID",
-			payload: &CrawlTaskPayload{
+			payload: &tasks.CrawlTaskPayload{
 				URL:         "https://example.com",
 				SearchTerms: "example",
 				CrawlSiteID: "",
@@ -141,7 +142,7 @@ func TestNewCrawlTaskInvalidPayload(t *testing.T) {
 		},
 		{
 			name: "negative MaxDepth",
-			payload: &CrawlTaskPayload{
+			payload: &tasks.CrawlTaskPayload{
 				URL:         "https://example.com",
 				SearchTerms: "example",
 				CrawlSiteID: "site123",
@@ -154,7 +155,7 @@ func TestNewCrawlTaskInvalidPayload(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewCrawlTask(tt.payload)
+			_, err := tasks.NewCrawlTask(tt.payload)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewCrawlTask() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -164,7 +165,7 @@ func TestNewCrawlTaskInvalidPayload(t *testing.T) {
 
 func TestEnqueueCrawlTaskError(t *testing.T) {
 	client := new(MockAsynqClient)
-	payload := &CrawlTaskPayload{
+	payload := &tasks.CrawlTaskPayload{
 		URL:         "https://example.com",
 		SearchTerms: "example",
 		CrawlSiteID: "site123",
@@ -175,7 +176,7 @@ func TestEnqueueCrawlTaskError(t *testing.T) {
 	// Define the expected behavior for the mock.
 	client.On("Enqueue", mock.Anything, mock.Anything).Return(nil, fmt.Errorf("enqueue error"))
 
-	_, err := EnqueueCrawlTask(client, payload)
+	_, err := tasks.EnqueueCrawlTask(client, payload)
 	if err == nil {
 		t.Errorf("Expected error, got none")
 	}
@@ -185,7 +186,7 @@ func TestEnqueueCrawlTaskError(t *testing.T) {
 }
 
 func TestNewCrawlTaskCorrectTaskCreation(t *testing.T) {
-	payload := &CrawlTaskPayload{
+	payload := &tasks.CrawlTaskPayload{
 		URL:         "https://example.com",
 		SearchTerms: "example",
 		CrawlSiteID: "site123",
@@ -193,8 +194,8 @@ func TestNewCrawlTaskCorrectTaskCreation(t *testing.T) {
 		Debug:       false,
 	}
 
-	task, _ := NewCrawlTask(payload)
-	if task.Type() != CrawlTaskType {
-		t.Errorf("Expected task type to be '%s', got '%s'", CrawlTaskType, task.Type())
+	task, _ := tasks.NewCrawlTask(payload)
+	if task.Type() != tasks.CrawlTaskType {
+		t.Errorf("Expected task type to be '%s', got '%s'", tasks.CrawlTaskType, task.Type())
 	}
 }

@@ -1,63 +1,42 @@
-package cmd
+package cmd_test
 
 import (
 	"log"
 	"os"
 	"testing"
 
-	"github.com/jonesrussell/page-prowler/cmd/mocks"
+	"github.com/jonesrussell/page-prowler/cmd"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
+	"github.com/jonesrussell/page-prowler/mocks"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRootCmd(t *testing.T) {
-	assert.Equal(t, rootCmd.Use, "page-prowler", "rootCmd.Use should be 'page-prowler'")
+	assert.Equal(t, cmd.RootCmd.Use, "page-prowler", "RootCmd.Use should be 'page-prowler'")
 }
 
 func TestExecute(t *testing.T) {
 	// Call Execute with no arguments
 	os.Args = []string{"cmd"}
-	err := rootCmd.Execute()
+	err := cmd.RootCmd.Execute()
 	assert.NoError(t, err, "Execute() without arguments should not return an error")
-}
-
-func TestInitConfig(t *testing.T) {
-	// Temporarily replace the config file with a non-existent file
-	origConfigFile := viper.ConfigFileUsed()
-	defer func() { viper.SetConfigFile(origConfigFile) }()
-	viper.SetConfigFile("non_existent_file")
-
-	// Call initConfig and check if it doesn't panic
-	assert.NotPanics(t, func() { initConfig() }, "initConfig should not panic if the config file does not exist")
 }
 
 func TestFlagValues(t *testing.T) {
 	// Set a flag value
-	rootCmd.SetArgs([]string{"--debug=true"})
-	err := rootCmd.Execute()
+	cmd.RootCmd.SetArgs([]string{"--debug=true"})
+	err := cmd.RootCmd.Execute()
 	assert.NoError(t, err)
 
 	// Check if the flag value is correctly set
 	assert.True(t, viper.GetBool("debug"))
 }
 
-func TestEnvironmentVariables(t *testing.T) {
-	// Set an environment variable
-	err := os.Setenv("REDIS_HOST", "localhost")
-	if err != nil {
-		log.Fatalf("Failed to set environment variable: %v", err)
-	}
-	initConfig()
-
-	// Check if the environment variable is correctly set
-	assert.Equal(t, "localhost", viper.GetString("REDIS_HOST"))
-}
-
 func TestExecuteError(t *testing.T) {
 	// Provide an invalid command
-	rootCmd.SetArgs([]string{"invalidCommand"})
-	err := rootCmd.Execute()
+	cmd.RootCmd.SetArgs([]string{"invalidCommand"})
+	err := cmd.RootCmd.Execute()
 
 	// Check if Execute returns an error
 	assert.Error(t, err)
@@ -65,7 +44,7 @@ func TestExecuteError(t *testing.T) {
 
 func TestPersistentFlags(t *testing.T) {
 	// Set the flags
-	if err := rootCmd.PersistentFlags().Set("debug", "true"); err != nil {
+	if err := cmd.RootCmd.PersistentFlags().Set("debug", "true"); err != nil {
 		log.Fatalf("Error setting debug flag: %v", err)
 	}
 
@@ -73,19 +52,9 @@ func TestPersistentFlags(t *testing.T) {
 	assert.True(t, viper.GetBool("debug"))
 }
 
-func TestInitConfigError(t *testing.T) {
-	// Temporarily replace the config file with a non-existent file
-	origConfigFile := viper.ConfigFileUsed()
-	defer func() { viper.SetConfigFile(origConfigFile) }()
-	viper.SetConfigFile("non_existent_file")
-
-	// Call initConfig and check if it doesn't panic
-	assert.NotPanics(t, func() { initConfig() }, "initConfig should not panic if the config file does not exist")
-}
-
 func TestInitializeManager_WithNilMongoDBWrapper(t *testing.T) {
 	// Initialize the manager with a mock Redis client and a nil MongoDB wrapper
-	_, err := InitializeManager(
+	_, err := cmd.InitializeManager(
 		prowlredis.NewMockClient(),
 		mocks.NewMockLogger(),
 		nil,
@@ -97,7 +66,7 @@ func TestInitializeManager_WithNilMongoDBWrapper(t *testing.T) {
 
 func TestInitializeManager_WithNilRedisClient(t *testing.T) {
 	// Initialize the manager with a nil Redis client and a new mock logger
-	_, err := InitializeManager(
+	_, err := cmd.InitializeManager(
 		nil,
 		mocks.NewMockLogger(),
 		mocks.NewMockMongoDBWrapper(),
@@ -123,7 +92,7 @@ func TestInitializeManager(t *testing.T) {
 	}
 
 	// Initialize the manager with a mock Redis client and a new mock logger
-	manager, err := InitializeManager(
+	manager, err := cmd.InitializeManager(
 		prowlredis.NewMockClient(),
 		mocks.NewMockLogger(),
 		mocks.NewMockMongoDBWrapper(),

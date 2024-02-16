@@ -1,11 +1,12 @@
-package termmatcher
+package termmatcher_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/adrg/strutil/metrics"
-	"github.com/jonesrussell/page-prowler/cmd/mocks"
+	"github.com/jonesrussell/page-prowler/internal/termmatcher"
+	"github.com/jonesrussell/page-prowler/mocks"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/zapcore"
 )
@@ -22,8 +23,8 @@ func TestExtractLastSegmentFromURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := extractLastSegmentFromURL(tt.url); got != tt.want {
-				t.Errorf("extractLastSegmentFromURL() = %v, want %v", got, tt.want)
+			if got := termmatcher.ExtractLastSegmentFromURL(tt.url); got != tt.want {
+				t.Errorf("ExtractLastSegmentFromURL() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -41,7 +42,7 @@ func TestRemoveHyphens(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := removeHyphens(tt.input); got != tt.want {
+			if got := termmatcher.RemoveHyphens(tt.input); got != tt.want {
 				t.Errorf("removeHyphens() = %v, want %v", got, tt.want)
 			}
 		})
@@ -60,9 +61,9 @@ func TestRemoveStopwords(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := removeStopwords(tt.input)
+			got := termmatcher.RemoveStopwords(tt.input)
 			if got != tt.want {
-				t.Errorf("removeStopwords() = %v, want %v", got, tt.want)
+				t.Errorf("RemoveStopwords() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -80,7 +81,7 @@ func TestStemTitle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := processAndStem(tt.input)
+			got := termmatcher.ProcessAndStem(tt.input)
 			fmt.Println("Expected: ", tt.want)
 			fmt.Println("Actual: ", got)
 			if got != tt.want {
@@ -102,7 +103,7 @@ func TestProcessTitle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := processContent(tt.title); got != tt.want {
+			if got := termmatcher.ProcessContent(tt.title); got != tt.want {
 				t.Errorf("processTitle() = %v, want %v", got, tt.want)
 			}
 		})
@@ -213,17 +214,17 @@ func TestGetMatchingTerms(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			logger := mocks.NewMockLogger() // Create a new mock logger
-			assert.Equal(t, tt.expected, GetMatchingTerms(tt.href, tt.anchorText, tt.searchTerms, logger))
+			assert.Equal(t, tt.expected, termmatcher.GetMatchingTerms(tt.href, tt.anchorText, tt.searchTerms, logger))
 		})
 	}
 }
 
 func TestCompareAndAppendTerm(t *testing.T) {
-	swg := createSWG()
+	swg := termmatcher.CreateSWG()
 	logger := mocks.NewMockLogger()
 	matchingTerms := []string{}
 
-	compareAndAppendTerm("test", "test", swg, &matchingTerms, logger)
+	termmatcher.CompareAndAppendTerm("test", "test", swg, &matchingTerms, logger)
 
 	if len(matchingTerms) != 1 {
 		t.Errorf("Expected matchingTerms to have 1 element, got %v", len(matchingTerms))
@@ -235,7 +236,7 @@ func TestCompareAndAppendTerm(t *testing.T) {
 }
 
 func TestCreateSWG(t *testing.T) {
-	swg := createSWG()
+	swg := termmatcher.CreateSWG()
 
 	if swg.CaseSensitive != false {
 		t.Errorf("Expected CaseSensitive to be false, got %v", swg.CaseSensitive)
@@ -291,7 +292,7 @@ func TestFindMatchingTerms(t *testing.T) {
 			mockLogger.SetLevel(zapcore.DebugLevel) // Set the logger level to Debug
 			fmt.Println("Content: ", tt.content)
 			fmt.Println("Search Terms: ", tt.searchTerms)
-			actual := findMatchingTerms(tt.content, tt.searchTerms, mockLogger)
+			actual := termmatcher.FindMatchingTerms(tt.content, tt.searchTerms, mockLogger)
 			assert.Equal(t, tt.expected, actual)
 
 			// Print the logs with human-readable similarity scores
@@ -326,7 +327,7 @@ func TestCombineContents(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.expected, combineContents(tt.content1, tt.content2))
+			assert.Equal(t, tt.expected, termmatcher.CombineContents(tt.content1, tt.content2))
 		})
 	}
 }
@@ -344,8 +345,8 @@ func TestConvertToLowercase(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := convertToLowercase(tt.input); got != tt.want {
-				t.Errorf("convertToLowercase() = %v, want %v", got, tt.want)
+			if got := termmatcher.ConvertToLowercase(tt.input); got != tt.want {
+				t.Errorf("ConvertToLowercase() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -364,8 +365,8 @@ func TestStemContent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := stemContent(tt.input); got != tt.want {
-				t.Errorf("stemContent() = %v, want %v", got, tt.want)
+			if got := termmatcher.StemContent(tt.input); got != tt.want {
+				t.Errorf("StemContent() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -395,8 +396,8 @@ func TestCompareTerms(t *testing.T) {
 			mockLogger := mocks.NewMockLogger()
 			mockLogger.SetLevel(zapcore.DebugLevel) // Set the logger level to Debug
 
-			if got := compareTerms(tt.searchTerm, tt.content, swg, mockLogger); got != tt.want {
-				t.Errorf("compareTerms() = %v, want %v", got, tt.want)
+			if got := termmatcher.CompareTerms(tt.searchTerm, tt.content, swg, mockLogger); got != tt.want {
+				t.Errorf("CompareTerms() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -410,7 +411,7 @@ func generateLargeNumberOfUniqueSearchTerms(n int) []string {
 	return terms
 }
 
-func Test_combineContents(t *testing.T) {
+func Test_CombineContents(t *testing.T) {
 	type args struct {
 		content1 string
 		content2 string
@@ -424,8 +425,8 @@ func Test_combineContents(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := combineContents(tt.args.content1, tt.args.content2); got != tt.want {
-				t.Errorf("combineContents() = %v, want %v", got, tt.want)
+			if got := termmatcher.CombineContents(tt.args.content1, tt.args.content2); got != tt.want {
+				t.Errorf("CombineContents() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/termmatcher"
 )
 
-func (cs *CrawlManager) getAnchorElementHandler(options *CrawlOptions) func(e *colly.HTMLElement) {
+func (cs *CrawlManager) GetAnchorElementHandler(options *CrawlOptions) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
 		href := cs.getHref(e)
 		if href == "" {
@@ -20,7 +20,7 @@ func (cs *CrawlManager) getAnchorElementHandler(options *CrawlOptions) func(e *c
 		cs.processLink(e, href, options)
 		err := cs.visitWithColly(href)
 		if err != nil {
-			cs.LoggerField.Debug("[getAnchorElementHandler] Error visiting URL", "url", href, "error", err)
+			cs.LoggerField.Debug("[GetAnchorElementHandler] Error visiting URL", "url", href, "error", err)
 		}
 	}
 }

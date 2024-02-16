@@ -22,7 +22,7 @@ var (
 var ErrCrawlManagerNotInitialized = errors.New("CrawlManager is not initialized")
 var ErrSiteidRequired = errors.New("siteid is required")
 
-var rootCmd = &cobra.Command{
+var RootCmd = &cobra.Command{
 	Use:   "page-prowler",
 	Short: "A tool for finding matchlinks from websites",
 	Long: `Page Prowler is a tool that finds matchlinks from websites where the URL matches provided terms. It provides functionalities for:
@@ -105,9 +105,9 @@ var rootCmd = &cobra.Command{
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
+// This is called by main.main(). It only needs to happen once to the RootCmd.
 func Execute() {
-	err := rootCmd.Execute()
+	err := RootCmd.Execute()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func init() {
 		log.Fatalf("Error binding debug flag: %v", err)
 	} // Bind the DEBUG environment variable to a config key
 
-	rootCmd.PersistentFlags().BoolVarP(&Debug, "debug", "d", viper.GetBool("debug"), "Enable debug output")
+	RootCmd.PersistentFlags().BoolVarP(&Debug, "debug", "d", viper.GetBool("debug"), "Enable debug output")
 }
 
 func initializeLogger(level logger.LogLevel) (logger.Logger, error) {

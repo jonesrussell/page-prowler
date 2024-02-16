@@ -1,11 +1,11 @@
-package cmd
+package cmd_test
 
 import (
 	"context"
 	"errors"
 	"testing"
 
-	crawlerMocks "github.com/jonesrussell/page-prowler/internal/crawler/mocks"
+	crawlerMocks "github.com/jonesrussell/page-prowler/mocks"
 )
 
 /*func TestMatchlinksCmd(t *testing.T) {

@@ -37,5 +37,5 @@ func init() {
 	// Define the siteid flag and set its default value from the environment variable
 	resultsCmd.PersistentFlags().StringVarP(&Siteid, "siteid", "s", viper.GetString("siteid"), "Set siteid for redis set key")
 
-	rootCmd.AddCommand(resultsCmd)
+	RootCmd.AddCommand(resultsCmd)
 }

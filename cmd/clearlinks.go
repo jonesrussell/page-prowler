@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"log"
 
@@ -13,35 +12,30 @@ import (
 var ClearlinksCmd = &cobra.Command{
 	Use:   "clearlinks",
 	Short: "Clear the Redis set for a given siteid",
-	RunE: func(cmd *cobra.Command, _ []string) error {
-		log.Println("RunE function started")
+	RunE:  ClearlinksMain,
+}
 
-		siteid, _ := cmd.Flags().GetString("siteid")
-		if siteid == "" {
-			return errors.New("siteid is required")
-		}
+func ClearlinksMain(cmd *cobra.Command, _ []string) error {
+	manager, ok := cmd.Context().Value(common.CrawlManagerKey).(*crawler.CrawlManager)
+	if !ok || manager == nil {
+		return ErrCrawlManagerNotInitialized
+	}
 
-		manager, ok := cmd.Context().Value(common.CrawlManagerKey).(*crawler.CrawlManager)
-		if !ok || manager == nil {
-			return ErrCrawlManagerNotInitialized
-		}
+	redisClient := manager.Client
 
-		redisClient := manager.Client
+	err := redisClient.Del(cmd.Context(), Siteid)
+	if err != nil {
+		return fmt.Errorf("failed to clear Redis set: %v", err)
+	}
 
-		err := redisClient.Del(cmd.Context(), siteid)
-		if err != nil {
-			return fmt.Errorf("failed to clear Redis set: %v", err)
-		}
+	if Debug {
+		manager.LoggerField.Debug("Debugging enabled. Clearing Redis set...")
+	}
 
-		if Debug {
-			manager.LoggerField.Debug("Debugging enabled. Clearing Redis set...")
-		}
+	manager.Logger().Info("Redis set cleared successfully")
 
-		manager.Logger().Info("Redis set cleared successfully")
-
-		log.Println("RunE function ended")
-		return nil
-	},
+	log.Println("RunE function ended")
+	return nil
 }
 
 func init() {

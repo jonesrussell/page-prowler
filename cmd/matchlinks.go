@@ -85,5 +85,5 @@ func init() {
 		log.Fatalf("Error binding flag: %v", err)
 	}
 
-	rootCmd.AddCommand(matchlinksCmd)
+	RootCmd.AddCommand(matchlinksCmd)
 }

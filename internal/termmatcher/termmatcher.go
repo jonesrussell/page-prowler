@@ -13,8 +13,8 @@ import (
 
 const minTitleLength = 5 // Set the minimum character limit as needed
 
-// extractLastSegmentFromURL extracts the title part from a URL.
-func extractLastSegmentFromURL(urlString string) string {
+// ExtractLastSegmentFromURL extracts the title part from a URL.
+func ExtractLastSegmentFromURL(urlString string) string {
 	u, err := url.Parse(urlString)
 	if err != nil {
 		// Handle the error, e.g., log it or return an error string
@@ -34,38 +34,38 @@ func extractLastSegmentFromURL(urlString string) string {
 	return title
 }
 
-func removeHyphens(title string) string {
+func RemoveHyphens(title string) string {
 	return strings.ReplaceAll(title, "-", " ")
 }
 
-func removeStopwords(title string) string {
+func RemoveStopwords(title string) string {
 	return strings.TrimSpace(stopwords.CleanString(title, "en", true))
 }
 
-func processAndStem(content string) string {
+func ProcessAndStem(content string) string {
 	content = strings.ToLower(content)
 	words := strings.Fields(content)
 	words = stemmer.StemMultiple(words)
 	return strings.ToLower(strings.Join(words, " "))
 }
 
-func processContent(content string) string {
-	content = removeHyphens(content)
-	content = removeStopwords(content)
-	content = processAndStem(content)
+func ProcessContent(content string) string {
+	content = RemoveHyphens(content)
+	content = RemoveStopwords(content)
+	content = ProcessAndStem(content)
 	return content
 }
 
 // GetMatchingTerms checks if the URL title matches any of the provided search terms and returns the matching terms.
 func GetMatchingTerms(href string, anchorText string, searchTerms []string, logger logger.Logger) []string {
-	content := extractLastSegmentFromURL(href)
-	processedContent := processContent(content)
+	content := ExtractLastSegmentFromURL(href)
+	processedContent := ProcessContent(content)
 	logger.Debug("Processed content from URL", "processedContent", processedContent)
 
-	anchorContent := processContent(anchorText)
+	anchorContent := ProcessContent(anchorText)
 	logger.Debug("Processed anchor text", "anchorContent", anchorContent)
 
-	combinedContent := combineContents(processedContent, anchorContent)
+	combinedContent := CombineContents(processedContent, anchorContent)
 	logger.Debug("Combined content", "combinedContent", combinedContent)
 
 	if len(combinedContent) < minTitleLength {
@@ -73,7 +73,7 @@ func GetMatchingTerms(href string, anchorText string, searchTerms []string, logg
 		return []string{}
 	}
 
-	matchingTerms := findMatchingTerms(combinedContent, searchTerms, logger)
+	matchingTerms := FindMatchingTerms(combinedContent, searchTerms, logger)
 	logger.Debug("Found matching terms", "matchingTerms", matchingTerms)
 
 	seen := make(map[string]bool)
@@ -95,18 +95,18 @@ func GetMatchingTerms(href string, anchorText string, searchTerms []string, logg
 	return result
 }
 
-func combineContents(content1 string, content2 string) string {
+func CombineContents(content1 string, content2 string) string {
 	if content2 == "" {
 		return content1
 	}
 	return content1 + " " + content2
 }
 
-func convertToLowercase(content string) string {
+func ConvertToLowercase(content string) string {
 	return strings.ToLower(content)
 }
 
-func stemContent(content string) string {
+func StemContent(content string) string {
 	words := strings.Fields(content)
 	stemmedWords := stemmer.StemMultiple(words)
 	lowercaseStemmedWords := make([]string, len(stemmedWords))
@@ -116,7 +116,7 @@ func stemContent(content string) string {
 	return strings.Join(lowercaseStemmedWords, " ")
 }
 
-func compareTerms(searchTerm string, content string, swg *metrics.SmithWatermanGotoh, mylogger logger.Logger) float64 {
+func CompareTerms(searchTerm string, content string, swg *metrics.SmithWatermanGotoh, mylogger logger.Logger) float64 {
 	searchTerm = strings.ToLower(searchTerm)
 	similarity := strutil.Similarity(searchTerm, content, swg)
 
@@ -126,7 +126,7 @@ func compareTerms(searchTerm string, content string, swg *metrics.SmithWatermanG
 	return similarity
 }
 
-func createSWG() *metrics.SmithWatermanGotoh {
+func CreateSWG() *metrics.SmithWatermanGotoh {
 	swg := metrics.NewSmithWatermanGotoh()
 	swg.CaseSensitive = false
 	swg.GapPenalty = -0.1
@@ -137,8 +137,8 @@ func createSWG() *metrics.SmithWatermanGotoh {
 	return swg
 }
 
-func compareAndAppendTerm(searchTerm string, content string, swg *metrics.SmithWatermanGotoh, matchingTerms *[]string, mylogger logger.Logger) {
-	similarity := compareTerms(searchTerm, content, swg, mylogger)
+func CompareAndAppendTerm(searchTerm string, content string, swg *metrics.SmithWatermanGotoh, matchingTerms *[]string, mylogger logger.Logger) {
+	similarity := CompareTerms(searchTerm, content, swg, mylogger)
 	mylogger.Debug("Compared terms", "searchTerm", searchTerm, "similarity", similarity)
 	if similarity >= 0.9 { // Increase the threshold to 0.9
 		*matchingTerms = append(*matchingTerms, searchTerm)
@@ -146,24 +146,24 @@ func compareAndAppendTerm(searchTerm string, content string, swg *metrics.SmithW
 	}
 }
 
-func findMatchingTerms(content string, searchTerms []string, mylogger logger.Logger) []string {
+func FindMatchingTerms(content string, searchTerms []string, mylogger logger.Logger) []string {
 	var matchingTerms []string
-	swg := createSWG()
+	swg := CreateSWG()
 
-	content = convertToLowercase(content)
-	contentStemmed := stemContent(content)
+	content = ConvertToLowercase(content)
+	contentStemmed := StemContent(content)
 
 	// Debug statement
 	mylogger.Debug("Stemmed content", "contentStemmed", contentStemmed)
 
 	for _, searchTerm := range searchTerms {
 		// Convert the search term to lowercase and apply stemming
-		searchTerm = convertToLowercase(searchTerm)
-		searchTermStemmed := stemContent(searchTerm)
+		searchTerm = ConvertToLowercase(searchTerm)
+		searchTermStemmed := StemContent(searchTerm)
 
 		words := strings.Fields(searchTermStemmed)
 		for _, word := range words {
-			compareAndAppendTerm(word, contentStemmed, swg, &matchingTerms, mylogger)
+			CompareAndAppendTerm(word, contentStemmed, swg, &matchingTerms, mylogger)
 		}
 	}
 
