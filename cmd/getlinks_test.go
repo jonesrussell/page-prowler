@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/jonesrussell/page-prowler/cmd"
-	"github.com/jonesrussell/page-prowler/cmd/mocks"
 	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
+	"github.com/jonesrussell/page-prowler/mocks"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

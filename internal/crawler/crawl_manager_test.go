@@ -1,10 +1,11 @@
-package crawler
+package crawler_test
 
 import (
 	"testing"
 
-	"github.com/jonesrussell/page-prowler/cmd/mocks"
+	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
+	"github.com/jonesrussell/page-prowler/mocks"
 )
 
 func TestNewCrawlManager(t *testing.T) {
@@ -12,7 +13,7 @@ func TestNewCrawlManager(t *testing.T) {
 	client := prowlredis.NewMockClient()
 	mongoDBWrapper := mocks.NewMockMongoDBWrapper()
 
-	cm := NewCrawlManager(loggerField, client, mongoDBWrapper)
+	cm := crawler.NewCrawlManager(loggerField, client, mongoDBWrapper)
 
 	if cm.CrawlingMu == nil {
 		t.Fatal("Expected CrawlingMu to be initialized, got nil")

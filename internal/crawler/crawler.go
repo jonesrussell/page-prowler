@@ -138,7 +138,7 @@ func (cs *CrawlManager) SetupErrorEventHandler(collector *colly.Collector) {
 
 // SetupCrawlingLogic configures and initiates the crawling logic.
 func (cs *CrawlManager) SetupCrawlingLogic(options *CrawlOptions) error {
-	err := cs.SetupHTMLParsingHandler(cs.getAnchorElementHandler(options))
+	err := cs.SetupHTMLParsingHandler(cs.GetAnchorElementHandler(options))
 	if err != nil {
 		return cs.handleSetupError(err)
 	}

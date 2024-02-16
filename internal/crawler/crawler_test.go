@@ -1,4 +1,4 @@
-package crawler
+package crawler_test
 
 import (
 	"context"
@@ -9,10 +9,11 @@ import (
 	"testing"
 
 	"github.com/gocolly/colly"
-	"github.com/jonesrussell/page-prowler/cmd/mocks"
+	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/jonesrussell/page-prowler/internal/stats"
+	"github.com/jonesrussell/page-prowler/mocks"
 	"go.uber.org/zap"
 )
 
@@ -25,13 +26,13 @@ func MockServer() *httptest.Server {
 	return server
 }
 
-func setupTestEnvironment() (*CrawlManager, *CrawlOptions) {
+func setupTestEnvironment() (*crawler.CrawlManager, *crawler.CrawlOptions) {
 	// Create a mock Logger
 	zapLogger, _ := zap.NewDevelopment()
 	log := &logger.ZapLoggerWrapper{Logger: zapLogger.Sugar()}
 
 	// Create a mock CrawlManager with the Logger
-	cs := NewCrawlManager(
+	cs := crawler.NewCrawlManager(
 		log,
 		prowlredis.NewMockClient(),
 		mocks.NewMockMongoDBWrapper(),
@@ -41,7 +42,7 @@ func setupTestEnvironment() (*CrawlManager, *CrawlOptions) {
 	cs.Collector = colly.NewCollector()
 
 	// Initialize StatsManager with non-nil LinkStats
-	statsManager := &StatsManager{
+	statsManager := &crawler.StatsManager{
 		LinkStats: &stats.Stats{},
 	}
 
@@ -51,11 +52,11 @@ func setupTestEnvironment() (*CrawlManager, *CrawlOptions) {
 	cs.CrawlingMu = &sync.Mutex{}
 
 	// Create a mock CrawlOptions with initialized LinkStats
-	options := NewCrawlOptions(
+	options := crawler.NewCrawlOptions(
 		"crawlSiteID",
 		[]string{"term"},
-		true,          // Debug
-		&[]PageData{}, // Initialize Results
+		true,                  // Debug
+		&[]crawler.PageData{}, // Initialize Results
 	)
 
 	return cs, options
@@ -144,7 +145,7 @@ func TestGetAnchorElementHandler(t *testing.T) {
 	cs, options := setupTestEnvironment()
 
 	// Call the function with the mock parameters
-	handler := cs.getAnchorElementHandler(options)
+	handler := cs.GetAnchorElementHandler(options)
 
 	// Create a mock HTMLElement
 	var u url.URL
@@ -170,7 +171,7 @@ func TestSetupHTMLParsingHandler(t *testing.T) {
 	defer server.Close()
 
 	// Call the function with the mock parameters
-	err := cs.SetupHTMLParsingHandler(cs.getAnchorElementHandler(options))
+	err := cs.SetupHTMLParsingHandler(cs.GetAnchorElementHandler(options))
 	if err != nil {
 		t.Errorf("Expected no error, but got %v", err)
 	}

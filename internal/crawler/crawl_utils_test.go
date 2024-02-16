@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/gocolly/colly"
-	"github.com/jonesrussell/page-prowler/cmd/mocks"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
+	"github.com/jonesrussell/page-prowler/mocks"
 )
 
 func TestUtils_GetHostFromURL(t *testing.T) {

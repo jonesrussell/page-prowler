@@ -1,9 +1,13 @@
-package common
+package common_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/jonesrussell/page-prowler/internal/common"
+)
 
 func TestCrawlManagerKey(t *testing.T) {
-	if CrawlManagerKey == nil {
+	if common.CrawlManagerKey == nil {
 		t.Errorf("Expected CrawlManagerKey to be assigned, but it was nil")
 	}
 }
