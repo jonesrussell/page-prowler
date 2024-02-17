@@ -128,6 +128,15 @@ func init() {
 	} // Bind the DEBUG environment variable to a config key
 
 	RootCmd.PersistentFlags().BoolVarP(&Debug, "debug", "d", viper.GetBool("debug"), "Enable debug output")
+
+	// Bind the environment variable to the flag
+	err = viper.BindEnv("siteid")
+	if err != nil {
+		log.Fatalf("Failed to bind env var: %v", err)
+	}
+
+	// Define the siteid flag and set its default value from the environment variable
+	RootCmd.PersistentFlags().StringVarP(&Siteid, "siteid", "s", viper.GetString("siteid"), "Set siteid for redis set key")
 }
 
 func initializeLogger(level logger.LogLevel) (logger.Logger, error) {
