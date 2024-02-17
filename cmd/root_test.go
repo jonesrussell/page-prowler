@@ -1,124 +1,219 @@
 package cmd_test
 
 import (
-	"log"
+	"context"
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/jonesrussell/page-prowler/cmd"
+	"github.com/jonesrussell/page-prowler/internal/common"
+	"github.com/jonesrussell/page-prowler/internal/logger"
+	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
+	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/jonesrussell/page-prowler/mocks"
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRootCmd(t *testing.T) {
+func Test_RootCmd(t *testing.T) {
 	assert.Equal(t, cmd.RootCmd.Use, "page-prowler", "RootCmd.Use should be 'page-prowler'")
 }
 
-func TestExecute(t *testing.T) {
-	// Call Execute with no arguments
-	os.Args = []string{"cmd"}
-	err := cmd.RootCmd.Execute()
-	assert.NoError(t, err, "Execute() without arguments should not return an error")
-}
-
-func TestFlagValues(t *testing.T) {
-	// Set a flag value
-	cmd.RootCmd.SetArgs([]string{"--debug=true"})
-	err := cmd.RootCmd.Execute()
-	assert.NoError(t, err)
-
-	// Bind the flags to viper
-	cmd.RootCmd.PersistentFlags().VisitAll(func(flag *pflag.Flag) {
-		err := viper.BindPFlag(flag.Name, flag)
-		if err != nil {
-			return
-		}
-	})
-
-	// Check if the flag value is correctly set
-	assert.True(t, viper.GetBool("debug"))
-}
-
-func TestExecuteError(t *testing.T) {
-	// Provide an invalid command
-	cmd.RootCmd.SetArgs([]string{"invalidCommand"})
-	err := cmd.RootCmd.Execute()
-
-	// Check if Execute returns an error
-	assert.Error(t, err)
-}
-
-func TestPersistentFlags(t *testing.T) {
-	// Set the flags
-	if err := cmd.RootCmd.PersistentFlags().Set("debug", "true"); err != nil {
-		log.Fatalf("Error setting debug flag: %v", err)
+func Test_Execute(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    []string
+		wantErr bool
+	}{
+		{
+			name:    "Execute with no arguments",
+			args:    []string{"cmd"},
+			wantErr: false,
+		},
+		{
+			name:    "Execute with invalid command",
+			args:    []string{"cmd", "invalidCommand"},
+			wantErr: true,
+		},
+		// Add more test cases as needed
 	}
 
-	// Bind the flags to viper
-	cmd.RootCmd.PersistentFlags().VisitAll(func(flag *pflag.Flag) {
-		err := viper.BindPFlag(flag.Name, flag)
-		if err != nil {
-			return
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set the command arguments
+			os.Args = tt.args
+			err := cmd.RootCmd.Execute()
 
-	// Check if the flags are correctly set
-	assert.True(t, viper.GetBool("debug"))
+			// Check if Execute returns an error
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Execute() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }
 
-func TestInitializeManager_WithNilMongoDBWrapper(t *testing.T) {
-	// Initialize the manager with a mock Redis client and a nil MongoDB wrapper
-	_, err := cmd.InitializeManager(
-		mocks.NewMockClient(),
-		mocks.NewMockLogger(),
-		nil,
-	)
+func Test_FlagValues(t *testing.T) {
+	tests := []struct {
+		name      string
+		flagName  string
+		flagValue string
+		want      interface{}
+	}{
+		{
+			name:      "Debug flag set to true",
+			flagName:  "debug",
+			flagValue: "true",
+			want:      true,
+		},
+		{
+			name:      "Siteid flag set to a value",
+			flagName:  "siteid",
+			flagValue: "exampleSiteId",
+			want:      "exampleSiteId",
+		},
+		// Add more test cases as needed
+	}
 
-	// Check if an error was returned
-	assert.Error(t, err, "Expected an error when initializing with a nil MongoDB wrapper")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set the flag value
+			cmd.RootCmd.SetArgs([]string{fmt.Sprintf("--%s=%s", tt.flagName, tt.flagValue)})
+			err := cmd.RootCmd.Execute()
+			assert.NoError(t, err)
+
+			// Bind the flags to viper
+			cmd.RootCmd.PersistentFlags().VisitAll(func(flag *pflag.Flag) {
+				err := viper.BindPFlag(flag.Name, flag)
+				if err != nil {
+					return
+				}
+			})
+
+			// Check if the flag value is correctly set
+			assert.Equal(t, tt.want, viper.Get(tt.flagName))
+		})
+	}
 }
 
-func TestInitializeManager_WithNilRedisClient(t *testing.T) {
-	// Initialize the manager with a nil Redis client and a new mock logger
-	_, err := cmd.InitializeManager(
-		nil,
-		mocks.NewMockLogger(),
-		mocks.NewMockMongoDBWrapper(),
-	)
+func Test_InitializeManager(t *testing.T) {
+	tests := []struct {
+		name           string
+		redisClient    prowlredis.ClientInterface
+		appLogger      logger.Logger
+		mongoDBWrapper mongodbwrapper.MongoDBInterface
+		wantErr        bool
+	}{
+		{
+			name:           "With nil MongoDB wrapper",
+			redisClient:    mocks.NewMockClient(),
+			appLogger:      mocks.NewMockLogger(),
+			mongoDBWrapper: nil,
+			wantErr:        true,
+		},
+		{
+			name:           "With nil Redis client",
+			redisClient:    nil,
+			appLogger:      mocks.NewMockLogger(),
+			mongoDBWrapper: mocks.NewMockMongoDBWrapper(),
+			wantErr:        true,
+		},
+		{
+			name:           "With nil logger",
+			redisClient:    mocks.NewMockClient(),
+			appLogger:      nil,
+			mongoDBWrapper: mocks.NewMockMongoDBWrapper(),
+			wantErr:        true,
+		},
+		{
+			name:           "With valid dependencies",
+			redisClient:    mocks.NewMockClient(),
+			appLogger:      mocks.NewMockLogger(),
+			mongoDBWrapper: mocks.NewMockMongoDBWrapper(),
+			wantErr:        false,
+		},
+	}
 
-	// Check if an error was returned
-	assert.Error(t, err, "Expected an error when initializing with a nil Redis client")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := cmd.InitializeManager(tt.redisClient, tt.appLogger, tt.mongoDBWrapper)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("InitializeManager() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }
 
-func TestInitializeManager(t *testing.T) {
-	// Set the environment variables
-	err := os.Setenv("REDIS_HOST", "172.17.0.1")
-	if err != nil {
-		log.Fatalf("Failed to set environment variable: %v", err)
+func Test_PersistentPreRunE(t *testing.T) {
+	type args struct {
+		cmd  *cobra.Command
+		args []string
 	}
-	err = os.Setenv("REDIS_AUTH", "password")
-	if err != nil {
-		log.Fatalf("Failed to set environment variable: %v", err)
-	}
-	err = os.Setenv("REDIS_PORT", "6379")
-	if err != nil {
-		log.Fatalf("Failed to set environment variable: %v", err)
-	}
+	tests := []struct {
+		name    string
+		args    args
+		setup   func() // Function to set up the environment for the test
+		wantErr bool
+	}{
+		{
+			name: "Valid command with no arguments",
+			args: args{
+				cmd:  &cobra.Command{},
+				args: []string{},
+			},
+			setup: func() {
+				// Use mocks for Redis client and MongoDB wrapper
+				redisClient := mocks.NewMockClient()
+				mongoDBWrapper := mocks.NewMockMongoDBWrapper()
+				appLogger := mocks.NewMockLogger()
 
-	// Initialize the manager with a mock Redis client and a new mock logger
-	manager, err := cmd.InitializeManager(
-		mocks.NewMockClient(),
-		mocks.NewMockLogger(),
-		mocks.NewMockMongoDBWrapper(),
-	)
-	if err != nil {
-		t.Fatalf("Failed to initialize manager: %v", err)
-	}
+				// Initialize the manager with mocks
+				manager, err := cmd.InitializeManager(redisClient, appLogger, mongoDBWrapper)
+				if err != nil {
+					t.Fatalf("Failed to initialize manager: %v", err)
+				}
 
-	// Add assertions
-	assert.NotNil(t, manager.Client, "Client should not be nil")
-	assert.NotNil(t, manager.MongoDBWrapper, "MongoDBWrapper should not be nil")
-	assert.NotNil(t, manager.Logger, "Logger should not be nil")
+				// Set the manager to the context
+				ctx := context.WithValue(context.Background(), common.CrawlManagerKey, manager)
+
+				// Set the context of the command
+				cmd.RootCmd.SetContext(ctx)
+			},
+			wantErr: false,
+		},
+		{
+			name: "Missing REDIS_HOST environment variable",
+			args: args{
+				cmd:  &cobra.Command{},
+				args: []string{},
+			},
+			setup: func() {
+				// Unset REDIS_HOST to simulate missing environment variable
+				os.Unsetenv("REDIS_HOST")
+			},
+			wantErr: true,
+		},
+		{
+			name: "Missing MONGODB_URI environment variable",
+			args: args{
+				cmd:  &cobra.Command{},
+				args: []string{},
+			},
+			setup: func() {
+				// Unset MONGODB_URI to simulate missing environment variable
+				os.Unsetenv("MONGODB_URI")
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setup() // Set up the environment for the test
+			if err := cmd.RootCmd.PersistentPreRunE(tt.args.cmd, tt.args.args); (err != nil) != tt.wantErr {
+				t.Errorf("PersistentPreRunE() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }

@@ -31,78 +31,80 @@ var RootCmd = &cobra.Command{
 1. Crawling specific websites and extracting matchlinks that match the provided terms ('matchlinks' command)
 
 	In addition to the command line interface, Page Prowler also provides an HTTP API for interacting with the tool.`,
-	SilenceErrors: false,
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Initialize your dependencies here
-		ctx := context.Background()
+	SilenceErrors:     false,
+	PersistentPreRunE: PersistentPreRunE,
+}
 
-		var logLevel logger.LogLevel
-		if Debug {
-			logLevel = logger.DebugLevel // Set to debug level if Debug is true
-			log.Println("Debug mode is enabled")
-		} else {
-			logLevel = logger.InfoLevel // Otherwise, use the default log level
-			log.Println("Debug mode is not enabled")
-		}
+func PersistentPreRunE(cmd *cobra.Command, args []string) error {
+	// Initialize your dependencies here
+	ctx := context.Background()
 
-		appLogger, err := initializeLogger(logLevel)
-		if err != nil {
-			log.Println("Error initializing logger:", err)
-			return err
-		}
+	var logLevel logger.LogLevel
+	if Debug {
+		logLevel = logger.DebugLevel // Set to debug level if Debug is true
+		log.Println("Debug mode is enabled")
+	} else {
+		logLevel = logger.InfoLevel // Otherwise, use the default log level
+		log.Println("Debug mode is not enabled")
+	}
 
-		redisHost := viper.GetString("REDIS_HOST")
-		redisPort := viper.GetString("REDIS_PORT")
-		redisAuth := viper.GetString("REDIS_AUTH")
-		mongodbUri := viper.GetString("MONGODB_URI")
+	appLogger, err := initializeLogger(logLevel)
+	if err != nil {
+		log.Println("Error initializing logger:", err)
+		return err
+	}
 
-		if redisHost == "" {
-			log.Println("REDIS_HOST is not set but is required")
-			return fmt.Errorf("REDIS_HOST is not set but is required")
-		}
+	redisHost := viper.GetString("REDIS_HOST")
+	redisPort := viper.GetString("REDIS_PORT")
+	redisAuth := viper.GetString("REDIS_AUTH")
+	mongodbUri := viper.GetString("MONGODB_URI")
 
-		if redisPort == "" {
-			log.Println("REDIS_PORT is not set but is required")
-			return fmt.Errorf("REDIS_PORT is not set but is required")
-		}
+	if redisHost == "" {
+		log.Println("REDIS_HOST is not set but is required")
+		return fmt.Errorf("REDIS_HOST is not set but is required")
+	}
 
-		if mongodbUri == "" {
-			log.Println("MONGODB_URI is not set but is required")
-			return fmt.Errorf("MONGODB_URI is not set but is required")
-		}
+	if redisPort == "" {
+		log.Println("REDIS_PORT is not set but is required")
+		return fmt.Errorf("REDIS_PORT is not set but is required")
+	}
 
-		cfg := &prowlredis.Options{
-			Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
-			Password: redisAuth,
-			DB:       0, // TODO: redisDB
-		}
+	if mongodbUri == "" {
+		log.Println("MONGODB_URI is not set but is required")
+		return fmt.Errorf("MONGODB_URI is not set but is required")
+	}
 
-		redisClient, err := prowlredis.NewClient(ctx, cfg)
-		if err != nil {
-			log.Printf("Failed to initialize Redis client: %v", err)
-			return fmt.Errorf("failed to initialize Redis client: %v", err)
-		}
+	cfg := &prowlredis.Options{
+		Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
+		Password: redisAuth,
+		DB:       0, // TODO: redisDB
+	}
 
-		mongoDBWrapper, err := mongodbwrapper.NewMongoDB(ctx, mongodbUri)
-		if err != nil {
-			log.Printf("Failed to initialize MongoDB wrapper: %v", err)
-			return fmt.Errorf("failed to initialize MongoDB wrapper: %v", err)
-		}
+	redisClient, err := prowlredis.NewClient(ctx, cfg)
+	if err != nil {
+		log.Printf("Failed to initialize Redis client: %v", err)
+		return fmt.Errorf("failed to initialize Redis client: %v", err)
+	}
 
-		manager, err := InitializeManager(redisClient, appLogger, mongoDBWrapper)
-		if err != nil {
-			log.Printf("Error initializing manager: %v", err)
-			return err
-		}
+	mongoDBWrapper, err := mongodbwrapper.NewMongoDB(ctx, mongodbUri)
+	if err != nil {
+		log.Printf("Failed to initialize MongoDB wrapper: %v", err)
+		return fmt.Errorf("failed to initialize MongoDB wrapper: %v", err)
+	}
 
-		// Set the manager to the context
-		ctx = context.WithValue(ctx, common.CrawlManagerKey, manager)
+	manager, err := InitializeManager(redisClient, appLogger, mongoDBWrapper)
+	if err != nil {
+		log.Printf("Error initializing manager: %v", err)
+		return err
+	}
 
-		// Set the context of the command
-		cmd.SetContext(ctx)
+	// Set the manager to the context
+	ctx = context.WithValue(ctx, common.CrawlManagerKey, manager)
 
-		return nil
-	},
+	// Set the context of the command
+	cmd.SetContext(ctx)
+
+	return nil
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -118,12 +120,9 @@ func init() {
 	// Initialize Viper
 	viper.AutomaticEnv() // Read environment variables
 	viper.SetConfigFile(".env")
-	err := viper.ReadInConfig()
-	if err != nil {
-		log.Println("Could not read config file")
-	}
+	_ = viper.ReadInConfig()
 
-	err = viper.BindEnv("debug")
+	err := viper.BindEnv("debug")
 	if err != nil {
 		log.Fatalf("Error binding debug flag: %v", err)
 	} // Bind the DEBUG environment variable to a config key
