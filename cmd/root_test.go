@@ -31,7 +31,10 @@ func TestFlagValues(t *testing.T) {
 
 	// Bind the flags to viper
 	cmd.RootCmd.PersistentFlags().VisitAll(func(flag *pflag.Flag) {
-		viper.BindPFlag(flag.Name, flag)
+		err := viper.BindPFlag(flag.Name, flag)
+		if err != nil {
+			return
+		}
 	})
 
 	// Check if the flag value is correctly set

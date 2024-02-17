@@ -47,39 +47,39 @@ func NewStatsManager() *StatsManager {
 	}
 }
 
-func (cs *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int) error {
-	cs.Collector = colly.NewCollector(
+func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int) error {
+	cm.Collector = colly.NewCollector(
 		colly.Async(false),
 		colly.MaxDepth(maxDepth),
 	)
 
-	cs.LoggerField.Debug("Allowed Domains", "domains", allowedDomains)
-	cs.Collector.AllowedDomains = allowedDomains
+	cm.LoggerField.Debug("Allowed Domains", "domains", allowedDomains)
+	cm.Collector.AllowedDomains = allowedDomains
 
-	limitRule := cs.createLimitRule()
-	if err := cs.Collector.Limit(limitRule); err != nil {
-		cs.Logger().Errorf("Failed to set limit rule: %v", err)
+	limitRule := cm.createLimitRule()
+	if err := cm.Collector.Limit(limitRule); err != nil {
+		cm.Logger().Errorf("Failed to set limit rule: %v", err)
 		return err
 	}
 
 	// Respect robots.txt
-	cs.Collector.AllowURLRevisit = false
-	cs.Collector.IgnoreRobotsTxt = false
+	cm.Collector.AllowURLRevisit = false
+	cm.Collector.IgnoreRobotsTxt = false
 
 	// Register OnScraped callback
-	cs.Collector.OnScraped(func(r *colly.Response) {
-		cs.Logger().Debug("[OnScraped] Page scraped", "url", r.Request.URL)
-		cs.StatsManager.LinkStatsMu.Lock()
-		defer cs.StatsManager.LinkStatsMu.Unlock()
-		cs.StatsManager.LinkStats.IncrementTotalPages()
+	cm.Collector.OnScraped(func(r *colly.Response) {
+		cm.Logger().Debug("[OnScraped] Page scraped", "url", r.Request.URL)
+		cm.StatsManager.LinkStatsMu.Lock()
+		defer cm.StatsManager.LinkStatsMu.Unlock()
+		cm.StatsManager.LinkStats.IncrementTotalPages()
 	})
 
 	return nil
 }
 
-func (cs *CrawlManager) logCrawlingStatistics(options *CrawlOptions) {
-	report := cs.StatsManager.LinkStats.Report()
-	cs.Logger().Info("Crawling statistics",
+func (cm *CrawlManager) logCrawlingStatistics() {
+	report := cm.StatsManager.LinkStats.Report()
+	cm.Logger().Info("Crawling statistics",
 		"TotalLinks", report["TotalLinks"],
 		"MatchedLinks", report["MatchedLinks"],
 		"NotMatchedLinks", report["NotMatchedLinks"],
@@ -87,22 +87,22 @@ func (cs *CrawlManager) logCrawlingStatistics(options *CrawlOptions) {
 	)
 }
 
-func (cs *CrawlManager) visitWithColly(url string) error {
-	cs.LoggerField.Debug("[visitWithColly] Visiting URL with Colly", "url", url)
+func (cm *CrawlManager) visitWithColly(url string) error {
+	cm.LoggerField.Debug("[visitWithColly] Visiting URL with Colly", "url", url)
 
-	err := cs.Collector.Visit(url)
+	err := cm.Collector.Visit(url)
 	if err != nil {
 		switch {
 		case errors.Is(err, colly.ErrAlreadyVisited):
-			cs.LoggerField.Debug("[visitWithColly] URL already visited", "url", url)
+			cm.LoggerField.Debug("[visitWithColly] URL already visited", "url", url)
 		case errors.Is(err, colly.ErrForbiddenDomain):
-			cs.LoggerField.Debug("[visitWithColly] Forbidden domain - Skipping visit", "url", url)
+			cm.LoggerField.Debug("[visitWithColly] Forbidden domain - Skipping visit", "url", url)
 		default:
-			cs.LoggerField.Debug("[visitWithColly] Error visiting URL", "url", url, "error", err)
+			cm.LoggerField.Debug("[visitWithColly] Error visiting URL", "url", url, "error", err)
 		}
 		return nil
 	}
 
-	cs.LoggerField.Debug("[visitWithColly] Successfully visited URL with Colly", "url", url)
+	cm.LoggerField.Debug("[visitWithColly] Successfully visited URL with Colly", "url", url)
 	return nil
 }
