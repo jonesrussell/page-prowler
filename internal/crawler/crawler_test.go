@@ -10,7 +10,6 @@ import (
 
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
-	"github.com/jonesrussell/page-prowler/internal/stats"
 	"github.com/jonesrussell/page-prowler/mocks"
 )
 
@@ -26,29 +25,12 @@ func MockServer() *httptest.Server {
 	return server
 }
 
-func setupTestEnvironment() (*crawler.CrawlManager, *crawler.CrawlOptions) {
-	// Create a mock Logger
-	log := mocks.NewMockLogger()
-
+func setupTestEnvironment() (*mocks.MockCrawlManager, *crawler.CrawlOptions) {
 	// Create a mock CrawlManager with the Logger
-	cs := crawler.NewCrawlManager(
-		log,
-		mocks.NewMockClient(),
-		mocks.NewMockMongoDBWrapper(),
-	)
-
-	// Initialize the Collector
-	cs.Collector = colly.NewCollector()
-
-	// Initialize StatsManager with non-nil LinkStats
-	statsManager := &crawler.StatsManager{
-		LinkStats: &stats.Stats{},
-	}
-
-	cs.StatsManager = statsManager
+	cm := mocks.NewCrawlManager()
 
 	// Initialize CrawlingMu
-	cs.CrawlingMu = &sync.Mutex{}
+	cm.CrawlingMu = &sync.Mutex{}
 
 	// Create a mock CrawlOptions with initialized LinkStats
 	options := crawler.NewCrawlOptions(
@@ -58,7 +40,7 @@ func setupTestEnvironment() (*crawler.CrawlManager, *crawler.CrawlOptions) {
 		&[]crawler.PageData{}, // Initialize Results
 	)
 
-	return cs, options
+	return cm, options
 }
 
 func TestCrawler_StartCrawling(t *testing.T) {

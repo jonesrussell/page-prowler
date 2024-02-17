@@ -162,5 +162,5 @@ func InitializeManager(
 		return nil, errors.New("mongoDBWrapper cannot be nil")
 	}
 
-	return crawler.NewCrawlManager(appLogger, redisClient, mongoDBWrapper), nil
+	return crawler.NewCrawlManager(appLogger, redisClient, mongoDBWrapper).(*crawler.CrawlManager), nil
 }

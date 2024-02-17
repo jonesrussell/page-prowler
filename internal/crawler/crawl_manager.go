@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -11,13 +12,29 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/stats"
 )
 
+//go:generate mockery --name=CrawlManagerInterface
+type CrawlManagerInterface interface {
+	Crawl(url string, options *CrawlOptions) ([]PageData, error)
+	SetupHTMLParsingHandler(handler func(*colly.HTMLElement)) error
+	SetupErrorEventHandler(collector *colly.Collector)
+	SetupCrawlingLogic(*CrawlOptions) error
+	CrawlURL(url string) error
+	HandleVisitError(url string, err error) error
+	LogError(message string, keysAndValues ...interface{})
+	Logger() logger.Logger
+	StartCrawling(ctx context.Context, url string, searchterms string, siteid string, maxdepth int, debug bool) error
+	ProcessMatchingLinkAndUpdateStats(*CrawlOptions, string, PageData, []string)
+	GetCrawlingMu() *sync.Mutex
+	NewCollector() *colly.Collector
+}
+
 type CrawlManager struct {
 	LoggerField    logger.Logger
 	Client         prowlredis.ClientInterface
 	MongoDBWrapper mongodbwrapper.MongoDBInterface
 	Collector      *colly.Collector
 	CrawlingMu     *sync.Mutex
-	StatsManager   *StatsManager
+	StatsManager   *StatsManagerType
 }
 
 // NewCrawlManager creates a new instance of CrawlManager.
@@ -25,26 +42,32 @@ func NewCrawlManager(
 	loggerField logger.Logger,
 	client prowlredis.ClientInterface,
 	mongoDBWrapper mongodbwrapper.MongoDBInterface,
-) *CrawlManager {
+) CrawlManagerInterface {
 	return &CrawlManager{
 		LoggerField:    loggerField,
 		Client:         client,
 		MongoDBWrapper: mongoDBWrapper,
 		CrawlingMu:     &sync.Mutex{},
+		Collector:      colly.NewCollector(),
+		StatsManager:   NewStatsManager(),
 	}
 }
 
-type StatsManager struct {
+type StatsManagerType struct {
 	LinkStats   *stats.Stats
 	LinkStatsMu sync.RWMutex
 }
 
 // NewStatsManager creates a new StatsManager with initialized fields.
-func NewStatsManager() *StatsManager {
-	return &StatsManager{
+func NewStatsManager() *StatsManagerType {
+	return &StatsManagerType{
 		LinkStats:   &stats.Stats{},
 		LinkStatsMu: sync.RWMutex{},
 	}
+}
+
+func (cm *CrawlManager) NewCollector() *colly.Collector {
+	return cm.Collector
 }
 
 func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int) error {

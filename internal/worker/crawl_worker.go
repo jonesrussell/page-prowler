@@ -35,25 +35,23 @@ func (l *AsynqLoggerWrapper) Fatal(args ...interface{}) {
 	l.logger.Fatal(fmt.Sprint(args...), nil)
 }
 
-// Implement the rest of the asynq.Logger methods in a similar way
-
-func handleCrawlTask(ctx context.Context, task *asynq.Task, crawlerService *crawler.CrawlManager, debug bool) error {
-	var payload tasks.CrawlTaskPayload
-	err := json.Unmarshal(task.Payload(), &payload)
-	if err != nil {
-		return err
-	}
-
-	return crawlerService.StartCrawling(ctx, payload.URL, payload.SearchTerms, payload.CrawlSiteID, payload.MaxDepth, debug)
+// Define an interface for the worker
+type WorkerInterface interface {
+	StartWorker(concurrency int, crawlerService crawler.CrawlManagerInterface, debug bool)
 }
 
-func StartWorker(concurrency int, crawlerService *crawler.CrawlManager, debug bool) {
+// Define a struct that implements the Workerinterface
+type Worker struct {
+}
+
+// Implement the StartWorker method for the crawlWorkerImpl struct
+func (w *Worker) StartWorker(concurrency int, crawlerService crawler.CrawlManagerInterface, debug bool) {
 	// Initialize a new Asynq server with the default settings.
 	srv := asynq.NewServer(
 		asynq.RedisClientOpt{
-			Addr:     crawlerService.Client.Options().Addr,
-			Password: crawlerService.Client.Options().Password,
-			DB:       crawlerService.Client.Options().DB,
+			Addr:     crawlerService.(*crawler.CrawlManager).Client.Options().Addr,
+			Password: crawlerService.(*crawler.CrawlManager).Client.Options().Password,
+			DB:       crawlerService.(*crawler.CrawlManager).Client.Options().DB,
 		},
 		asynq.Config{
 			Concurrency: concurrency,
@@ -64,11 +62,26 @@ func StartWorker(concurrency int, crawlerService *crawler.CrawlManager, debug bo
 	// mux maps a task type to a handler
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(tasks.CrawlTaskType, func(ctx context.Context, task *asynq.Task) error {
-		return handleCrawlTask(ctx, task, crawlerService, debug)
+		return handleCrawlTask(ctx, task, crawlerService.(*crawler.CrawlManager), debug)
 	})
 
 	// Run the server with the handler mux.
 	if err := srv.Run(mux); err != nil {
 		crawlerService.Logger().Fatal("could not run server", map[string]interface{}{"error": err})
 	}
+}
+
+// NewWorker returns a new instance of CrawlWorker
+func NewWorker() Worker {
+	return Worker{}
+}
+
+func handleCrawlTask(ctx context.Context, task *asynq.Task, crawlerService *crawler.CrawlManager, debug bool) error {
+	var payload tasks.CrawlTaskPayload
+	err := json.Unmarshal(task.Payload(), &payload)
+	if err != nil {
+		return err
+	}
+
+	return crawlerService.StartCrawling(ctx, payload.URL, payload.SearchTerms, payload.CrawlSiteID, payload.MaxDepth, debug)
 }

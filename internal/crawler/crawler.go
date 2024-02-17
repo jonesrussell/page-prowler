@@ -9,7 +9,6 @@ import (
 
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/logger"
-	"github.com/jonesrussell/page-prowler/internal/stats"
 )
 
 const (
@@ -17,35 +16,16 @@ const (
 	DefaultDelay       = 3000 * time.Millisecond
 )
 
-//go:generate mockery --name=CrawlManagerInterface
-type CrawlManagerInterface interface {
-	Crawl(url string, options *CrawlOptions) ([]PageData, error)
-	SetupHTMLParsingHandler(handler func(*colly.HTMLElement)) error
-	SetupErrorEventHandler(collector *colly.Collector)
-	SetupCrawlingLogic(*CrawlOptions) error
-	CrawlURL(url string) error
-	HandleVisitError(url string, err error) error
-	LogError(message string, keysAndValues ...interface{})
-	Logger() logger.Logger
-	StartCrawling(ctx context.Context, url string, searchterms string, siteid string, maxdepth int, debug bool) error
-	ProcessMatchingLinkAndUpdateStats(*CrawlOptions, string, PageData, []string)
-}
-
-var _ CrawlManagerInterface = &CrawlManager{
-	LoggerField:    nil,
-	Client:         nil,
-	MongoDBWrapper: nil,
-	Collector:      &colly.Collector{},
-	CrawlingMu:     &sync.Mutex{},
-	StatsManager:   &StatsManager{},
-}
-
 // CrawlOptions represents the options for configuring and initiating the crawling logic.
 type CrawlOptions struct {
 	CrawlSiteID string
 	SearchTerms []string
 	Results     *[]PageData
 	Debug       bool
+}
+
+func (cm *CrawlManager) GetCrawlingMu() *sync.Mutex {
+	return cm.CrawlingMu
 }
 
 func (cm *CrawlManager) Logger() logger.Logger {
@@ -58,10 +38,6 @@ func (cm *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, cra
 	}
 
 	// Initialize LinkStats...
-	cm.StatsManager = &StatsManager{
-		LinkStats:   &stats.Stats{},
-		LinkStatsMu: sync.RWMutex{},
-	}
 	cm.CrawlingMu.Lock()
 	defer cm.CrawlingMu.Unlock()
 

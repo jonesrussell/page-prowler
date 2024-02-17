@@ -63,7 +63,7 @@ func TestCrawlManager_ProcessMatchingLinkAndUpdateStats(t *testing.T) {
 		MongoDBWrapper mongodbwrapper.MongoDBInterface
 		Collector      *colly.Collector
 		CrawlingMu     *sync.Mutex
-		StatsManager   *crawler.StatsManager
+		StatsManager   *crawler.StatsManagerType
 	}
 
 	type args struct {
