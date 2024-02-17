@@ -1,6 +1,9 @@
 package mocks
 
 import (
+	"time"
+
+	"github.com/gocolly/colly/debug"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
@@ -8,7 +11,47 @@ import (
 
 type MockLogger struct {
 	observer *observer.ObservedLogs
-	Logger   *zap.SugaredLogger
+	Logger   *zap.Logger
+	start    time.Time
+}
+
+func fieldsToZapFields(fields map[string]interface{}) []zapcore.Field {
+	zapFields := make([]zapcore.Field, 0, len(fields))
+	for k, v := range fields {
+		zapFields = append(zapFields, zap.Any(k, v))
+	}
+	return zapFields
+}
+
+func (m *MockLogger) Info(msg string, fields map[string]interface{}) {
+	m.Logger.Info(msg, fieldsToZapFields(fields)...)
+}
+
+func (m *MockLogger) Debug(msg string, fields map[string]interface{}) {
+	m.Logger.Debug(msg, fieldsToZapFields(fields)...)
+}
+
+func (m *MockLogger) Error(msg string, fields map[string]interface{}) {
+	m.Logger.Error(msg, fieldsToZapFields(fields)...)
+}
+
+func (m *MockLogger) Warn(msg string, fields map[string]interface{}) {
+	m.Logger.Warn(msg, fieldsToZapFields(fields)...)
+}
+
+func (m *MockLogger) Fatal(msg string, fields map[string]interface{}) {
+	m.Logger.Fatal(msg, fieldsToZapFields(fields)...)
+}
+
+// Event implements logger.Logger.
+func (*MockLogger) Event(e *debug.Event) {
+	panic("unimplemented")
+}
+
+// Init implements logger.Logger.
+func (m *MockLogger) Init() error {
+	// Implement the method or leave it empty if it's not needed for your tests
+	return nil
 }
 
 func NewMockLogger() *MockLogger {
@@ -16,49 +59,18 @@ func NewMockLogger() *MockLogger {
 	config.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 
 	core, observed := observer.New(zapcore.DebugLevel)
-	sugar := zap.New(core).Sugar()
+	logger := zap.New(core)
 	return &MockLogger{
 		observer: observed,
-		Logger:   sugar,
+		Logger:   logger,
+		start:    time.Now(),
 	}
 }
 
 func (m *MockLogger) SetLevel(level zapcore.Level) {
-	m.Logger.Desugar().Core().Enabled(level)
-}
-
-func (m *MockLogger) Info(msg string, keysAndValues ...interface{}) {
-	m.Logger.Infow(msg, keysAndValues...)
-}
-
-func (m *MockLogger) Infof(format string, args ...interface{}) {
-	m.Logger.Infof(format, args...)
-}
-
-func (m *MockLogger) Debug(msg string, keysAndValues ...interface{}) {
-	m.Logger.Debugw(msg, keysAndValues...)
-}
-
-func (m *MockLogger) Error(msg string, keysAndValues ...interface{}) {
-	m.Logger.Errorw(msg, keysAndValues...)
-}
-
-func (m *MockLogger) Fatal(msg string, keysAndValues ...interface{}) {
-	m.Logger.Fatalw(msg, keysAndValues...)
-}
-
-func (m *MockLogger) Fatalf(msg string, keysAndValues ...interface{}) {
-	m.Logger.Fatalf(msg, keysAndValues...)
-}
-
-func (m *MockLogger) Warn(msg string, keysAndValues ...interface{}) {
-	m.Logger.Warnw(msg, keysAndValues...)
+	m.Logger.Core().Enabled(level)
 }
 
 func (m *MockLogger) AllEntries() []observer.LoggedEntry {
 	return m.observer.AllUntimed()
-}
-
-func (m *MockLogger) Errorf(format string, args ...interface{}) {
-	m.Logger.Errorf(format, args...)
 }

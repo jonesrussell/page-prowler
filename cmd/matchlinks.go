@@ -48,15 +48,15 @@ var matchlinksCmd = &cobra.Command{
 		}
 
 		if Debug {
-			manager.Logger().Info("\nFlags:")
+			manager.Logger().Info("\nFlags:", map[string]interface{}{})
 			cmd.Flags().VisitAll(func(flag *pflag.Flag) {
-				manager.Logger().Infof(" %-12s : %v\n", flag.Name, flag.Value)
+				manager.Logger().Info(" %-12s : %v\n", map[string]interface{}{"flag": flag.Name, "value": flag.Value.String()})
 			})
 
-			manager.Logger().Info("\nRedis Environment Variables:")
-			manager.Logger().Infof(" %-12s : %s\n", "REDIS_HOST", viper.GetString("REDIS_HOST"))
-			manager.Logger().Infof(" %-12s : %s\n", "REDIS_PORT", viper.GetString("REDIS_PORT"))
-			manager.Logger().Infof(" %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH"))
+			manager.Logger().Info("\nRedis Environment Variables:", map[string]interface{}{})
+			manager.Logger().Info("REDIS_HOST", map[string]interface{}{"value": viper.GetString("REDIS_HOST")})
+			manager.Logger().Info(" %-12s : %s\n", map[string]interface{}{"REDIS_PORT": viper.GetString("REDIS_PORT")})
+			manager.Logger().Info(" %-12s : %s\n", map[string]interface{}{"REDIS_AUTH": viper.GetString("REDIS_AUTH")})
 		}
 
 		err := manager.StartCrawling(ctx, url, searchterms, Siteid, viper.GetInt("maxdepth"), viper.GetBool("debug"))

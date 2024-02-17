@@ -31,7 +31,14 @@ type CrawlManagerInterface interface {
 	ProcessMatchingLinkAndUpdateStats(*CrawlOptions, string, PageData, []string)
 }
 
-var _ CrawlManagerInterface = &CrawlManager{}
+var _ CrawlManagerInterface = &CrawlManager{
+	LoggerField:    nil,
+	Client:         nil,
+	MongoDBWrapper: nil,
+	Collector:      &colly.Collector{},
+	CrawlingMu:     &sync.Mutex{},
+	StatsManager:   &StatsManager{},
+}
 
 // CrawlOptions represents the options for configuring and initiating the crawling logic.
 type CrawlOptions struct {
@@ -60,15 +67,15 @@ func (cm *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, cra
 
 	host, err := GetHostFromURL(url, cm.Logger())
 	if err != nil {
-		cm.LoggerField.Error("Failed to parse URL", "url", url, "error", err)
+		cm.LoggerField.Error("Failed to parse URL", map[string]interface{}{"url": url, "error": err})
 		return err
 	}
 
-	cm.LoggerField.Debug("Extracted host from URL", "host", host)
+	cm.LoggerField.Debug("Extracted host from URL", map[string]interface{}{"host": host})
 
 	err = cm.ConfigureCollector([]string{host}, maxDepth)
 	if err != nil {
-		cm.Logger().Fatal("Failed to configure collector", "error", err)
+		cm.Logger().Fatal("Failed to configure collector", map[string]interface{}{"error": err})
 		return err
 	}
 
@@ -94,7 +101,7 @@ func (cm *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, cra
 
 // Crawl starts the crawling process for a given URL with the provided options.
 func (cm *CrawlManager) Crawl(url string, options *CrawlOptions) ([]PageData, error) {
-	cm.LoggerField.Debug("CrawlURL", "url", url)
+	cm.LoggerField.Debug("CrawlURL", map[string]interface{}{"url": url})
 	err := cm.SetupCrawlingLogic(options)
 	if err != nil {
 		return nil, err
@@ -123,13 +130,17 @@ func (cm *CrawlManager) SetupErrorEventHandler(collector *colly.Collector) {
 		if statusCode == 500 {
 			// Handle 500 Internal Server Error without printing the stack trace
 			cm.LoggerField.Debug("[SetupErrorEventHandler] Internal Server Error",
-				"request_url", requestURL,
-				"status_code", fmt.Sprintf("%d", statusCode))
+				map[string]interface{}{
+					"request_url": requestURL,
+					"status_code": fmt.Sprintf("%d", statusCode),
+				})
 		} else if statusCode != 404 {
 			// Handle other errors normally
 			cm.LoggerField.Debug("[SetupErrorEventHandler] Request URL failed",
-				"request_url", requestURL,
-				"status_code", fmt.Sprintf("%d", statusCode))
+				map[string]interface{}{
+					"request_url": requestURL,
+					"status_code": fmt.Sprintf("%d", statusCode),
+				})
 		}
 	})
 }
@@ -148,14 +159,14 @@ func (cm *CrawlManager) SetupCrawlingLogic(options *CrawlOptions) error {
 
 // CrawlURL visits the given URL and performs the crawling operation.
 func (cm *CrawlManager) CrawlURL(url string) error {
-	cm.Logger().Debug("[CrawlURL] Visiting URL", "url", url)
+	cm.Logger().Debug("[CrawlURL] Visiting URL", map[string]interface{}{"url": url})
 	err := cm.visitWithColly(url)
 	if err != nil {
 		return cm.HandleVisitError(url, err)
 	}
 	//	cm.trackVisitedPage(url, options)
 	cm.Collector.Wait()
-	cm.Logger().Info("[CrawlURL] Crawling completed.")
+	cm.Logger().Info("[CrawlURL] Crawling completed.", map[string]interface{}{})
 	return nil
 }
 
@@ -167,5 +178,15 @@ func (cm *CrawlManager) HandleVisitError(url string, err error) error {
 
 // LogError logs the error message along with the provided key-value pairs.
 func (cm *CrawlManager) LogError(message string, keysAndValues ...interface{}) {
-	cm.LoggerField.Error(message, keysAndValues...)
+	fields := make(map[string]interface{})
+	for i := 0; i < len(keysAndValues); i += 2 {
+		key, ok := keysAndValues[i].(string)
+		if !ok {
+			// Handle the case where the key is not a string
+			continue
+		}
+		value := keysAndValues[i+1]
+		fields[key] = value
+	}
+	cm.LoggerField.Error(message, fields)
 }

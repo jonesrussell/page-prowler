@@ -18,13 +18,13 @@ func TestLogger(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create logger: %v", err)
 	}
-	appLogger.Logger = zap.New(core).Sugar()
+	appLogger.Logger = zap.New(core)
 
 	// Log a message at each level
-	appLogger.Debug("debug", "key", "value")
-	appLogger.Info("info", "key", "value")
-	appLogger.Warn("warn", "key", "value")
-	appLogger.Error("error", "key", "value")
+	appLogger.Debug("debug", map[string]interface{}{"key": "value"})
+	appLogger.Info("info", map[string]interface{}{"key": "value"})
+	appLogger.Warn("warn", map[string]interface{}{"key": "value"})
+	appLogger.Error("error", map[string]interface{}{"key": "value"})
 
 	// Check the recorded log entries
 	entries := recorded.All()
