@@ -222,7 +222,7 @@ func TestGetMatchingTerms(t *testing.T) {
 func TestCompareAndAppendTerm(t *testing.T) {
 	swg := termmatcher.CreateSWG()
 	logger := mocks.NewMockLogger()
-	matchingTerms := []string{}
+	var matchingTerms []string
 
 	termmatcher.CompareAndAppendTerm("test", "test", swg, &matchingTerms, logger)
 
@@ -416,12 +416,10 @@ func Test_CombineContents(t *testing.T) {
 		content1 string
 		content2 string
 	}
-	tests := []struct {
+	var tests []struct {
 		name string
 		args args
 		want string
-	}{
-		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

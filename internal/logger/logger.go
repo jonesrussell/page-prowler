@@ -34,8 +34,6 @@ const (
 	// ... other log levels if needed
 )
 
-const DefaultLogLevel = InfoLevel
-
 func (z *ZapLoggerWrapper) Info(msg string, keysAndValues ...interface{}) {
 	z.Logger.Infow(msg, keysAndValues...)
 }

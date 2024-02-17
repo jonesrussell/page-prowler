@@ -59,39 +59,39 @@ func logResults(crawlerService *CrawlManager, results []PageData) {
 	crawlerService.LoggerField.Info(string(jsonData))
 }
 
-func (cs *CrawlManager) SaveResultsToRedis(ctx context.Context, results []PageData, key string) error {
-	cs.LoggerField.Debug("SaveResultsToRedis: Number of results before processing", "count", len(results))
+func (cm *CrawlManager) SaveResultsToRedis(ctx context.Context, results []PageData, key string) error {
+	cm.LoggerField.Debug("SaveResultsToRedis: Number of results before processing", "count", len(results))
 
 	for _, result := range results {
-		cs.LoggerField.Debug("SaveResultsToRedis: Processing result", "result", result)
+		cm.LoggerField.Debug("SaveResultsToRedis: Processing result", "result", result)
 
 		data, err := json.Marshal(result)
 		if err != nil {
-			cs.LoggerField.Error("SaveResultsToRedis: Error occurred during marshalling to JSON", "error", err)
+			cm.LoggerField.Error("SaveResultsToRedis: Error occurred during marshalling to JSON", "error", err)
 			return err
 		}
 		str := string(data)
-		err = cs.Client.SAdd(ctx, key, str)
+		err = cm.Client.SAdd(ctx, key, str)
 		if err != nil {
-			cs.LoggerField.Error("SaveResultsToRedis: Error occurred during saving to Redis", "error", err)
+			cm.LoggerField.Error("SaveResultsToRedis: Error occurred during saving to Redis", "error", err)
 			return err
 		}
-		cs.LoggerField.Debug("SaveResultsToRedis: Added elements to the set")
+		cm.LoggerField.Debug("SaveResultsToRedis: Added elements to the set")
 
 		// Debugging: Verify that the result was saved correctly
-		isMember, err := cs.Client.SIsMember(ctx, key, str)
+		isMember, err := cm.Client.SIsMember(ctx, key, str)
 		if err != nil {
-			cs.LoggerField.Error("SaveResultsToRedis: Error occurred during checking membership in Redis set", "error", err)
+			cm.LoggerField.Error("SaveResultsToRedis: Error occurred during checking membership in Redis set", "error", err)
 			return err
 		}
 		if !isMember {
-			cs.LoggerField.Error("SaveResultsToRedis: Result was not saved correctly in Redis set", "result", str)
+			cm.LoggerField.Error("SaveResultsToRedis: Result was not saved correctly in Redis set", "result", str)
 		} else {
-			cs.LoggerField.Debug("SaveResultsToRedis: Result was saved correctly in Redis set", "key", key, "result", str)
+			cm.LoggerField.Debug("SaveResultsToRedis: Result was saved correctly in Redis set", "key", key, "result", str)
 		}
 	}
 
-	cs.LoggerField.Debug("SaveResultsToRedis: Number of results after processing", "count", len(results))
+	cm.LoggerField.Debug("SaveResultsToRedis: Number of results after processing", "count", len(results))
 
 	return nil
 }
@@ -101,6 +101,6 @@ func (p *PageData) UpdatePageData(href string, matchingTerms []string) {
 	p.ParentURL = href
 }
 
-func (cs *CrawlManager) AppendResult(options *CrawlOptions, pageData PageData) {
+func (cm *CrawlManager) AppendResult(options *CrawlOptions, pageData PageData) {
 	*options.Results = append(*options.Results, pageData)
 }

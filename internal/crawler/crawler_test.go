@@ -19,7 +19,10 @@ import (
 func MockServer() *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		// Write your mock response here
-		rw.Write([]byte(`Hello, World!`))
+		_, err := rw.Write([]byte(`Hello, World!`))
+		if err != nil {
+			return
+		}
 	}))
 
 	return server
@@ -129,10 +132,10 @@ func TestCrawl(t *testing.T) {
 	defer server.Close()
 
 	// Replace the URL with the mock server URL
-	url := server.URL + "/your-endpoint"
+	myurl := server.URL + `/your-endpoint`
 
 	// Call the function with the mock parameters
-	_, err := cs.Crawl(url, options)
+	_, err := cs.Crawl(myurl, options)
 	if err != nil {
 		t.Errorf("Expected no error, but got %v", err)
 	}
