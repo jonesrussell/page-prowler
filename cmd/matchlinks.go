@@ -17,6 +17,10 @@ var matchlinksCmd = &cobra.Command{
 	Long: `Crawl is a CLI tool designed to perform web scraping and data extraction from websites.
            It allows users to specify parameters such as depth of crawl and target elements to extract.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if Siteid == "" {
+			return ErrSiteidRequired
+		}
+
 		ctx := cmd.Context()
 
 		// Access the CrawlManager from the context
@@ -31,11 +35,6 @@ var matchlinksCmd = &cobra.Command{
 		}
 		if manager == nil {
 			log.Fatalf("manager is nil")
-		}
-
-		siteid := viper.GetString("siteid")
-		if siteid == "" {
-			return ErrSiteidRequired
 		}
 
 		searchterms := viper.GetString("searchterms")
@@ -60,7 +59,7 @@ var matchlinksCmd = &cobra.Command{
 			manager.Logger().Infof(" %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH"))
 		}
 
-		err := manager.StartCrawling(ctx, url, searchterms, siteid, viper.GetInt("maxdepth"), viper.GetBool("debug"))
+		err := manager.StartCrawling(ctx, url, searchterms, Siteid, viper.GetInt("maxdepth"), viper.GetBool("debug"))
 		if err != nil {
 			log.Fatalf("Error starting crawling: %v", err)
 		}

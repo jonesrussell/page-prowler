@@ -4,8 +4,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var Siteid string
-
 // resultsCmd represents the results command
 var resultsCmd = &cobra.Command{
 	Use:   "results",
