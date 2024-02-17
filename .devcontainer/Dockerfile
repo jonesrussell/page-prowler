@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/go:1-1.21-bullseye
+FROM mcr.microsoft.com/devcontainers/go:1-1.22-bullseye
 
 # Install Qodana
 RUN wget https://github.com/JetBrains/qodana-cli/releases/download/v2023.3.0/qodana_linux_x86_64 -O qodana && \
