@@ -6,14 +6,14 @@ import (
 	"time"
 
 	"github.com/jonesrussell/page-prowler/internal/crawler"
-	"github.com/jonesrussell/page-prowler/internal/prowlredis"
+	"github.com/jonesrussell/page-prowler/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRetrieveAndUnmarshalLinks(t *testing.T) {
 	ctx := context.Background()
 	manager := &crawler.CrawlManager{
-		Client: prowlredis.NewMockClient(), // Use the mock client
+		Client: mocks.NewMockClient(), // Use the mock client
 	}
 	siteid := "testsite"
 
@@ -33,7 +33,7 @@ func TestRetrieveAndUnmarshalLinks(t *testing.T) {
 func TestRetrieveAndUnmarshalLinksEmptySet(t *testing.T) {
 	ctx := context.Background()
 	manager := &crawler.CrawlManager{
-		Client: prowlredis.NewMockClient(), // Use the mock client
+		Client: mocks.NewMockClient(), // Use the mock client
 	}
 	siteid := "emptyset"
 

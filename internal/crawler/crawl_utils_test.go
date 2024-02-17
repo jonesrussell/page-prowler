@@ -81,7 +81,7 @@ func TestCrawlManager_ProcessMatchingLinkAndUpdateStats(t *testing.T) {
 			name: "Test Case 1",
 			fields: fields{
 				LoggerField:    mocks.NewMockLogger(),
-				Client:         prowlredis.NewMockClient(),
+				Client:         mocks.NewMockClient(),
 				MongoDBWrapper: mocks.NewMockMongoDBWrapper(),
 				Collector:      colly.NewCollector(),
 				CrawlingMu:     &sync.Mutex{},

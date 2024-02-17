@@ -11,7 +11,6 @@ import (
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
-	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/jonesrussell/page-prowler/internal/stats"
 	"github.com/jonesrussell/page-prowler/mocks"
 	"go.uber.org/zap"
@@ -34,7 +33,7 @@ func setupTestEnvironment() (*crawler.CrawlManager, *crawler.CrawlOptions) {
 	// Create a mock CrawlManager with the Logger
 	cs := crawler.NewCrawlManager(
 		log,
-		prowlredis.NewMockClient(),
+		mocks.NewMockClient(),
 		mocks.NewMockMongoDBWrapper(),
 	)
 
