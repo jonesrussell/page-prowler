@@ -23,7 +23,7 @@ type CrawlManagerInterface interface {
 	SetupHTMLParsingHandler(handler func(*colly.HTMLElement)) error
 	SetupErrorEventHandler(collector *colly.Collector)
 	SetupCrawlingLogic(*CrawlOptions) error
-	CrawlURL(url string, options *CrawlOptions) error
+	CrawlURL(url string) error
 	HandleVisitError(url string, err error) error
 	LogError(message string, keysAndValues ...interface{})
 	Logger() logger.Logger
@@ -100,7 +100,7 @@ func (cm *CrawlManager) Crawl(url string, options *CrawlOptions) ([]PageData, er
 		return nil, err
 	}
 
-	err = cm.CrawlURL(url, options)
+	err = cm.CrawlURL(url)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +147,7 @@ func (cm *CrawlManager) SetupCrawlingLogic(options *CrawlOptions) error {
 }
 
 // CrawlURL visits the given URL and performs the crawling operation.
-func (cm *CrawlManager) CrawlURL(url string, options *CrawlOptions) error {
+func (cm *CrawlManager) CrawlURL(url string) error {
 	cm.Logger().Debug("[CrawlURL] Visiting URL", "url", url)
 	err := cm.visitWithColly(url)
 	if err != nil {
