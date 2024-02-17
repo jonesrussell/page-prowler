@@ -16,23 +16,23 @@ type AsynqLoggerWrapper struct {
 }
 
 func (l *AsynqLoggerWrapper) Debug(args ...interface{}) {
-	l.logger.Debug(fmt.Sprint(args...))
+	l.logger.Debug(fmt.Sprint(args...), nil)
 }
 
 func (l *AsynqLoggerWrapper) Info(args ...interface{}) {
-	l.logger.Info(fmt.Sprint(args...))
+	l.logger.Info(fmt.Sprint(args...), nil)
 }
 
 func (l *AsynqLoggerWrapper) Warn(args ...interface{}) {
-	l.logger.Warn(fmt.Sprint(args...))
+	l.logger.Warn(fmt.Sprint(args...), nil)
 }
 
 func (l *AsynqLoggerWrapper) Error(args ...interface{}) {
-	l.logger.Error(fmt.Sprint(args...))
+	l.logger.Error(fmt.Sprint(args...), nil)
 }
 
 func (l *AsynqLoggerWrapper) Fatal(args ...interface{}) {
-	l.logger.Fatal(fmt.Sprint(args...))
+	l.logger.Fatal(fmt.Sprint(args...), nil)
 }
 
 // Implement the rest of the asynq.Logger methods in a similar way
@@ -69,6 +69,6 @@ func StartWorker(concurrency int, crawlerService *crawler.CrawlManager, debug bo
 
 	// Run the server with the handler mux.
 	if err := srv.Run(mux); err != nil {
-		crawlerService.Logger().Fatalf("could not run server: %v", err) // Use the Logger from CrawlManager
+		crawlerService.Logger().Fatal("could not run server", map[string]interface{}{"error": err})
 	}
 }

@@ -36,12 +36,7 @@ func TestNewStats(t *testing.T) {
 	}{
 		{
 			name: "Test NewStats",
-			want: &Stats{
-				TotalLinks:      0,
-				MatchedLinks:    0,
-				NotMatchedLinks: 0,
-				Links:           nil,
-			},
+			want: NewStats(),
 		},
 	}
 	for _, tt := range tests {

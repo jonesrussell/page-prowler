@@ -32,10 +32,10 @@ func ClearlinksMain(cmd *cobra.Command, _ []string) error {
 	}
 
 	if Debug {
-		manager.LoggerField.Debug("Debugging enabled. Clearing Redis set...")
+		manager.LoggerField.Debug("Debugging enabled. Clearing Redis set...", map[string]interface{}{})
 	}
 
-	manager.Logger().Info("Redis set cleared successfully")
+	manager.Logger().Info("Redis set cleared successfully", map[string]interface{}{})
 
 	return nil
 }

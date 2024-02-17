@@ -20,7 +20,7 @@ func (cm *CrawlManager) GetAnchorElementHandler(options *CrawlOptions) func(e *c
 		cm.processLink(e, href, options)
 		err := cm.visitWithColly(href)
 		if err != nil {
-			cm.LoggerField.Debug("[GetAnchorElementHandler] Error visiting URL", "url", href, "error", err)
+			cm.LoggerField.Debug("[GetAnchorElementHandler] Error visiting URL", map[string]interface{}{"url": href, "error": err})
 		}
 	}
 }
@@ -28,20 +28,20 @@ func (cm *CrawlManager) GetAnchorElementHandler(options *CrawlOptions) func(e *c
 func (cm *CrawlManager) getHref(e *colly.HTMLElement) string {
 	href := e.Request.AbsoluteURL(e.Attr("href"))
 	if href == "" {
-		cm.LoggerField.Debug("Found anchor element with no href attribute")
+		cm.LoggerField.Debug("Found anchor element with no href attribute", map[string]interface{}{})
 	} else {
-		cm.LoggerField.Debug("Processing link", "href", href)
+		cm.LoggerField.Debug("Processing link", map[string]interface{}{"href": href})
 	}
 	return href
 }
 
 func (cm *CrawlManager) incrementTotalLinks() {
 	cm.StatsManager.LinkStats.IncrementTotalLinks()
-	cm.LoggerField.Debug("Incremented total links count")
+	cm.LoggerField.Debug("Incremented total links count", map[string]interface{}{})
 }
 
 func (cm *CrawlManager) logCurrentURL(e *colly.HTMLElement) {
-	cm.LoggerField.Debug("Current URL being crawled", "url", e.Request.URL.String())
+	cm.LoggerField.Debug("Current URL being crawled", map[string]interface{}{"url": e.Request.URL.String()})
 }
 
 func (cm *CrawlManager) createPageData(href string) PageData {
@@ -51,7 +51,7 @@ func (cm *CrawlManager) createPageData(href string) PageData {
 }
 
 func (cm *CrawlManager) logSearchTerms(options *CrawlOptions) {
-	cm.LoggerField.Debug("Search terms", "terms", options.SearchTerms)
+	cm.LoggerField.Debug("Search terms", map[string]interface{}{"terms": options.SearchTerms})
 }
 
 func (cm *CrawlManager) getMatchingTerms(href string, anchorText string, options *CrawlOptions) []string {
@@ -63,7 +63,7 @@ func (cm *CrawlManager) handleMatchingTerms(options *CrawlOptions, currentURL st
 		cm.ProcessMatchingLinkAndUpdateStats(options, currentURL, pageData, matchingTerms)
 	} else {
 		cm.incrementNonMatchedLinkCount()
-		cm.LoggerField.Debug("Link does not match search terms", "link", pageData.URL)
+		cm.LoggerField.Debug("Link does not match search terms", map[string]interface{}{"link": pageData.URL})
 	}
 }
 
@@ -77,23 +77,23 @@ func (cm *CrawlManager) processLink(e *colly.HTMLElement, href string, options *
 }
 
 func (cm *CrawlManager) handleSetupError(err error) error {
-	cm.LoggerField.Error("Error setting up crawling logic", "error", err)
+	cm.LoggerField.Error("Error setting up crawling logic", map[string]interface{}{"error": err})
 	return err
 }
 
 func (cm *CrawlManager) ProcessMatchingLinkAndUpdateStats(options *CrawlOptions, href string, pageData PageData, matchingTerms []string) {
 	if cm == nil {
-		cm.LoggerField.Error("CrawlManager instance is nil")
+		cm.LoggerField.Error("CrawlManager instance is nil", map[string]interface{}{})
 		return
 	}
 
 	if href == "" {
-		cm.LoggerField.Error("Missing URL for matching link")
+		cm.LoggerField.Error("Missing URL for matching link", map[string]interface{}{})
 		return
 	}
 
 	cm.incrementMatchedLinks()
-	cm.LoggerField.Debug("Incremented matched links count")
+	cm.LoggerField.Debug("Incremented matched links count", map[string]interface{}{})
 
 	pageData.UpdatePageData(href, matchingTerms)
 	cm.AppendResult(options, pageData)
@@ -105,7 +105,7 @@ func (cm *CrawlManager) incrementMatchedLinks() {
 
 func (cm *CrawlManager) incrementNonMatchedLinkCount() {
 	cm.StatsManager.LinkStats.IncrementNotMatchedLinks()
-	cm.LoggerField.Debug("Incremented not matched links count")
+	cm.LoggerField.Debug("Incremented not matched links count", map[string]interface{}{})
 }
 
 func (cm *CrawlManager) createLimitRule() *colly.LimitRule {
@@ -136,13 +136,13 @@ func (cm *CrawlManager) createStartCrawlingOptions(crawlSiteID string, searchTer
 func GetHostFromURL(inputURL string, appLogger logger.Logger) (string, error) {
 	parsedURL, err := url.Parse(inputURL)
 	if err != nil {
-		appLogger.Error("Failed to parse URL", "url", inputURL, "error", err)
+		appLogger.Error("Failed to parse URL", map[string]interface{}{"url": inputURL, "error": err})
 		return "", err
 	}
 
 	host := parsedURL.Hostname()
 	if host == "" {
-		appLogger.Errorf("failed to extract host from URL")
+		appLogger.Error("failed to extract host from URL", nil)
 		return "", errors.New("failed to extract host from URL")
 	}
 
