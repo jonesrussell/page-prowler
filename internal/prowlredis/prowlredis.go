@@ -43,6 +43,10 @@ func (c *ClientRedis) Ping(ctx context.Context) error {
 }
 
 func (c *ClientRedis) SAdd(ctx context.Context, key string, members ...interface{}) error {
+	// Check if the key is empty
+	if key == "" {
+		return fmt.Errorf("key is not set")
+	}
 	return c.Client.SAdd(ctx, key, members...).Err()
 }
 

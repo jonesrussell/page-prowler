@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/jonesrussell/page-prowler/cmd"
-	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/jonesrussell/page-prowler/mocks"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,6 +29,11 @@ func TestFlagValues(t *testing.T) {
 	err := cmd.RootCmd.Execute()
 	assert.NoError(t, err)
 
+	// Bind the flags to viper
+	cmd.RootCmd.PersistentFlags().VisitAll(func(flag *pflag.Flag) {
+		viper.BindPFlag(flag.Name, flag)
+	})
+
 	// Check if the flag value is correctly set
 	assert.True(t, viper.GetBool("debug"))
 }
@@ -48,6 +53,11 @@ func TestPersistentFlags(t *testing.T) {
 		log.Fatalf("Error setting debug flag: %v", err)
 	}
 
+	// Bind the flags to viper
+	cmd.RootCmd.PersistentFlags().VisitAll(func(flag *pflag.Flag) {
+		viper.BindPFlag(flag.Name, flag)
+	})
+
 	// Check if the flags are correctly set
 	assert.True(t, viper.GetBool("debug"))
 }
@@ -55,7 +65,7 @@ func TestPersistentFlags(t *testing.T) {
 func TestInitializeManager_WithNilMongoDBWrapper(t *testing.T) {
 	// Initialize the manager with a mock Redis client and a nil MongoDB wrapper
 	_, err := cmd.InitializeManager(
-		prowlredis.NewMockClient(),
+		mocks.NewMockClient(),
 		mocks.NewMockLogger(),
 		nil,
 	)
@@ -93,7 +103,7 @@ func TestInitializeManager(t *testing.T) {
 
 	// Initialize the manager with a mock Redis client and a new mock logger
 	manager, err := cmd.InitializeManager(
-		prowlredis.NewMockClient(),
+		mocks.NewMockClient(),
 		mocks.NewMockLogger(),
 		mocks.NewMockMongoDBWrapper(),
 	)

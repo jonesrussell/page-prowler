@@ -1,6 +1,25 @@
-package prowlredis
+package mocks
 
-import "context"
+import (
+	"context"
+
+	"github.com/jonesrussell/page-prowler/internal/prowlredis"
+)
+
+type Options struct {
+	Addr     string
+	Password string
+	DB       int
+}
+
+func (m *MockClient) Options() *prowlredis.Options {
+	// Return some default options. You might want to make this configurable.
+	return &prowlredis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	}
+}
 
 type MockClient struct {
 	pingErr      error
@@ -9,7 +28,7 @@ type MockClient struct {
 	DelErr       error
 }
 
-func NewMockClient() ClientInterface {
+func NewMockClient() prowlredis.ClientInterface {
 	return &MockClient{
 		data:         make(map[string][]string),
 		WasDelCalled: false,
@@ -54,13 +73,4 @@ func (m *MockClient) SIsMember(_ context.Context, key string, member interface{}
 		}
 	}
 	return false, nil
-}
-
-func (m *MockClient) Options() *Options {
-	// Return some default options. You might want to make this configurable.
-	return &Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	}
 }

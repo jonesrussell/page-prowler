@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
@@ -16,6 +15,10 @@ var ClearlinksCmd = &cobra.Command{
 }
 
 func ClearlinksMain(cmd *cobra.Command, _ []string) error {
+	if Siteid == "" {
+		return ErrSiteidRequired
+	}
+
 	manager, ok := cmd.Context().Value(common.CrawlManagerKey).(*crawler.CrawlManager)
 	if !ok || manager == nil {
 		return ErrCrawlManagerNotInitialized
@@ -34,7 +37,6 @@ func ClearlinksMain(cmd *cobra.Command, _ []string) error {
 
 	manager.Logger().Info("Redis set cleared successfully")
 
-	log.Println("RunE function ended")
 	return nil
 }
 
