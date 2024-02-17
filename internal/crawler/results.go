@@ -87,7 +87,7 @@ func (cs *CrawlManager) SaveResultsToRedis(ctx context.Context, results []PageDa
 		if !isMember {
 			cs.LoggerField.Error("SaveResultsToRedis: Result was not saved correctly in Redis set", "result", str)
 		} else {
-			cs.LoggerField.Debug("SaveResultsToRedis: Result was saved correctly in Redis set", "result", str)
+			cs.LoggerField.Debug("SaveResultsToRedis: Result was saved correctly in Redis set", "key", key, "result", str)
 		}
 	}
 

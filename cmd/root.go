@@ -16,7 +16,8 @@ import (
 )
 
 var (
-	Debug bool
+	Debug  bool
+	Siteid string
 )
 
 var ErrCrawlManagerNotInitialized = errors.New("CrawlManager is not initialized")
