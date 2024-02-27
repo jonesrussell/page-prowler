@@ -1,12 +1,18 @@
 package common
 
-import "github.com/jonesrussell/page-prowler/internal/crawler"
+import (
+	"github.com/jonesrussell/page-prowler/internal/crawler"
+	"github.com/jonesrussell/page-prowler/internal/worker"
+)
 
 type CrawlManagerKeyType = crawler.CrawlManagerInterface
+type CrawlerWorkerKeyType = worker.CrawlerWorkerInterface
 
 var crawlManagerKey crawler.CrawlManagerInterface
+var crawlerWorkerKey worker.CrawlerWorkerInterface
 
-// CrawlManagerKey is the key for storing and retrieving the CrawlManagerInterface from the context.
 var CrawlManagerKey = &crawlManagerKey
+var CrawlerWorkerKey = &crawlerWorkerKey
 
 const CrawlManagerKeyStr = "crawlManagerKey"
+const CrawlerWorkerKeyStr = "crawlerWorkerKey"
