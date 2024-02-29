@@ -28,3 +28,5 @@ page-prowler
 
 /.idea
 :Zone.Identifier
+*.sarif
+go-database/
