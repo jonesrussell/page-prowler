@@ -2,5 +2,7 @@
     "go.lintOnSave": "workspace",
     "editor.codeActionsOnSave": {
       "source.fixAll": "explicit"
-    }      
+    },
+    "codeQL.createQuery.qlPackLocation": "/workspaces/page-prowler",
+    "sarif-viewer.connectToGithubCodeScanning": "on"
 }
