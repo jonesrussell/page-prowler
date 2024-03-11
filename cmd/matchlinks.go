@@ -16,56 +16,58 @@ var matchlinksCmd = &cobra.Command{
 	Short: "Crawl websites and extract information",
 	Long: `Crawl is a CLI tool designed to perform web scraping and data extraction from websites.
            It allows users to specify parameters such as depth of crawl and target elements to extract.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if Siteid == "" {
-			return ErrSiteidRequired
-		}
+	RunE: runMatchLinks,
+}
 
-		ctx := cmd.Context()
+func runMatchLinks(cmd *cobra.Command, args []string) error {
+	if Siteid == "" {
+		return ErrSiteidRequired
+	}
 
-		// Access the CrawlManager from the context
-		value := ctx.Value(common.CrawlManagerKey)
-		if value == nil {
-			log.Fatalf("common.CrawlManagerKey not found in context")
-		}
+	ctx := cmd.Context()
 
-		manager, ok := value.(crawler.CrawlManagerInterface)
-		if !ok {
-			log.Fatalf("Value in context is not of type crawler.CrawlManagerInterface")
-		}
-		if manager == nil {
-			log.Fatalf("manager is nil")
-		}
+	// Access the CrawlManager from the context
+	value := ctx.Value(common.CrawlManagerKey)
+	if value == nil {
+		log.Fatalf("common.CrawlManagerKey not found in context")
+	}
 
-		searchterms := viper.GetString("searchterms")
-		if searchterms == "" {
-			return fmt.Errorf("searchterms is required")
-		}
+	manager, ok := value.(crawler.CrawlManagerInterface)
+	if !ok {
+		log.Fatalf("Value in context is not of type crawler.CrawlManagerInterface")
+	}
+	if manager == nil {
+		log.Fatalf("manager is nil")
+	}
 
-		url := viper.GetString("url")
-		if url == "" {
-			return fmt.Errorf("url is required")
-		}
+	searchterms := viper.GetString("searchterms")
+	if searchterms == "" {
+		return fmt.Errorf("searchterms is required")
+	}
 
-		if Debug {
-			manager.Logger().Info("\nFlags:", map[string]interface{}{})
-			cmd.Flags().VisitAll(func(flag *pflag.Flag) {
-				manager.Logger().Info(" %-12s : %v\n", map[string]interface{}{"flag": flag.Name, "value": flag.Value.String()})
-			})
+	url := viper.GetString("url")
+	if url == "" {
+		return fmt.Errorf("url is required")
+	}
 
-			manager.Logger().Info("\nRedis Environment Variables:", map[string]interface{}{})
-			manager.Logger().Info("REDIS_HOST", map[string]interface{}{"value": viper.GetString("REDIS_HOST")})
-			manager.Logger().Info(" %-12s : %s\n", map[string]interface{}{"REDIS_PORT": viper.GetString("REDIS_PORT")})
-			manager.Logger().Info(" %-12s : %s\n", map[string]interface{}{"REDIS_AUTH": viper.GetString("REDIS_AUTH")})
-		}
+	if Debug {
+		manager.Logger().Info("\nFlags:", map[string]interface{}{})
+		cmd.Flags().VisitAll(func(flag *pflag.Flag) {
+			manager.Logger().Info(" %-12s : %v\n", map[string]interface{}{"flag": flag.Name, "value": flag.Value.String()})
+		})
 
-		err := manager.StartCrawling(ctx, url, searchterms, Siteid, viper.GetInt("maxdepth"), viper.GetBool("debug"))
-		if err != nil {
-			log.Fatalf("Error starting crawling: %v", err)
-		}
+		manager.Logger().Info("\nRedis Environment Variables:", map[string]interface{}{})
+		manager.Logger().Info("REDIS_HOST", map[string]interface{}{"value": viper.GetString("REDIS_HOST")})
+		manager.Logger().Info(" %-12s : %s\n", map[string]interface{}{"REDIS_PORT": viper.GetString("REDIS_PORT")})
+		manager.Logger().Info(" %-12s : %s\n", map[string]interface{}{"REDIS_AUTH": viper.GetString("REDIS_AUTH")})
+	}
 
-		return nil
-	},
+	err := manager.StartCrawling(ctx, url, searchterms, Siteid, viper.GetInt("maxdepth"), viper.GetBool("debug"))
+	if err != nil {
+		log.Fatalf("Error starting crawling: %v", err)
+	}
+
+	return nil
 }
 
 func init() {
