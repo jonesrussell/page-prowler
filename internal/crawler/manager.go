@@ -60,7 +60,7 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 
 	limitRule := cm.createLimitRule()
 	if err := cm.Collector.Limit(limitRule); err != nil {
-		cm.LoggerField.Error(fmt.Sprintf("Failed to set limit rule: %v", map[string]interface{}{"err": err}))
+		cm.LoggerField.Error(fmt.Sprintf("Failed to set limit rule: %v", err))
 		return err
 	}
 
@@ -87,7 +87,7 @@ func (cm *CrawlManager) logCrawlingStatistics() {
 }
 
 func (cm *CrawlManager) visitWithColly(url string) error {
-	cm.LoggerField.Debug(fmt.Sprintf("[visitWithColly] Visiting URL with Colly: %v", map[string]interface{}{"url": url}))
+	cm.LoggerField.Debug(fmt.Sprintf("[visitWithColly] Visiting URL with Colly: %v", url))
 
 	err := cm.Collector.Visit(url)
   if err != nil {

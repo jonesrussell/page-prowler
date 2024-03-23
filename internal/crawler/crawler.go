@@ -150,7 +150,7 @@ func (cm *CrawlManager) SetupCrawlingLogic(options *CrawlOptions) error {
 
 // CrawlURL visits the given URL and performs the crawling operation.
 func (cm *CrawlManager) CrawlURL(url string) error {
-	cm.LoggerField.Debug(fmt.Sprintf("[CrawlURL] Visiting URL: %v", map[string]interface{}{"url": url}))
+	cm.LoggerField.Debug(fmt.Sprintf("[CrawlURL] Visiting URL: %v", url))
 	err := cm.visitWithColly(url)
 	if err != nil {
 		return cm.HandleVisitError(url, err)
