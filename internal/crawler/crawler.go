@@ -25,7 +25,6 @@ type CrawlManagerInterface interface {
 	SetupCrawlingLogic(*CrawlOptions) error
 	CrawlURL(url string) error
 	HandleVisitError(url string, err error) error
-	LogError(message string, keysAndValues ...interface{})
 	Logger() logger.Logger
 	StartCrawling(ctx context.Context, url string, searchterms string, siteid string, maxdepth int, debug bool) error
 	ProcessMatchingLinkAndUpdateStats(*CrawlOptions, string, PageData, []string)
@@ -67,15 +66,15 @@ func (cm *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, cra
 
 	host, err := GetHostFromURL(url, cm.Logger())
 	if err != nil {
-		cm.LoggerField.Error("Failed to parse URL", map[string]interface{}{"url": url, "error": err})
+		cm.LoggerField.Error(fmt.Sprintf("Failed to parse URL: url: %v, error: %v", url, err))
 		return err
 	}
 
-	cm.LoggerField.Debug("Extracted host from URL", map[string]interface{}{"host": host})
+	cm.LoggerField.Debug(fmt.Sprintf("Extracted host from URL: %s", host))
 
 	err = cm.ConfigureCollector([]string{host}, maxDepth)
 	if err != nil {
-		cm.Logger().Fatal("Failed to configure collector", map[string]interface{}{"error": err})
+		cm.LoggerField.Fatal(fmt.Sprintf("Failed to configure collector: %v", err))
 		return err
 	}
 
@@ -101,7 +100,7 @@ func (cm *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, cra
 
 // Crawl starts the crawling process for a given URL with the provided options.
 func (cm *CrawlManager) Crawl(url string, options *CrawlOptions) ([]PageData, error) {
-	cm.LoggerField.Debug("CrawlURL", map[string]interface{}{"url": url})
+	cm.LoggerField.Debug(fmt.Sprintf("CrawlURL: %s", url))
 	err := cm.SetupCrawlingLogic(options)
 	if err != nil {
 		return nil, err
@@ -129,18 +128,10 @@ func (cm *CrawlManager) SetupErrorEventHandler(collector *colly.Collector) {
 
 		if statusCode == 500 {
 			// Handle 500 Internal Server Error without printing the stack trace
-			cm.LoggerField.Debug("[SetupErrorEventHandler] Internal Server Error",
-				map[string]interface{}{
-					"request_url": requestURL,
-					"status_code": fmt.Sprintf("%d", statusCode),
-				})
+			cm.LoggerField.Debug(fmt.Sprintf("[SetupErrorEventHandler] Internal Server Error request_url: %s, status_code: %d", requestURL, statusCode))
 		} else if statusCode != 404 {
 			// Handle other errors normally
-			cm.LoggerField.Debug("[SetupErrorEventHandler] Request URL failed",
-				map[string]interface{}{
-					"request_url": requestURL,
-					"status_code": fmt.Sprintf("%d", statusCode),
-				})
+			cm.LoggerField.Debug(fmt.Sprintf("[SetupErrorEventHandler] Request URL failed request_url: %s, status_code: %d", requestURL, statusCode))
 		}
 	})
 }
@@ -159,34 +150,20 @@ func (cm *CrawlManager) SetupCrawlingLogic(options *CrawlOptions) error {
 
 // CrawlURL visits the given URL and performs the crawling operation.
 func (cm *CrawlManager) CrawlURL(url string) error {
-	cm.Logger().Debug("[CrawlURL] Visiting URL", map[string]interface{}{"url": url})
+	cm.LoggerField.Debug(fmt.Sprintf("[CrawlURL] Visiting URL: %v", map[string]interface{}{"url": url}))
 	err := cm.visitWithColly(url)
 	if err != nil {
 		return cm.HandleVisitError(url, err)
 	}
 	//	cm.trackVisitedPage(url, options)
 	cm.Collector.Wait()
-	cm.Logger().Info("[CrawlURL] Crawling completed.", map[string]interface{}{})
+	cm.Logger().Info("[CrawlURL] Crawling completed.")
 	return nil
 }
 
 // HandleVisitError handles the error occurred during the visit of a URL.
 func (cm *CrawlManager) HandleVisitError(url string, err error) error {
-	cm.LogError("Error visiting URL", "url", url, "error", err)
+	cm.LoggerField.Error(fmt.Sprintf("Error visiting URL: url: %s, error: %v", url, err))
 	return err
 }
 
-// LogError logs the error message along with the provided key-value pairs.
-func (cm *CrawlManager) LogError(message string, keysAndValues ...interface{}) {
-	fields := make(map[string]interface{})
-	for i := 0; i < len(keysAndValues); i += 2 {
-		key, ok := keysAndValues[i].(string)
-		if !ok {
-			// Handle the case where the key is not a string
-			continue
-		}
-		value := keysAndValues[i+1]
-		fields[key] = value
-	}
-	cm.LoggerField.Error(message, fields)
-}

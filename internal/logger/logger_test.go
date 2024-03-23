@@ -14,17 +14,17 @@ func TestLogger(t *testing.T) {
 	core, recorded := observer.New(zapcore.DebugLevel)
 
 	// Create a new logger that writes to the buffer
-	appLogger, err := New(LogLevel(zapcore.DebugLevel))
+	appLogger, err := New(zapcore.DebugLevel)
 	if err != nil {
 		t.Fatalf("failed to create logger: %v", err)
 	}
-	appLogger.Logger = zap.New(core)
+	appLogger.logger = zap.New(core)
 
 	// Log a message at each level
-	appLogger.Debug("debug", map[string]interface{}{"key": "value"})
-	appLogger.Info("info", map[string]interface{}{"key": "value"})
-	appLogger.Warn("warn", map[string]interface{}{"key": "value"})
-	appLogger.Error("error", map[string]interface{}{"key": "value"})
+	appLogger.Debug("debug")
+	appLogger.Info("info")
+	appLogger.Warn("warn")
+	appLogger.Error("error")
 
 	// Check the recorded log entries
 	entries := recorded.All()

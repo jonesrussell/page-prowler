@@ -9,112 +9,77 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// Logger defines the interface for logging functions and implements the debug.Debugger interface.
+// Logger defines the interface for logging functions.
 type Logger interface {
-	Info(msg string, fields map[string]interface{})
-	Error(msg string, fields map[string]interface{})
-	Fatal(msg string, fields map[string]interface{})
-	Debug(msg string, fields map[string]interface{})
-	Warn(msg string, fields map[string]interface{})
-	Init() error
-	Event(e *debug.Event)
+  Info(msg string)
+  Error(msg string)
+  Fatal(msg string)
+  Debug(msg string)
+  Warn(msg string)
+  Init() error
+  Event(e *debug.Event)
 }
 
-// LoggerWrapper is a wrapper around zap.Logger that implements the debug.Debugger interface.
-type LoggerWrapper struct {
-	Logger *zap.Logger
-	start  time.Time
+// zapLogger is a concrete implementation of Logger using Zap.
+type zapLogger struct {
+  logger *zap.Logger
+  start  time.Time
 }
 
-// ConvertFields converts a map of fields to a slice of zapcore.Field.
-func (lw *LoggerWrapper) ConvertFields(fields map[string]interface{}) []zapcore.Field {
-	zapFields := make([]zapcore.Field, 0, len(fields))
-	for k, v := range fields {
-		zapFields = append(zapFields, zap.Any(k, v))
-	}
-	return zapFields
+// New creates a new Logger instance with the given log level.
+func New(level zapcore.Level) (*zapLogger, error) {
+  config := zap.NewProductionConfig() // Adjust for development if needed
+  config.Level.SetLevel(level)
+
+  logger, err := config.Build()
+  if err != nil {
+    return nil, fmt.Errorf("failed to build logger: %v", err)
+  }
+
+  return &zapLogger{
+    logger: logger,
+    start:  time.Now(),
+  }, nil
 }
 
-// Debug implements Logger.
-func (lw *LoggerWrapper) Debug(msg string, fields map[string]interface{}) {
-	lw.Logger.Debug(msg, lw.ConvertFields(fields)...)
+// Info logs a message at the Info level.
+func (l *zapLogger) Info(msg string) {
+  l.logger.Info(msg)
 }
 
-// Error implements Logger.
-func (lw *LoggerWrapper) Error(msg string, fields map[string]interface{}) {
-	lw.Logger.Error(msg, lw.ConvertFields(fields)...)
+// Error logs a message at the Error level.
+func (l *zapLogger) Error(msg string) {
+  l.logger.Error(msg)
 }
 
-// Fatal implements Logger.
-func (lw *LoggerWrapper) Fatal(msg string, fields map[string]interface{}) {
-	lw.Logger.Fatal(msg, lw.ConvertFields(fields)...)
+// Fatal logs a message at the Fatal level, then exits the process.
+func (l *zapLogger) Fatal(msg string) {
+  l.logger.Fatal(msg)
 }
 
-// Info implements Logger.
-func (lw *LoggerWrapper) Info(msg string, fields map[string]interface{}) {
-	lw.Logger.Info(msg, lw.ConvertFields(fields)...)
+// Debug logs a message at the Debug level.
+func (l *zapLogger) Debug(msg string) {
+  l.logger.Debug(msg)
 }
 
-// Warn implements Logger.
-func (lw *LoggerWrapper) Warn(msg string, fields map[string]interface{}) {
-	lw.Logger.Warn(msg, lw.ConvertFields(fields)...)
+// Warn logs a message at the Warn level.
+func (l *zapLogger) Warn(msg string) {
+  l.logger.Warn(msg)
 }
 
-// Init initializes the LoggerWrapper.
-func (lw *LoggerWrapper) Init() error {
-	// No initialization needed for LoggerWrapper
-	return nil
+// Init initializes the logger.
+func (l *zapLogger) Init() error {
+  // Add any custom initialization for Zap here (optional)
+  return nil
 }
 
 // Event logs a debug event.
-func (lw *LoggerWrapper) Event(e *debug.Event) {
-	lw.Logger.Debug("Colly Debug Event",
-		zap.String("Type", e.Type),
-		zap.Uint32("RequestID", e.RequestID),
-		zap.Uint32("CollectorID", e.CollectorID),
-		zap.Any("Values", e.Values),
-		zap.Duration("ElapsedTime", time.Since(lw.start)),
-	)
-}
-
-type LogLevel int
-
-const (
-	// DebugLevel logs are typically voluminous, and are usually disabled in
-	// production.
-	DebugLevel LogLevel = iota
-	// InfoLevel is the default logging priority.
-	InfoLevel
-	// ... other log levels if needed
-)
-
-// New returns a new LoggerWrapper instance that implements the debug.Debugger interface.
-func New(level LogLevel) (*LoggerWrapper, error) {
-	var config zap.Config
-	var zapLevel zapcore.Level
-
-	switch level {
-	case DebugLevel:
-		config = zap.NewDevelopmentConfig()
-		zapLevel = zapcore.DebugLevel
-	default:
-		config = zap.NewProductionConfig()
-		zapLevel = zapcore.InfoLevel
-	}
-
-	atomicLevel := zap.NewAtomicLevel()
-	atomicLevel.SetLevel(zapLevel) // Set the atomic level using the explicit zapcore.Level
-
-	logger, err := config.Build()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build logger: %v", err)
-	}
-
-	// Create a LoggerWrapper that implements the debug.Debugger interface
-	loggerWrapper := &LoggerWrapper{
-		Logger: logger,
-		start:  time.Now(),
-	}
-
-	return loggerWrapper, nil
+func (l *zapLogger) Event(e *debug.Event) {
+  l.logger.Debug("Colly Debug Event",
+    zap.String("Type", e.Type),
+    zap.Uint32("RequestID", e.RequestID),
+    zap.Uint32("CollectorID", e.CollectorID),
+    zap.Any("Values", e.Values),
+    zap.Duration("ElapsedTime", time.Since(l.start)),
+  )
 }

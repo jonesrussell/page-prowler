@@ -13,6 +13,7 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap/zapcore"
 )
 
 var (
@@ -36,16 +37,7 @@ var RootCmd = &cobra.Command{
 		// Initialize your dependencies here
 		ctx := context.Background()
 
-		var logLevel logger.LogLevel
-		if Debug {
-			logLevel = logger.DebugLevel // Set to debug level if Debug is true
-			log.Println("Debug mode is enabled")
-		} else {
-			logLevel = logger.InfoLevel // Otherwise, use the default log level
-			log.Println("Debug mode is not enabled")
-		}
-
-		appLogger, err := initializeLogger(logLevel)
+		appLogger, err := initializeLogger()
 		if err != nil {
 			log.Println("Error initializing logger:", err)
 			return err
@@ -140,12 +132,13 @@ func init() {
 	RootCmd.PersistentFlags().StringVarP(&Siteid, "siteid", "s", viper.GetString("siteid"), "Set siteid for redis set key")
 }
 
-func initializeLogger(level logger.LogLevel) (logger.Logger, error) {
-	initlog, err := logger.New(level)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize logger: %v", err)
+func initializeLogger() (logger.Logger, error) {
+	var level zapcore.Level
+	level = zapcore.InfoLevel
+	if Debug {
+			level = zapcore.DebugLevel
 	}
-	return initlog, nil
+	return logger.New(level) // Use the new logger constructor
 }
 
 func InitializeManager(
