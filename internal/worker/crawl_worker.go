@@ -69,6 +69,6 @@ func StartWorker(concurrency int, cm *crawler.CrawlManager, debug bool) {
 
 	// Run the server with the handler mux.
 	if err := srv.Run(mux); err != nil {
-		cm.Logger().Fatal(fmt.Sprintf("could not run server: %v", map[string]interface{}{"error": err}))
+		cm.Logger().Fatal(fmt.Sprintf("could not run server: %v", err))
 	}
 }

@@ -61,13 +61,13 @@ func ProcessContent(content string) string {
 func GetMatchingTerms(href string, anchorText string, searchTerms []string, logger logger.Logger) []string {
 	content := ExtractLastSegmentFromURL(href)
 	processedContent := ProcessContent(content)
-	logger.Debug(fmt.Sprintf("Processed content from URL: %v", map[string]interface{}{"processedContent": processedContent}))
+	logger.Debug(fmt.Sprintf("Processed content from URL: %v", processedContent))
 
 	anchorContent := ProcessContent(anchorText)
-	logger.Debug(fmt.Sprintf("Processed anchor text: %v", map[string]interface{}{"anchorContent": anchorContent}))
+	logger.Debug(fmt.Sprintf("Processed anchor text: %v", anchorContent))
 
 	combinedContent := CombineContents(processedContent, anchorContent)
-	logger.Debug(fmt.Sprintf("Combined content: %v", map[string]interface{}{"combinedContent": combinedContent}))
+	logger.Debug(fmt.Sprintf("Combined content: %v", combinedContent))
 
 	if len(combinedContent) < minTitleLength {
 		logger.Debug(fmt.Sprintf("Combined content is less than minimum title length: %d", minTitleLength))
@@ -75,7 +75,7 @@ func GetMatchingTerms(href string, anchorText string, searchTerms []string, logg
 	}
 
 	matchingTerms := FindMatchingTerms(combinedContent, searchTerms, logger)
-	logger.Debug(fmt.Sprintf("Found matching terms: %v", map[string]interface{}{"matchingTerms": matchingTerms}))
+	logger.Debug(fmt.Sprintf("Found matching terms: %v", matchingTerms))
 
 	seen := make(map[string]bool)
 	var result []string
@@ -92,7 +92,7 @@ func GetMatchingTerms(href string, anchorText string, searchTerms []string, logg
 		return []string{}
 	}
 
-	logger.Debug(fmt.Sprintf("Matching terms result: %v", map[string]interface{}{"result": result}))
+	logger.Debug(fmt.Sprintf("Matching terms result: %v", result))
 	return result
 }
 
@@ -143,7 +143,7 @@ func CompareAndAppendTerm(searchTerm string, content string, swg *metrics.SmithW
 	mylogger.Debug(fmt.Sprintf("Compared terms: searchTerm=%s, similarity=%.2f", searchTerm, similarity))
 	if similarity >= 0.9 { // Increase the threshold to 0.9
 		*matchingTerms = append(*matchingTerms, searchTerm)
-		mylogger.Debug(fmt.Sprintf("Matching term found: %v", map[string]interface{}{"searchTerm": searchTerm}))
+		mylogger.Debug(fmt.Sprintf("Matching term found: %v", searchTerm))
 	}
 }
 
@@ -155,7 +155,7 @@ func FindMatchingTerms(content string, searchTerms []string, mylogger logger.Log
 	contentStemmed := StemContent(content)
 
 	// Debug statement
-	mylogger.Debug(fmt.Sprintf("Stemmed content: %v", map[string]interface{}{"contentStemmed": contentStemmed}))
+	mylogger.Debug(fmt.Sprintf("Stemmed content: %v", contentStemmed))
 
 	for _, searchTerm := range searchTerms {
 		// Convert the search term to lowercase and apply stemming
@@ -174,6 +174,6 @@ func FindMatchingTerms(content string, searchTerms []string, mylogger logger.Log
 		return []string{}
 	}
 
-	mylogger.Debug(fmt.Sprintf("Matching terms result: %v", map[string]interface{}{"matchingTerms": matchingTerms}))
+	mylogger.Debug(fmt.Sprintf("Matching terms result: %v", matchingTerms))
 	return matchingTerms
 }
