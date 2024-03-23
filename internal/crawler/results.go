@@ -44,54 +44,54 @@ func (p *PageData) UnmarshalBinary(data []byte) error {
 }
 
 // logResults prints the results of the crawl.
-func logResults(crawlerService *CrawlManager, results []PageData) {
+func logResults(cm *CrawlManager, results []PageData) {
 	if len(results) == 0 {
-		crawlerService.LoggerField.Info("No results to print", map[string]interface{}{})
+		cm.LoggerField.Info("No results to print")
 		return
 	}
 
 	jsonData, err := json.Marshal(results)
 	if err != nil {
-		crawlerService.LoggerField.Error("Error occurred during marshaling", map[string]interface{}{"error": err})
+		cm.LoggerField.Error(fmt.Sprintf("Error occurred during marshaling: %v", map[string]interface{}{"error": err}))
 		return
 	}
 
-	crawlerService.LoggerField.Info(string(jsonData), map[string]interface{}{})
+	cm.LoggerField.Info(string(jsonData))
 }
 
 func (cm *CrawlManager) SaveResultsToRedis(ctx context.Context, results []PageData, key string) error {
-	cm.LoggerField.Debug("SaveResultsToRedis: Number of results before processing", map[string]interface{}{"count": len(results)})
+	cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Number of results before processing: %d", len(results)))
 
 	for _, result := range results {
-		cm.LoggerField.Debug("SaveResultsToRedis: Processing result", map[string]interface{}{"result": result})
+		cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Processing result %v", map[string]interface{}{"result": result}))
 
 		data, err := json.Marshal(result)
 		if err != nil {
-			cm.LoggerField.Error("SaveResultsToRedis: Error occurred during marshalling to JSON", map[string]interface{}{"error": err})
+			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during marshalling to JSON: %v", map[string]interface{}{"error": err}))
 			return err
 		}
 		str := string(data)
 		err = cm.Client.SAdd(ctx, key, str)
 		if err != nil {
-			cm.LoggerField.Error("SaveResultsToRedis: Error occurred during saving to Redis", map[string]interface{}{"error": err})
+			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during saving to Redis: %v", map[string]interface{}{"error": err}))
 			return err
 		}
-		cm.LoggerField.Debug("SaveResultsToRedis: Added elements to the set", nil)
+		cm.LoggerField.Debug("SaveResultsToRedis: Added elements to the set")
 
 		// Debugging: Verify that the result was saved correctly
 		isMember, err := cm.Client.SIsMember(ctx, key, str)
 		if err != nil {
-			cm.LoggerField.Error("SaveResultsToRedis: Error occurred during checking membership in Redis set", map[string]interface{}{"error": err})
+			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during checking membership in Redis set: %v", map[string]interface{}{"error": err}))
 			return err
 		}
 		if !isMember {
-			cm.LoggerField.Error("SaveResultsToRedis: Result was not saved correctly in Redis set", map[string]interface{}{"result": str})
+			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Result was not saved correctly in Redis set: %v", map[string]interface{}{"result": str}))
 		} else {
-			cm.LoggerField.Debug("SaveResultsToRedis: Result was saved correctly in Redis set", map[string]interface{}{"key": key, "result": str})
+			cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Result was saved correctly in Redis set, key: %s, result: %s", key, str))
 		}
 	}
 
-	cm.LoggerField.Debug("SaveResultsToRedis: Number of results after processing", map[string]interface{}{"count": len(results)})
+	cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Number of results after processing: %d", len(results)))
 
 	return nil
 }

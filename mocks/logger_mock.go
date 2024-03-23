@@ -10,67 +10,60 @@ import (
 )
 
 type MockLogger struct {
-	observer *observer.ObservedLogs
-	Logger   *zap.Logger
-	start    time.Time
+  observer *observer.ObservedLogs
+  Logger   *zap.Logger
+  start     time.Time
 }
 
-func fieldsToZapFields(fields map[string]interface{}) []zapcore.Field {
-	zapFields := make([]zapcore.Field, 0, len(fields))
-	for k, v := range fields {
-		zapFields = append(zapFields, zap.Any(k, v))
-	}
-	return zapFields
+func (m *MockLogger) Info(msg string) {
+  m.Logger.Info(msg)
 }
 
-func (m *MockLogger) Info(msg string, fields map[string]interface{}) {
-	m.Logger.Info(msg, fieldsToZapFields(fields)...)
+func (m *MockLogger) Debug(msg string) {
+  m.Logger.Debug(msg)
 }
 
-func (m *MockLogger) Debug(msg string, fields map[string]interface{}) {
-	m.Logger.Debug(msg, fieldsToZapFields(fields)...)
+func (m *MockLogger) Error(msg string) {
+  m.Logger.Error(msg)
 }
 
-func (m *MockLogger) Error(msg string, fields map[string]interface{}) {
-	m.Logger.Error(msg, fieldsToZapFields(fields)...)
+func (m *MockLogger) Warn(msg string) {
+  m.Logger.Warn(msg)
 }
 
-func (m *MockLogger) Warn(msg string, fields map[string]interface{}) {
-	m.Logger.Warn(msg, fieldsToZapFields(fields)...)
-}
-
-func (m *MockLogger) Fatal(msg string, fields map[string]interface{}) {
-	m.Logger.Fatal(msg, fieldsToZapFields(fields)...)
+func (m *MockLogger) Fatal(msg string) {
+  m.Logger.Fatal(msg)
 }
 
 // Event implements logger.Logger.
 func (*MockLogger) Event(e *debug.Event) {
-	panic("unimplemented")
+  panic("unimplemented")
 }
 
 // Init implements logger.Logger.
 func (m *MockLogger) Init() error {
-	// Implement the method or leave it empty if it's not needed for your tests
-	return nil
+  // Implement the method or leave it empty if it's not needed for your tests
+  return nil
 }
 
 func NewMockLogger() *MockLogger {
-	config := zap.NewDevelopmentConfig()
-	config.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+  config := zap.NewDevelopmentConfig()
+  config.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 
-	core, observed := observer.New(zapcore.DebugLevel)
-	logger := zap.New(core)
-	return &MockLogger{
-		observer: observed,
-		Logger:   logger,
-		start:    time.Now(),
-	}
+  core, observed := observer.New(zapcore.DebugLevel)
+  logger := zap.New(core)
+  return &MockLogger{
+    observer: observed,
+    Logger:   logger,
+    start:     time.Now(),
+  }
 }
 
 func (m *MockLogger) SetLevel(level zapcore.Level) {
-	m.Logger.Core().Enabled(level)
+  m.Logger.Core().Enabled(level)
 }
 
+// AllEntries returns all logged entries captured by the observer.
 func (m *MockLogger) AllEntries() []observer.LoggedEntry {
-	return m.observer.AllUntimed()
+  return m.observer.AllUntimed()
 }

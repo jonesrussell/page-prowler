@@ -1,6 +1,7 @@
 package termmatcher
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -60,21 +61,21 @@ func ProcessContent(content string) string {
 func GetMatchingTerms(href string, anchorText string, searchTerms []string, logger logger.Logger) []string {
 	content := ExtractLastSegmentFromURL(href)
 	processedContent := ProcessContent(content)
-	logger.Debug("Processed content from URL", map[string]interface{}{"processedContent": processedContent})
+	logger.Debug(fmt.Sprintf("Processed content from URL: %v", map[string]interface{}{"processedContent": processedContent}))
 
 	anchorContent := ProcessContent(anchorText)
-	logger.Debug("Processed anchor text", map[string]interface{}{"anchorContent": anchorContent})
+	logger.Debug(fmt.Sprintf("Processed anchor text: %v", map[string]interface{}{"anchorContent": anchorContent}))
 
 	combinedContent := CombineContents(processedContent, anchorContent)
-	logger.Debug("Combined content", map[string]interface{}{"combinedContent": combinedContent})
+	logger.Debug(fmt.Sprintf("Combined content: %v", map[string]interface{}{"combinedContent": combinedContent}))
 
 	if len(combinedContent) < minTitleLength {
-		logger.Debug("Combined content is less than minimum title length", map[string]interface{}{"minTitleLength": minTitleLength})
+		logger.Debug(fmt.Sprintf("Combined content is less than minimum title length: %d", minTitleLength))
 		return []string{}
 	}
 
 	matchingTerms := FindMatchingTerms(combinedContent, searchTerms, logger)
-	logger.Debug("Found matching terms", map[string]interface{}{"matchingTerms": matchingTerms})
+	logger.Debug(fmt.Sprintf("Found matching terms: %v", map[string]interface{}{"matchingTerms": matchingTerms}))
 
 	seen := make(map[string]bool)
 	var result []string
@@ -87,11 +88,11 @@ func GetMatchingTerms(href string, anchorText string, searchTerms []string, logg
 
 	// Instead of returning nil, return an empty slice if no matching terms are found
 	if len(result) == 0 {
-		logger.Debug("No matching terms found", map[string]interface{}{})
+		logger.Debug("No matching terms found")
 		return []string{}
 	}
 
-	logger.Debug("Matching terms result", map[string]interface{}{"result": result})
+	logger.Debug(fmt.Sprintf("Matching terms result: %v", map[string]interface{}{"result": result}))
 	return result
 }
 
@@ -121,7 +122,7 @@ func CompareTerms(searchTerm string, content string, swg *metrics.SmithWatermanG
 	similarity := strutil.Similarity(searchTerm, content, swg)
 
 	// Log the searchTerm, content, and their similarity
-	mylogger.Debug("Compared terms", map[string]interface{}{"searchTerm": searchTerm, "content": content, "similarity": similarity})
+	mylogger.Debug(fmt.Sprintf("Compared terms: searchTerm=%s, content=%s, similarity=%.2f", searchTerm, content, similarity))
 
 	return similarity
 }
@@ -139,10 +140,10 @@ func CreateSWG() *metrics.SmithWatermanGotoh {
 
 func CompareAndAppendTerm(searchTerm string, content string, swg *metrics.SmithWatermanGotoh, matchingTerms *[]string, mylogger logger.Logger) {
 	similarity := CompareTerms(searchTerm, content, swg, mylogger)
-	mylogger.Debug("Compared terms", map[string]interface{}{"searchTerm": searchTerm, "similarity": similarity})
+	mylogger.Debug(fmt.Sprintf("Compared terms: searchTerm=%s, similarity=%.2f", searchTerm, similarity))
 	if similarity >= 0.9 { // Increase the threshold to 0.9
 		*matchingTerms = append(*matchingTerms, searchTerm)
-		mylogger.Debug("Matching term found", map[string]interface{}{"searchTerm": searchTerm})
+		mylogger.Debug(fmt.Sprintf("Matching term found: %v", map[string]interface{}{"searchTerm": searchTerm}))
 	}
 }
 
@@ -154,7 +155,7 @@ func FindMatchingTerms(content string, searchTerms []string, mylogger logger.Log
 	contentStemmed := StemContent(content)
 
 	// Debug statement
-	mylogger.Debug("Stemmed content", map[string]interface{}{"contentStemmed": contentStemmed})
+	mylogger.Debug(fmt.Sprintf("Stemmed content: %v", map[string]interface{}{"contentStemmed": contentStemmed}))
 
 	for _, searchTerm := range searchTerms {
 		// Convert the search term to lowercase and apply stemming
@@ -169,10 +170,10 @@ func FindMatchingTerms(content string, searchTerms []string, mylogger logger.Log
 
 	// Ensure an empty slice is returned instead of nil
 	if len(matchingTerms) == 0 {
-		mylogger.Debug("No matching terms found", map[string]interface{}{})
+		mylogger.Debug("No matching terms found")
 		return []string{}
 	}
 
-	mylogger.Debug("Matching terms result", map[string]interface{}{"matchingTerms": matchingTerms})
+	mylogger.Debug(fmt.Sprintf("Matching terms result: %v", map[string]interface{}{"matchingTerms": matchingTerms}))
 	return matchingTerms
 }

@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/gocolly/colly"
@@ -54,12 +55,12 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 		colly.Debugger(cm.LoggerField),
 	)
 
-	cm.LoggerField.Debug("Allowed Domains", map[string]interface{}{"domains": allowedDomains})
+	cm.LoggerField.Debug(fmt.Sprintf("Allowed Domains: %v", allowedDomains))
 	cm.Collector.AllowedDomains = allowedDomains
 
 	limitRule := cm.createLimitRule()
 	if err := cm.Collector.Limit(limitRule); err != nil {
-		cm.Logger().Error("Failed to set limit rule: %v", map[string]interface{}{"err": err})
+		cm.LoggerField.Error(fmt.Sprintf("Failed to set limit rule: %v", map[string]interface{}{"err": err}))
 		return err
 	}
 
@@ -69,7 +70,7 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 
 	// Register OnScraped callback
 	cm.Collector.OnScraped(func(r *colly.Response) {
-		cm.Logger().Debug("[OnScraped] Page scraped", map[string]interface{}{"url": r.Request.URL.String()})
+		cm.LoggerField.Debug(fmt.Sprintf("[OnScraped] Page scraped: %s", r.Request.URL.String()))
 		cm.StatsManager.LinkStatsMu.Lock()
 		defer cm.StatsManager.LinkStatsMu.Unlock()
 		cm.StatsManager.LinkStats.IncrementTotalPages()
@@ -80,30 +81,31 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 
 func (cm *CrawlManager) logCrawlingStatistics() {
 	report := cm.StatsManager.LinkStats.Report()
-	cm.Logger().Info("Crawling statistics", map[string]interface{}{
-		"TotalLinks":      report["TotalLinks"],
-		"MatchedLinks":    report["MatchedLinks"],
-		"NotMatchedLinks": report["NotMatchedLinks"],
-		"TotalPages":      report["TotalPages"],
-	})
+	infoMessage := fmt.Sprintf("Crawling statistics: TotalLinks=%v, MatchedLinks=%v, NotMatchedLinks=%v, TotalPages=%v",
+		report["TotalLinks"], report["MatchedLinks"], report["NotMatchedLinks"], report["TotalPages"])
+	cm.LoggerField.Info(infoMessage)
 }
 
 func (cm *CrawlManager) visitWithColly(url string) error {
-	cm.LoggerField.Debug("[visitWithColly] Visiting URL with Colly", map[string]interface{}{"url": url})
+	cm.LoggerField.Debug(fmt.Sprintf("[visitWithColly] Visiting URL with Colly: %v", map[string]interface{}{"url": url}))
 
 	err := cm.Collector.Visit(url)
-	if err != nil {
-		switch {
-		case errors.Is(err, colly.ErrAlreadyVisited):
-			cm.LoggerField.Debug("[visitWithColly] URL already visited", map[string]interface{}{"url": url})
-		case errors.Is(err, colly.ErrForbiddenDomain):
-			cm.LoggerField.Debug("[visitWithColly] Forbidden domain - Skipping visit", map[string]interface{}{"url": url})
-		default:
-			cm.LoggerField.Debug("[visitWithColly] Error visiting URL", map[string]interface{}{"url": url, "error": err})
-		}
-		return nil
-	}
+  if err != nil {
+    switch {
+    case errors.Is(err, colly.ErrAlreadyVisited):
+      errorMessage := fmt.Sprintf("[visitWithColly] URL already visited: %v", url)
+      cm.LoggerField.Debug(errorMessage)
+    case errors.Is(err, colly.ErrForbiddenDomain):
+      errorMessage := fmt.Sprintf("[visitWithColly] Forbidden domain - Skipping visit: %v", url)
+      cm.LoggerField.Debug(errorMessage)
+    default:
+      errorMessage := fmt.Sprintf("[visitWithColly] Error visiting URL: url=%v, error=%v", url, err)
+      cm.LoggerField.Error(errorMessage)
+    }
+    return nil
+  }
 
-	cm.LoggerField.Debug("[visitWithColly] Successfully visited URL with Colly", map[string]interface{}{"url": url})
+	successMessage := fmt.Sprintf("[visitWithColly] Successfully visited URL: %v", url)
+  cm.LoggerField.Debug(successMessage)
 	return nil
 }
