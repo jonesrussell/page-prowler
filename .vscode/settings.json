@@ -4,5 +4,6 @@
       "source.fixAll": "explicit"
     },
     "codeQL.createQuery.qlPackLocation": "/workspaces/page-prowler",
-    "sarif-viewer.connectToGithubCodeScanning": "on"
+    "sarif-viewer.connectToGithubCodeScanning": "on",
+    "editor.defaultFormatter": "golang.go"
 }
