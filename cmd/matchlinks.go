@@ -62,7 +62,7 @@ func runMatchLinks(cmd *cobra.Command, args []string) error {
 		manager.Logger().Info(fmt.Sprintf(" %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH")))
 	}
 
-	err := manager.StartCrawling(ctx, url, searchterms, Siteid, viper.GetInt("maxdepth"), viper.GetBool("debug"))
+	_, err := manager.Crawl(ctx, url, searchterms, Siteid, viper.GetInt("maxdepth"), viper.GetBool("debug"))
 	if err != nil {
 		log.Fatalf("Error starting crawling: %v", err)
 	}

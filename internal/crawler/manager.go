@@ -53,9 +53,25 @@ func NewStatsManager() *StatsManager {
 	}
 }
 
-func (cm *CrawlManager) Crawl(url string, options *CrawlOptions) ([]PageData, error) {
+func (cm *CrawlManager) Crawl(ctx context.Context, url string, searchTerms, crawlSiteID string, maxDepth int, debug bool) ([]PageData, error) {
 	cm.LoggerField.Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", url))
 
+	if err := cm.validateParameters(url, searchTerms, crawlSiteID, maxDepth); err != nil {
+		return nil, err
+	}
+
+	cm.initializeStatsManager()
+
+	host, err := cm.extractHostFromURL(url)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := cm.configureCollector(host, maxDepth); err != nil {
+		return nil, err
+	}
+
+	options := cm.createCrawlingOptions(crawlSiteID, searchTerms, debug)
 	if err := cm.SetupCrawlingLogic(options); err != nil {
 		return nil, err
 	}
@@ -78,36 +94,6 @@ func (cm *CrawlManager) Crawl(url string, options *CrawlOptions) ([]PageData, er
 // - error: The error that was logged and returned.
 func (cm *CrawlManager) HandleVisitError(url string, err error) error {
 	cm.LoggerField.Error(fmt.Sprintf("Error visiting URL: url: %s, error: %v", url, err))
-	return err
-}
-
-// StartCrawling initiates the crawling process with the given parameters.
-// It validates the input parameters, configures the collector, and starts the crawling process.
-// It returns an error if the crawling process fails to start.
-// Parameters:
-// - ctx: The context for the crawling operation.
-// - url: The URL to start crawling from.
-// - searchTerms: The search terms to match against the crawled content.
-// - crawlSiteID: The ID of the site to crawl.
-// - maxDepth: The maximum depth to crawl.
-// - debug: A flag indicating whether to enable debug mode for the crawling process.
-func (cm *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, crawlSiteID string, maxDepth int, debug bool) error {
-	if err := cm.validateParameters(url, searchTerms, crawlSiteID, maxDepth); err != nil {
-		return err
-	}
-
-	cm.initializeStatsManager()
-
-	host, err := cm.extractHostFromURL(url)
-	if err != nil {
-		return err
-	}
-
-	if configureErr := cm.configureCollector(host, maxDepth); configureErr != nil {
-		return err
-	}
-
-	_, err = cm.Crawl(url, cm.createCrawlingOptions(crawlSiteID, searchTerms, debug))
 	return err
 }
 

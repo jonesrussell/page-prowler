@@ -44,7 +44,8 @@ func handleCrawlTask(ctx context.Context, task *asynq.Task, cm *crawler.CrawlMan
 		return err
 	}
 
-	return cm.StartCrawling(ctx, payload.URL, payload.SearchTerms, payload.CrawlSiteID, payload.MaxDepth, debug)
+	_, err = cm.Crawl(ctx, payload.URL, payload.SearchTerms, payload.CrawlSiteID, payload.MaxDepth, debug)
+	return err
 }
 
 func StartWorker(concurrency int, cm *crawler.CrawlManager, debug bool) {

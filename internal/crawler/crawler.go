@@ -29,7 +29,7 @@ const (
 type CrawlManagerInterface interface {
 	// Crawl initiates the crawling process for a given URL with the provided options.
 	// It returns a slice of PageData and an error if any occurs during the crawling process.
-	Crawl(url string, options *CrawlOptions) ([]PageData, error)
+	Crawl(ctx context.Context, url string, searchTerms, crawlSiteID string, maxDepth int, debug bool) ([]PageData, error)
 	// SetupHTMLParsingHandler sets up the handler for HTML parsing with gocolly, using the provided parameters.
 	// It returns an error if the setup fails.
 	SetupHTMLParsingHandler(handler func(*colly.HTMLElement)) error
@@ -52,7 +52,6 @@ type CrawlManagerInterface interface {
 	// StartCrawling initiates the crawling process with the given parameters.
 	// It validates the input parameters, configures the collector, and starts the crawling process.
 	// It returns an error if the crawling process fails to start.
-	StartCrawling(ctx context.Context, url string, searchterms string, siteid string, maxdepth int, debug bool) error
 	ProcessMatchingLink(options *CrawlOptions, currentURL string, pageData PageData, matchingTerms []string)
 	UpdateStats(options *CrawlOptions, matchingTerms []string)
 }
