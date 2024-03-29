@@ -109,7 +109,7 @@ func TestCrawler_StartCrawling(t *testing.T) {
 			defer server.Close()
 
 			// Call the function with the test parameters
-			err := cs.StartCrawling(context.Background(), tt.url, tt.searchTerms, tt.crawlSiteID, tt.maxDepth, tt.debug)
+			_, err := cs.Crawl(context.Background(), tt.url, tt.searchTerms, tt.crawlSiteID, tt.maxDepth, tt.debug)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("StartCrawling() error = %v, wantErr %v", err, tt.wantErr)
@@ -143,7 +143,7 @@ func TestCrawlManager_SetupCrawlingLogic(t *testing.T) {
 }
 
 func TestCrawlManager_Crawl(t *testing.T) {
-	cs, options := setupTestEnvironment()
+	cs, _ := setupTestEnvironment()
 
 	cs.Collector.SetAllowedDomains([]string{"example.com"})
 
@@ -158,7 +158,13 @@ func TestCrawlManager_Crawl(t *testing.T) {
 	cs.Collector.SetAllowedDomains([]string{u.Host})
 
 	// Call the function with the mock parameters
-	_, err := cs.Crawl(myurl, options)
+	ctx := context.Background()      // Create a context
+	searchTerms := "yourSearchTerms" // Example search terms
+	crawlSiteID := "yourCrawlSiteID" // Example crawl site ID
+	maxDepth := 1                    // Example max depth
+	debug := false                   // Example debug flag
+
+	_, err := cs.Crawl(ctx, myurl, searchTerms, crawlSiteID, maxDepth, debug)
 	if err != nil {
 		t.Errorf("Expected no error, but got %v", err)
 	}
@@ -235,7 +241,13 @@ func TestCrawlManager_SetupHTMLParsingHandler(t *testing.T) {
 	}
 
 	// Call the crawl function with the mock server URL
-	_, err = cs.Crawl(server.URL, options)
+	ctx := context.Background()      // Create a context
+	searchTerms := "yourSearchTerms" // Example search terms
+	crawlSiteID := "yourCrawlSiteID" // Example crawl site ID
+	maxDepth := 1                    // Example max depth
+	debug := false                   // Example debug flag
+
+	_, err = cs.Crawl(ctx, server.URL, searchTerms, crawlSiteID, maxDepth, debug)
 	if err != nil {
 		t.Errorf("Expected no error, but got %v", err)
 	}
