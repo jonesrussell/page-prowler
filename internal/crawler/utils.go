@@ -11,6 +11,41 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/termmatcher"
 )
 
+// extractHostFromURL extracts the host from the given URL.
+// It uses the GetHostFromURL function to parse the URL and retrieve the host.
+// If the URL cannot be parsed, it logs an error and returns an empty string along with the error.
+// Parameters:
+// - url: The URL from which to extract the host.
+// Returns:
+// - string: The extracted host from the URL.
+// - error: An error if the URL cannot be parsed.
+func (cm *CrawlManager) extractHostFromURL(url string) (string, error) {
+	host, err := GetHostFromURL(url, cm.Logger())
+	if err != nil {
+		cm.LoggerField.Error(fmt.Sprintf("Failed to parse URL: url: %v, error: %v", url, err))
+		return "", err
+	}
+	cm.LoggerField.Debug(fmt.Sprintf("Extracted host from URL: %s", host))
+	return host, nil
+}
+
+// configureCollector configures the crawler's collector with the specified host and maximum depth.
+// It attempts to set up the collector for crawling operations.
+// If the configuration fails, it logs a fatal error and returns the error.
+// Parameters:
+// - host: The host to configure the collector for.
+// - maxDepth: The maximum depth for the crawling operations.
+// Returns:
+// - error: An error if the collector configuration fails.
+func (cm *CrawlManager) configureCollector(host string, maxDepth int) error {
+	err := cm.ConfigureCollector([]string{host}, maxDepth)
+	if err != nil {
+		cm.LoggerField.Fatal(fmt.Sprintf("Failed to configure collector: %v", err))
+		return err
+	}
+	return nil
+}
+
 func (cm *CrawlManager) GetAnchorElementHandler(options *CrawlOptions) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
 		href := cm.getHref(e)
