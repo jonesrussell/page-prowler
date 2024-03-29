@@ -8,8 +8,7 @@
 		"ghcr.io/guiyomh/features/gomarkdoc:0": {},
 		"ghcr.io/guiyomh/features/goreleaser:0": {},
 		"ghcr.io/guiyomh/features/gotestsum:0": {},
-		"ghcr.io/devcontainers/features/docker-in-docker:2": {},
-		"ghcr.io/devcontainers-contrib/features/bitwarden-cli:1": {}
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {}
 	},
 	"customizations": {
 		"vscode": {
