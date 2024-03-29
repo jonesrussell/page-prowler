@@ -16,31 +16,6 @@ type PageData struct {
 	Error         string   `json:"error,omitempty"`
 }
 
-// performCrawling executes the crawling process for the specified URL with the given options.
-// It performs the crawl, logs crawling statistics, saves the results to Redis, and logs the results.
-// Parameters:
-// - ctx: The context for the crawling operation.
-// - url: The URL to crawl.
-// - options: The CrawlOptions containing configuration for the crawling process.
-// Returns:
-// - error: An error if the crawling process encounters any issues.
-func (cm *CrawlManager) performCrawling(ctx context.Context, url string, options *CrawlOptions) error {
-	results, err := cm.Crawl(url, options)
-	if err != nil {
-		return err
-	}
-
-	cm.logCrawlingStatistics()
-
-	if err := cm.SaveResultsToRedis(ctx, results, options.CrawlSiteID); err != nil {
-		return err
-	}
-
-	logResults(cm, results)
-
-	return nil
-}
-
 // Validate checks if the PageData fields are valid.
 // It returns an error if the URL field is not a valid URL.
 func (p *PageData) Validate() error {
@@ -70,23 +45,6 @@ func (p *PageData) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	return p.Validate()
-}
-
-// logResults prints the results of the crawl.
-// It logs the results as a JSON string if there are results to print.
-func logResults(cm *CrawlManager, results []PageData) {
-	if len(results) == 0 {
-		cm.LoggerField.Info("No results to print")
-		return
-	}
-
-	jsonData, err := json.Marshal(results)
-	if err != nil {
-		cm.LoggerField.Error(fmt.Sprintf("Error occurred during marshaling: %v", err))
-		return
-	}
-
-	cm.LoggerField.Info(string(jsonData))
 }
 
 // SaveResultsToRedis saves the crawling results to a Redis set.

@@ -53,27 +53,19 @@ func NewStatsManager() *StatsManager {
 	}
 }
 
-// Crawl starts the crawling process for a given URL with the provided options.
-// It logs the URL being crawled, sets up the crawling logic, visits the URL, and returns the crawling results.
-// Parameters:
-// - url: The URL to start crawling.
-// - options: The CrawlOptions containing configuration for the crawling process.
-// Returns:
-// - []PageData: A slice of PageData representing the crawling results.
-// - error: An error if the crawling process encounters any issues.
 func (cm *CrawlManager) Crawl(url string, options *CrawlOptions) ([]PageData, error) {
-	cm.LoggerField.Debug(fmt.Sprintf("CrawlURL: %s", url))
+	cm.LoggerField.Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", url))
 
-	err := cm.SetupCrawlingLogic(options)
-	if err != nil {
+	if err := cm.SetupCrawlingLogic(options); err != nil {
 		return nil, err
 	}
 
-	err = cm.CrawlURL(url)
-	if err != nil {
-		return nil, err
+	if err := cm.visitWithColly(url); err != nil {
+		return nil, cm.HandleVisitError(url, err)
 	}
 
+	cm.Collector.Wait()
+	cm.Logger().Info("[Crawl] Crawling completed.")
 	return *options.Results, nil
 }
 
@@ -111,13 +103,12 @@ func (cm *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, cra
 		return err
 	}
 
-	if err := cm.configureCollector(host, maxDepth); err != nil {
+	if configureErr := cm.configureCollector(host, maxDepth); configureErr != nil {
 		return err
 	}
 
-	options := cm.createCrawlingOptions(crawlSiteID, searchTerms, debug)
-
-	return cm.performCrawling(ctx, url, options)
+	_, err = cm.Crawl(url, cm.createCrawlingOptions(crawlSiteID, searchTerms, debug))
+	return err
 }
 
 // ConfigureCollector sets up the Colly collector with the specified allowed domains and maximum depth.
@@ -158,14 +149,6 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 	})
 
 	return nil
-}
-
-// logCrawlingStatistics logs the crawling statistics, including total links, matched links, not matched links, and total pages.
-func (cm *CrawlManager) logCrawlingStatistics() {
-	report := cm.StatsManager.LinkStats.Report()
-	infoMessage := fmt.Sprintf("Crawling statistics: TotalLinks=%v, MatchedLinks=%v, NotMatchedLinks=%v, TotalPages=%v",
-		report["TotalLinks"], report["MatchedLinks"], report["NotMatchedLinks"], report["TotalPages"])
-	cm.LoggerField.Info(infoMessage)
 }
 
 func (cm *CrawlManager) visitWithColly(url string) error {
