@@ -47,7 +47,7 @@ func TestStartCrawlingIsCalledWithCorrectArguments(t *testing.T) {
 	mockManager.On("StartCrawling", ctx, url, searchterms, siteid, maxdepth, false).Return(nil)
 
 	// Call the function that uses StartCrawling here
-	err := mockManager.StartCrawling(ctx, url, searchterms, siteid, maxdepth, false)
+	err, _ := mockManager.Crawl(ctx, url, searchterms, siteid, maxdepth, false)
 	if err != nil {
 		t.Errorf("error running matchlinks command: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestStartCrawlingHandlesErrors(t *testing.T) {
 	mockManager.On("StartCrawling", ctx, url, searchterms, siteid, maxdepth, false).Return(errors.New("mock error"))
 
 	// Call the function that uses StartCrawling here
-	err := mockManager.StartCrawling(ctx, url, searchterms, siteid, maxdepth, false)
+	err, _ := mockManager.Crawl(ctx, url, searchterms, siteid, maxdepth, false)
 	if err == nil {
 		t.Errorf("expected error, got nil")
 	}
