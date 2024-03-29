@@ -2,7 +2,6 @@ package crawler
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -13,16 +12,19 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/stats"
 )
 
+// CrawlManager is the main struct that manages the crawling operations.
+// It includes fields for logging, MongoDB operations, and the Colly collector.
 type CrawlManager struct {
 	LoggerField    logger.Logger
 	Client         prowlredis.ClientInterface
 	MongoDBWrapper mongodbwrapper.MongoDBInterface
-	Collector      *colly.Collector
+	Collector      CollectorInterface
 	CrawlingMu     *sync.Mutex
 	StatsManager   *StatsManager
 }
 
-// NewCrawlManager creates a new instance of CrawlManager.
+// NewCrawlManager creates a new instance of CrawlManager with the provided logger,
+// Redis client, and MongoDB wrapper. It initializes the CrawlingMu mutex.
 func NewCrawlManager(
 	loggerField logger.Logger,
 	client prowlredis.ClientInterface,
@@ -36,6 +38,8 @@ func NewCrawlManager(
 	}
 }
 
+// StatsManager is a struct that manages crawling statistics.
+// It includes fields for link statistics and a mutex for thread safety.
 type StatsManager struct {
 	LinkStats   *stats.Stats
 	LinkStatsMu sync.RWMutex
@@ -59,6 +63,7 @@ func NewStatsManager() *StatsManager {
 // - error: An error if the crawling process encounters any issues.
 func (cm *CrawlManager) Crawl(url string, options *CrawlOptions) ([]PageData, error) {
 	cm.LoggerField.Debug(fmt.Sprintf("CrawlURL: %s", url))
+
 	err := cm.SetupCrawlingLogic(options)
 	if err != nil {
 		return nil, err
@@ -115,15 +120,24 @@ func (cm *CrawlManager) StartCrawling(ctx context.Context, url, searchTerms, cra
 	return cm.performCrawling(ctx, url, options)
 }
 
+// ConfigureCollector sets up the Colly collector with the specified allowed domains and maximum depth.
+// It also configures the collector to log debug information, respect robots.txt, and register an OnScraped callback.
+// Parameters:
+// - allowedDomains: A slice of strings representing the allowed domains for crawling.
+// - maxDepth: The maximum depth to crawl.
+// Returns:
+// - error: An error if the collector configuration fails.
 func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int) error {
-	cm.Collector = colly.NewCollector(
-		colly.Async(false),
-		colly.MaxDepth(maxDepth),
-		colly.Debugger(cm.LoggerField),
-	)
+	cm.Collector = &CollectorWrapper{
+		colly.NewCollector(
+			colly.Async(false),
+			colly.MaxDepth(maxDepth),
+			colly.Debugger(cm.LoggerField),
+		),
+	}
 
 	cm.LoggerField.Debug(fmt.Sprintf("Allowed Domains: %v", allowedDomains))
-	cm.Collector.AllowedDomains = allowedDomains
+	cm.Collector.SetAllowedDomains(allowedDomains)
 
 	limitRule := cm.createLimitRule()
 	if err := cm.Collector.Limit(limitRule); err != nil {
@@ -132,8 +146,8 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 	}
 
 	// Respect robots.txt
-	cm.Collector.AllowURLRevisit = false
-	cm.Collector.IgnoreRobotsTxt = false
+	cm.Collector.SetAllowURLRevisit(false)
+	cm.Collector.SetIgnoreRobotsTxt(false)
 
 	// Register OnScraped callback
 	cm.Collector.OnScraped(func(r *colly.Response) {
@@ -146,6 +160,7 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 	return nil
 }
 
+// logCrawlingStatistics logs the crawling statistics, including total links, matched links, not matched links, and total pages.
 func (cm *CrawlManager) logCrawlingStatistics() {
 	report := cm.StatsManager.LinkStats.Report()
 	infoMessage := fmt.Sprintf("Crawling statistics: TotalLinks=%v, MatchedLinks=%v, NotMatchedLinks=%v, TotalPages=%v",
@@ -154,25 +169,17 @@ func (cm *CrawlManager) logCrawlingStatistics() {
 }
 
 func (cm *CrawlManager) visitWithColly(url string) error {
-	cm.LoggerField.Debug(fmt.Sprintf("[visitWithColly] Visiting URL with Colly: %v", url))
-
-	err := cm.Collector.Visit(url)
+	// Assuming you have a method to set up the Colly collector
+	err := cm.SetupCrawlingLogic(cm.createCrawlingOptions("siteID", "searchTerms", false))
 	if err != nil {
-		switch {
-		case errors.Is(err, colly.ErrAlreadyVisited):
-			errorMessage := fmt.Sprintf("[visitWithColly] URL already visited: %v", url)
-			cm.LoggerField.Debug(errorMessage)
-		case errors.Is(err, colly.ErrForbiddenDomain):
-			errorMessage := fmt.Sprintf("[visitWithColly] Forbidden domain - Skipping visit: %v", url)
-			cm.LoggerField.Debug(errorMessage)
-		default:
-			errorMessage := fmt.Sprintf("[visitWithColly] Error visiting URL: url=%v, error=%v", url, err)
-			cm.LoggerField.Error(errorMessage)
-		}
-		return nil
+		return err
 	}
 
-	successMessage := fmt.Sprintf("[visitWithColly] Successfully visited URL: %v", url)
-	cm.LoggerField.Debug(successMessage)
+	// Visit the URL with the Colly collector
+	err = cm.Collector.Visit(url)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

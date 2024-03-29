@@ -136,7 +136,7 @@ func initializeLogger() (logger.Logger, error) {
 	var level zapcore.Level
 	level = zapcore.InfoLevel
 	if Debug {
-			level = zapcore.DebugLevel
+		level = zapcore.DebugLevel
 	}
 	return logger.New(level) // Use the new logger constructor
 }

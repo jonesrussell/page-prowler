@@ -4,7 +4,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
@@ -61,7 +60,7 @@ func TestCrawlManager_ProcessMatchingLinkAndUpdateStats(t *testing.T) {
 		LoggerField    logger.Logger
 		Client         prowlredis.ClientInterface
 		MongoDBWrapper mongodbwrapper.MongoDBInterface
-		Collector      *colly.Collector
+		Collector      *crawler.CollectorWrapper
 		CrawlingMu     *sync.Mutex
 		StatsManager   *crawler.StatsManager
 	}
@@ -83,7 +82,7 @@ func TestCrawlManager_ProcessMatchingLinkAndUpdateStats(t *testing.T) {
 				LoggerField:    mocks.NewMockLogger(),
 				Client:         mocks.NewMockClient(),
 				MongoDBWrapper: mocks.NewMockMongoDBWrapper(),
-				Collector:      colly.NewCollector(),
+				Collector:      &crawler.CollectorWrapper{},
 				CrawlingMu:     &sync.Mutex{},
 				StatsManager:   crawler.NewStatsManager(),
 			},
@@ -94,7 +93,6 @@ func TestCrawlManager_ProcessMatchingLinkAndUpdateStats(t *testing.T) {
 				matchingTerms: []string{"example"},
 			},
 		},
-		// Add more test cases as needed
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -106,7 +104,9 @@ func TestCrawlManager_ProcessMatchingLinkAndUpdateStats(t *testing.T) {
 				CrawlingMu:     tt.fields.CrawlingMu,
 				StatsManager:   tt.fields.StatsManager,
 			}
-			cs.ProcessMatchingLinkAndUpdateStats(tt.args.options, tt.args.href, tt.args.pageData, tt.args.matchingTerms)
+
+			cs.ProcessMatchingLink(tt.args.options, tt.args.href, tt.args.pageData, tt.args.matchingTerms)
+			cs.UpdateStats(tt.args.options, tt.args.matchingTerms)
 		})
 	}
 }

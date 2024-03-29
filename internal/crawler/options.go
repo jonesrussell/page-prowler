@@ -9,6 +9,14 @@ type CrawlOptions struct {
 	Debug       bool        // A flag indicating whether to enable debug mode for the crawling process.
 }
 
+// NewCrawlOptions creates a new CrawlOptions instance with the given parameters.
+// Parameters:
+// - crawlSiteID: The ID of the site to crawl.
+// - searchTerms: The search terms to match against the crawled content.
+// - debug: A flag indicating whether to enable debug mode for the crawling process.
+// - results: A pointer to a slice of PageData where the crawling results will be stored.
+// Returns:
+// - *CrawlOptions: A pointer to a new CrawlOptions instance configured with the provided parameters.
 func NewCrawlOptions(crawlSiteID string, searchTerms []string, debug bool, results *[]PageData) *CrawlOptions {
 	return &CrawlOptions{
 		CrawlSiteID: crawlSiteID,

@@ -53,19 +53,20 @@ type CrawlManagerInterface interface {
 	// It validates the input parameters, configures the collector, and starts the crawling process.
 	// It returns an error if the crawling process fails to start.
 	StartCrawling(ctx context.Context, url string, searchterms string, siteid string, maxdepth int, debug bool) error
-	ProcessMatchingLinkAndUpdateStats(*CrawlOptions, string, PageData, []string)
+	ProcessMatchingLink(options *CrawlOptions, currentURL string, pageData PageData, matchingTerms []string)
+	UpdateStats(options *CrawlOptions, matchingTerms []string)
 }
 
 // CrawlManager is the implementation of the CrawlManagerInterface.
 // It manages the crawling operations, including setting up crawling logic, handling errors, and starting the crawling process.
 // The struct fields are initialized with default values or instances of required types.
 var _ CrawlManagerInterface = &CrawlManager{
-	LoggerField:    nil,                // Logger instance for logging messages.
-	Client:         nil,                // HTTP client for making requests.
-	MongoDBWrapper: nil,                // MongoDB wrapper for database operations.
-	Collector:      &colly.Collector{}, // Colly collector for crawling web pages.
-	CrawlingMu:     &sync.Mutex{},      // Mutex for synchronizing crawling operations.
-	StatsManager:   &StatsManager{},    // Manager for crawling statistics.
+	LoggerField:    nil,                                       // Logger instance for logging messages.
+	Client:         nil,                                       // HTTP client for making requests.
+	MongoDBWrapper: nil,                                       // MongoDB wrapper for database operations.
+	Collector:      NewCollectorWrapper(colly.NewCollector()), // Colly collector for crawling web pages.
+	CrawlingMu:     &sync.Mutex{},                             // Mutex for synchronizing crawling operations.
+	StatsManager:   &StatsManager{},                           // Manager for crawling statistics.
 }
 
 // Logger returns the logger instance associated with the CrawlManager.
@@ -129,7 +130,7 @@ func (cm *CrawlManager) SetupHTMLParsingHandler(handler func(*colly.HTMLElement)
 // Parameters:
 // - collector: A pointer to the colly.Collector instance for which the error handling is being set up.
 func (cm *CrawlManager) SetupErrorEventHandler(collector *colly.Collector) {
-	collector.OnError(func(r *colly.Response, err error) {
+	cm.Collector.OnError(func(r *colly.Response, err error) {
 		statusCode := r.StatusCode
 		requestURL := r.Request.URL.String()
 
@@ -156,7 +157,7 @@ func (cm *CrawlManager) SetupCrawlingLogic(options *CrawlOptions) error {
 		return cm.handleSetupError(err)
 	}
 
-	cm.SetupErrorEventHandler(cm.Collector)
+	cm.SetupErrorEventHandler(&colly.Collector{})
 
 	return nil
 }
@@ -169,12 +170,14 @@ func (cm *CrawlManager) SetupCrawlingLogic(options *CrawlOptions) error {
 // - error: An error if the visit fails or if an error occurs during the crawling process.
 func (cm *CrawlManager) CrawlURL(url string) error {
 	cm.LoggerField.Debug(fmt.Sprintf("[CrawlURL] Visiting URL: %v", url))
+
 	err := cm.visitWithColly(url)
 	if err != nil {
 		return cm.HandleVisitError(url, err)
 	}
-	//	cm.trackVisitedPage(url, options)
+
 	cm.Collector.Wait()
+
 	cm.Logger().Info("[CrawlURL] Crawling completed.")
 	return nil
 }
