@@ -16,6 +16,31 @@ type PageData struct {
 	Error         string   `json:"error,omitempty"`
 }
 
+// performCrawling executes the crawling process for the specified URL with the given options.
+// It performs the crawl, logs crawling statistics, saves the results to Redis, and logs the results.
+// Parameters:
+// - ctx: The context for the crawling operation.
+// - url: The URL to crawl.
+// - options: The CrawlOptions containing configuration for the crawling process.
+// Returns:
+// - error: An error if the crawling process encounters any issues.
+func (cm *CrawlManager) performCrawling(ctx context.Context, url string, options *CrawlOptions) error {
+	results, err := cm.Crawl(url, options)
+	if err != nil {
+		return err
+	}
+
+	cm.logCrawlingStatistics()
+
+	if err := cm.SaveResultsToRedis(ctx, results, options.CrawlSiteID); err != nil {
+		return err
+	}
+
+	logResults(cm, results)
+
+	return nil
+}
+
 func (p *PageData) Validate() error {
 	// Check if the URL field is a valid URL
 	_, err := url.ParseRequestURI(p.URL)
