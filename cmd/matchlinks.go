@@ -53,7 +53,7 @@ func runMatchLinks(cmd *cobra.Command, args []string) error {
 	if Debug {
 		manager.Logger().Info("\nFlags:")
 		cmd.Flags().VisitAll(func(flag *pflag.Flag) {
-			manager.Logger().Info(fmt.Sprintf(" %-12s : %s\n", flag.Name, flag.Value.String()))			
+			manager.Logger().Info(fmt.Sprintf(" %-12s : %s\n", flag.Name, flag.Value.String()))
 		})
 
 		manager.Logger().Info("\nRedis Environment Variables:")

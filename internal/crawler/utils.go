@@ -46,6 +46,14 @@ func (cm *CrawlManager) configureCollector(host string, maxDepth int) error {
 	return nil
 }
 
+// GetAnchorElementHandler returns a function that handles anchor elements during the crawl.
+// This function is designed to be used as a callback for the Colly collector to process each anchor element found during the crawl.
+// It extracts the href attribute from the anchor element, processes the link if the href is not empty, and attempts to visit the URL using Colly.
+// If there's an error visiting the URL, it logs the error.
+// Parameters:
+// - options: A pointer to CrawlOptions containing the crawl configuration.
+// Returns:
+// - func(e *colly.HTMLElement): A function that takes a Colly HTMLElement as input and processes it according to the specified logic.
 func (cm *CrawlManager) GetAnchorElementHandler(options *CrawlOptions) func(e *colly.HTMLElement) {
 	return func(e *colly.HTMLElement) {
 		href := cm.getHref(e)
@@ -61,6 +69,12 @@ func (cm *CrawlManager) GetAnchorElementHandler(options *CrawlOptions) func(e *c
 	}
 }
 
+// getHref retrieves the href attribute from the given HTML element.
+// It logs a debug message if the href is empty or if the anchor element has no href attribute.
+// Parameters:
+// - e: The HTML element to retrieve the href from.
+// Returns:
+// - string: The href attribute value.
 func (cm *CrawlManager) getHref(e *colly.HTMLElement) string {
 	href := e.Request.AbsoluteURL(e.Attr("href"))
 	if href == "" {
@@ -71,38 +85,65 @@ func (cm *CrawlManager) getHref(e *colly.HTMLElement) string {
 	return href
 }
 
+// incrementTotalLinks increments the total links count in the StatsManager.
+// It logs a debug message indicating the total links count has been incremented.
 func (cm *CrawlManager) incrementTotalLinks() {
 	cm.StatsManager.LinkStats.IncrementTotalLinks()
 	cm.LoggerField.Debug("Incremented total links count")
 }
 
+// logCurrentURL logs the current URL being crawled.
+// Parameters:
+// - e: The HTML element representing the current page.
 func (cm *CrawlManager) logCurrentURL(e *colly.HTMLElement) {
 	cm.LoggerField.Debug(fmt.Sprintf("Current URL being crawled: %s", e.Request.URL.String()))
 }
 
+// createPageData creates a PageData instance with the given href.
+// Parameters:
+// - href: The URL to create the PageData instance for.
+// Returns:
+// - PageData: A PageData instance with the URL set.
 func (cm *CrawlManager) createPageData(href string) PageData {
 	return PageData{
 		URL: href,
 	}
 }
 
+// logSearchTerms logs the search terms used for crawling.
+// Parameters:
+// - options: The CrawlOptions containing the search terms.
 func (cm *CrawlManager) logSearchTerms(options *CrawlOptions) {
 	cm.LoggerField.Debug(fmt.Sprintf("Search terms: %v", options.SearchTerms))
 }
 
+// getMatchingTerms retrieves the matching terms from the given href and anchor text.
+// Parameters:
+// - href: The URL to check for matching terms.
+// - anchorText: The text of the anchor element.
+// - options: The CrawlOptions containing the search terms.
+// Returns:
+// - []string: A slice of strings representing the matching terms.
 func (cm *CrawlManager) getMatchingTerms(href string, anchorText string, options *CrawlOptions) []string {
 	return termmatcher.GetMatchingTerms(href, anchorText, options.SearchTerms, cm.Logger())
 }
 
+// handleMatchingTerms processes the matching terms and updates the stats.
+// Parameters:
+// - options: The CrawlOptions containing the search terms.
+// - currentURL: The current URL being crawled.
+// - pageData: The PageData instance for the current URL.
+// - matchingTerms: A slice of strings representing the matching terms.
 func (cm *CrawlManager) handleMatchingTerms(options *CrawlOptions, currentURL string, pageData PageData, matchingTerms []string) {
-	if len(matchingTerms) > 0 {
-		cm.ProcessMatchingLinkAndUpdateStats(options, currentURL, pageData, matchingTerms)
-	} else {
-		cm.incrementNonMatchedLinkCount()
-		cm.LoggerField.Debug(fmt.Sprintf("Link does not match search terms: %s", pageData.URL))
-	}
+	cm.ProcessMatchingLink(options, currentURL, pageData, matchingTerms)
+	cm.UpdateStats(options, matchingTerms)
 }
 
+// processLink processes a link by incrementing the total links count, logging the current URL, creating page data, logging search terms, getting matching terms, and handling matching terms.
+// Parameters:
+// - e: The HTML element representing the link.
+// - href: The URL of the link.
+// - options: The CrawlOptions containing the search terms.
 func (cm *CrawlManager) processLink(e *colly.HTMLElement, href string, options *CrawlOptions) {
 	cm.incrementTotalLinks()
 	cm.logCurrentURL(e)
@@ -112,41 +153,73 @@ func (cm *CrawlManager) processLink(e *colly.HTMLElement, href string, options *
 	cm.handleMatchingTerms(options, e.Request.URL.String(), pageData, matchingTerms)
 }
 
+// handleSetupError logs an error if there's an issue setting up the crawling logic.
+// Parameters:
+// - err: The error encountered during setup.
+// Returns:
+// - error: The error passed to the function.
 func (cm *CrawlManager) handleSetupError(err error) error {
 	cm.LoggerField.Error(fmt.Sprintf("Error setting up crawling logic: %v", err))
 	return err
 }
 
-func (cm *CrawlManager) ProcessMatchingLinkAndUpdateStats(options *CrawlOptions, href string, pageData PageData, matchingTerms []string) {
+// ProcessMatchingLink processes a matching link by updating the page data and appending the result.
+// Parameters:
+// - options: The CrawlOptions containing the search terms.
+// - href: The URL of the matching link.
+// - pageData: The PageData instance for the matching link.
+// - matchingTerms: A slice of strings representing the matching terms.
+func (cm *CrawlManager) ProcessMatchingLink(options *CrawlOptions, href string, pageData PageData, matchingTerms []string) {
 	if href == "" {
 		cm.LoggerField.Error("Missing URL for matching link")
 		return
 	}
 
-	cm.incrementMatchedLinks()
-	cm.LoggerField.Debug("Incremented matched links count")
-
 	pageData.UpdatePageData(href, matchingTerms)
 	cm.AppendResult(options, pageData)
 }
 
+// UpdateStats updates the stats for matched and non-matched links.
+// Parameters:
+// - options: The CrawlOptions containing the search terms.
+// - matchingTerms: A slice of strings representing the matching terms.
+func (cm *CrawlManager) UpdateStats(options *CrawlOptions, matchingTerms []string) {
+	if len(matchingTerms) > 0 {
+		cm.incrementMatchedLinks()
+		cm.LoggerField.Debug("Incremented matched links count")
+	} else {
+		cm.incrementNonMatchedLinkCount()
+		cm.LoggerField.Debug("Incremented not matched links count")
+	}
+}
+
+// incrementMatchedLinks increments the matched links count in the StatsManager.
 func (cm *CrawlManager) incrementMatchedLinks() {
 	cm.StatsManager.LinkStats.IncrementMatchedLinks()
 }
 
+// incrementNonMatchedLinkCount increments the non-matched links count in the StatsManager.
 func (cm *CrawlManager) incrementNonMatchedLinkCount() {
 	cm.StatsManager.LinkStats.IncrementNotMatchedLinks()
 	cm.LoggerField.Debug("Incremented not matched links count")
 }
 
-func (cm *CrawlManager) createLimitRule() *colly.LimitRule {
-	return &colly.LimitRule{
+// createLimitRule creates a new LimitRule for the Colly collector with default values.
+// Returns:
+// - colly.LimitRule: A new LimitRule instance.
+func (cm *CrawlManager) createLimitRule() colly.LimitRule {
+	return colly.LimitRule{
 		DomainGlob:  "*",
 		Parallelism: DefaultParallelism,
 		Delay:       DefaultDelay,
 	}
 }
 
+// splitSearchTerms splits the search terms string into a slice of individual terms.
+// Parameters:
+// - searchTerms: The search terms string to split.
+// Returns:
+// - []string: A slice of strings representing the individual search terms.
 func (cm *CrawlManager) splitSearchTerms(searchTerms string) []string {
 	terms := strings.Split(searchTerms, ",")
 	var validTerms []string
@@ -158,12 +231,25 @@ func (cm *CrawlManager) splitSearchTerms(searchTerms string) []string {
 	return validTerms
 }
 
+// createStartCrawlingOptions creates a new CrawlOptions instance with the given parameters.
+// Parameters:
+// - crawlSiteID: The ID of the site to crawl.
+// - searchTerms: The search terms to match against the crawled content.
+// - debug: A flag indicating whether to enable debug mode for the crawling process.
+// Returns:
+// - *CrawlOptions: A pointer to a new CrawlOptions instance configured with the provided parameters.
 func (cm *CrawlManager) createStartCrawlingOptions(crawlSiteID string, searchTerms []string, debug bool) *CrawlOptions {
 	var results []PageData
 	return NewCrawlOptions(crawlSiteID, searchTerms, debug, &results)
 }
 
 // GetHostFromURL extracts the host from the given URL.
+// Parameters:
+// - inputURL: The URL to parse and extract the host from.
+// - appLogger: The logger instance to log any errors.
+// Returns:
+// - string: The extracted host from the URL.
+// - error: An error if the URL cannot be parsed or if the host cannot be extracted.
 func GetHostFromURL(inputURL string, appLogger logger.Logger) (string, error) {
 	parsedURL, err := url.Parse(inputURL)
 	if err != nil {

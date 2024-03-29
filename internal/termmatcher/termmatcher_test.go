@@ -417,18 +417,18 @@ func Test_CombineContents(t *testing.T) {
 		content2 string
 	}
 	tests := []struct {
-    name string
-    args args
-    want string
-}{
-    {
-        name: "Test case 1",
-        args: args{
-            content1: "Hello",
-            content2: "World",
-        },
-        want: "Hello World",
-    },
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Test case 1",
+			args: args{
+				content1: "Hello",
+				content2: "World",
+			},
+			want: "Hello World",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
