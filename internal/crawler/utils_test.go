@@ -97,12 +97,12 @@ func TestCrawlManager_ProcessMatchingLinkAndUpdateStats(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cs := &crawler.CrawlManager{
-				LoggerField:    tt.fields.LoggerField,
-				Client:         tt.fields.Client,
-				MongoDBWrapper: tt.fields.MongoDBWrapper,
-				Collector:      tt.fields.Collector,
-				CrawlingMu:     tt.fields.CrawlingMu,
-				StatsManager:   tt.fields.StatsManager,
+				LoggerField:       tt.fields.LoggerField,
+				Client:            tt.fields.Client,
+				MongoDBWrapper:    tt.fields.MongoDBWrapper,
+				CollectorInstance: tt.fields.Collector,
+				CrawlingMu:        tt.fields.CrawlingMu,
+				StatsManager:      tt.fields.StatsManager,
 			}
 
 			cs.ProcessMatchingLink(tt.args.options, tt.args.href, tt.args.pageData, tt.args.matchingTerms)

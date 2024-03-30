@@ -19,6 +19,26 @@ type CrawlManagerInterface struct {
 	mock.Mock
 }
 
+// Collector provides a mock function with given fields: _a0
+func (_m *CrawlManagerInterface) Collector(_a0 *colly.Collector) *crawler.CollectorWrapper {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Collector")
+	}
+
+	var r0 *crawler.CollectorWrapper
+	if rf, ok := ret.Get(0).(func(*colly.Collector) *crawler.CollectorWrapper); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crawler.CollectorWrapper)
+		}
+	}
+
+	return r0
+}
+
 // Crawl provides a mock function with given fields: ctx, url, searchTerms, crawlSiteID, maxDepth, debug
 func (_m *CrawlManagerInterface) Crawl(ctx context.Context, url string, searchTerms string, crawlSiteID string, maxDepth int, debug bool) ([]crawler.PageData, error) {
 	ret := _m.Called(ctx, url, searchTerms, crawlSiteID, maxDepth, debug)

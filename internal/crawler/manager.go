@@ -15,12 +15,20 @@ import (
 // CrawlManager is the main struct that manages the crawling operations.
 // It includes fields for logging, MongoDB operations, and the Colly collector.
 type CrawlManager struct {
-	LoggerField    logger.Logger
-	Client         prowlredis.ClientInterface
-	MongoDBWrapper mongodbwrapper.MongoDBInterface
-	Collector      CollectorInterface
-	CrawlingMu     *sync.Mutex
-	StatsManager   *StatsManager
+	LoggerField       logger.Logger
+	Client            prowlredis.ClientInterface
+	MongoDBWrapper    mongodbwrapper.MongoDBInterface
+	CollectorInstance *CollectorWrapper
+	CrawlingMu        *sync.Mutex
+	StatsManager      *StatsManager
+}
+
+func (cm *CrawlManager) GetStatsManager() *StatsManager {
+	return cm.StatsManager
+}
+
+func (cm *CrawlManager) GetCollector() *CollectorWrapper {
+	return cm.CollectorInstance
 }
 
 // NewCrawlManager creates a new instance of CrawlManager with the provided logger,
@@ -31,10 +39,11 @@ func NewCrawlManager(
 	mongoDBWrapper mongodbwrapper.MongoDBInterface,
 ) *CrawlManager {
 	return &CrawlManager{
-		LoggerField:    loggerField,
-		Client:         client,
-		MongoDBWrapper: mongoDBWrapper,
-		CrawlingMu:     &sync.Mutex{},
+		LoggerField:       loggerField,
+		Client:            client,
+		MongoDBWrapper:    mongoDBWrapper,
+		CollectorInstance: NewCollectorWrapper(colly.NewCollector()), // Initialize the CollectorInstance field
+		CrawlingMu:        &sync.Mutex{},
 	}
 }
 
@@ -53,7 +62,54 @@ func NewStatsManager() *StatsManager {
 	}
 }
 
-func (cm *CrawlManager) Crawl(ctx context.Context, url string, searchTerms, crawlSiteID string, maxDepth int, debug bool) ([]PageData, error) {
+// Add a Collector method to the CrawlManager struct.
+func (cm *CrawlManager) Collector(c *colly.Collector) *CollectorWrapper {
+	return cm.CollectorInstance
+}
+
+// Adjust the variable declaration to use the Collector method.
+var _ CrawlManagerInterface = &CrawlManager{
+	LoggerField:       nil,
+	Client:            nil,
+	MongoDBWrapper:    nil,
+	CollectorInstance: NewCollectorWrapper(colly.NewCollector()),
+	CrawlingMu:        &sync.Mutex{},
+}
+
+func (cm *CrawlManager) Crawl(ctx context.Context, url string, maxDepth int, debug bool) ([]PageData, error) {
+	cm.LoggerField.Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", url))
+
+	/*if err := cm.validateParameters(url, maxDepth); err != nil {
+		return nil, err
+	}*/
+
+	cm.initializeStatsManager()
+
+	host, err := cm.extractHostFromURL(url)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := cm.ConfigureCollector([]string{host}, maxDepth); err != nil {
+		return nil, err
+	}
+
+	var results []PageData
+	options := NewCrawlOptions(debug, &results)
+	if err := cm.SetupCrawlingLogic(options); err != nil {
+		return nil, err
+	}
+
+	if err := cm.visitWithColly(url); err != nil {
+		return nil, cm.HandleVisitError(url, err)
+	}
+
+	cm.CollectorInstance.Wait()
+	cm.Logger().Info("[Crawl] Crawling completed.")
+	return *options.Results, nil
+}
+
+func (cm *CrawlManager) Search(ctx context.Context, url string, searchTerms, crawlSiteID string, maxDepth int, debug bool) ([]PageData, error) {
 	cm.LoggerField.Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", url))
 
 	if err := cm.validateParameters(url, searchTerms, crawlSiteID, maxDepth); err != nil {
@@ -67,11 +123,12 @@ func (cm *CrawlManager) Crawl(ctx context.Context, url string, searchTerms, craw
 		return nil, err
 	}
 
-	if err := cm.configureCollector(host, maxDepth); err != nil {
+	if err := cm.ConfigureCollector([]string{host}, maxDepth); err != nil {
 		return nil, err
 	}
 
-	options := cm.createCrawlingOptions(crawlSiteID, searchTerms, debug)
+	var results []PageData
+	options := NewCrawlOptions(debug, &results)
 	if err := cm.SetupCrawlingLogic(options); err != nil {
 		return nil, err
 	}
@@ -80,7 +137,7 @@ func (cm *CrawlManager) Crawl(ctx context.Context, url string, searchTerms, craw
 		return nil, cm.HandleVisitError(url, err)
 	}
 
-	cm.Collector.Wait()
+	cm.CollectorInstance.Wait()
 	cm.Logger().Info("[Crawl] Crawling completed.")
 	return *options.Results, nil
 }
@@ -105,7 +162,7 @@ func (cm *CrawlManager) HandleVisitError(url string, err error) error {
 // Returns:
 // - error: An error if the collector configuration fails.
 func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int) error {
-	cm.Collector = &CollectorWrapper{
+	cm.CollectorInstance = &CollectorWrapper{
 		colly.NewCollector(
 			colly.Async(false),
 			colly.MaxDepth(maxDepth),
@@ -114,20 +171,20 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 	}
 
 	cm.LoggerField.Debug(fmt.Sprintf("Allowed Domains: %v", allowedDomains))
-	cm.Collector.SetAllowedDomains(allowedDomains)
+	cm.CollectorInstance.SetAllowedDomains(allowedDomains)
 
 	limitRule := cm.createLimitRule()
-	if err := cm.Collector.Limit(limitRule); err != nil {
+	if err := cm.CollectorInstance.Limit(limitRule); err != nil {
 		cm.LoggerField.Error(fmt.Sprintf("Failed to set limit rule: %v", err))
 		return err
 	}
 
 	// Respect robots.txt
-	cm.Collector.SetAllowURLRevisit(false)
-	cm.Collector.SetIgnoreRobotsTxt(false)
+	cm.CollectorInstance.SetAllowURLRevisit(false)
+	cm.CollectorInstance.SetIgnoreRobotsTxt(false)
 
 	// Register OnScraped callback
-	cm.Collector.OnScraped(func(r *colly.Response) {
+	cm.CollectorInstance.OnScraped(func(r *colly.Response) {
 		cm.LoggerField.Debug(fmt.Sprintf("[OnScraped] Page scraped: %s", r.Request.URL.String()))
 		cm.StatsManager.LinkStatsMu.Lock()
 		defer cm.StatsManager.LinkStatsMu.Unlock()
@@ -139,13 +196,15 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 
 func (cm *CrawlManager) visitWithColly(url string) error {
 	// Assuming you have a method to set up the Colly collector
-	err := cm.SetupCrawlingLogic(cm.createCrawlingOptions("siteID", "searchTerms", false))
+	var results []PageData
+	options := NewCrawlOptions(false, &results)
+	err := cm.SetupCrawlingLogic(options)
 	if err != nil {
 		return err
 	}
 
 	// Visit the URL with the Colly collector
-	err = cm.Collector.Visit(url)
+	err = cm.CollectorInstance.Visit(url)
 	if err != nil {
 		return err
 	}
