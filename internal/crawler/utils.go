@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"strings"
 
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/logger"
@@ -27,23 +26,6 @@ func (cm *CrawlManager) extractHostFromURL(url string) (string, error) {
 	}
 	cm.LoggerField.Debug(fmt.Sprintf("Extracted host from URL: %s", host))
 	return host, nil
-}
-
-// configureCollector configures the crawler's collector with the specified host and maximum depth.
-// It attempts to set up the collector for crawling operations.
-// If the configuration fails, it logs a fatal error and returns the error.
-// Parameters:
-// - host: The host to configure the collector for.
-// - maxDepth: The maximum depth for the crawling operations.
-// Returns:
-// - error: An error if the collector configuration fails.
-func (cm *CrawlManager) configureCollector(host string, maxDepth int) error {
-	err := cm.ConfigureCollector([]string{host}, maxDepth)
-	if err != nil {
-		cm.LoggerField.Fatal(fmt.Sprintf("Failed to configure collector: %v", err))
-		return err
-	}
-	return nil
 }
 
 // GetAnchorElementHandler returns a function that handles anchor elements during the crawl.
@@ -213,34 +195,6 @@ func (cm *CrawlManager) createLimitRule() colly.LimitRule {
 		Parallelism: DefaultParallelism,
 		Delay:       DefaultDelay,
 	}
-}
-
-// splitSearchTerms splits the search terms string into a slice of individual terms.
-// Parameters:
-// - searchTerms: The search terms string to split.
-// Returns:
-// - []string: A slice of strings representing the individual search terms.
-func (cm *CrawlManager) splitSearchTerms(searchTerms string) []string {
-	terms := strings.Split(searchTerms, ",")
-	var validTerms []string
-	for _, term := range terms {
-		if term != "" {
-			validTerms = append(validTerms, term)
-		}
-	}
-	return validTerms
-}
-
-// createStartCrawlingOptions creates a new CrawlOptions instance with the given parameters.
-// Parameters:
-// - crawlSiteID: The ID of the site to crawl.
-// - searchTerms: The search terms to match against the crawled content.
-// - debug: A flag indicating whether to enable debug mode for the crawling process.
-// Returns:
-// - *CrawlOptions: A pointer to a new CrawlOptions instance configured with the provided parameters.
-func (cm *CrawlManager) createStartCrawlingOptions(crawlSiteID string, searchTerms []string, debug bool) *CrawlOptions {
-	var results []PageData
-	return NewCrawlOptions(crawlSiteID, searchTerms, debug, &results)
 }
 
 // GetHostFromURL extracts the host from the given URL.

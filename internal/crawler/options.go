@@ -17,11 +17,9 @@ type CrawlOptions struct {
 // - results: A pointer to a slice of PageData where the crawling results will be stored.
 // Returns:
 // - *CrawlOptions: A pointer to a new CrawlOptions instance configured with the provided parameters.
-func NewCrawlOptions(crawlSiteID string, searchTerms []string, debug bool, results *[]PageData) *CrawlOptions {
+func NewCrawlOptions(debug bool, results *[]PageData) *CrawlOptions {
 	return &CrawlOptions{
-		CrawlSiteID: crawlSiteID,
-		SearchTerms: searchTerms,
-		Results:     results,
-		Debug:       debug,
+		Results: results,
+		Debug:   debug,
 	}
 }

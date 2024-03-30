@@ -27,9 +27,10 @@ const (
 //
 //go:generate mockery --name=CrawlManagerInterface
 type CrawlManagerInterface interface {
-	// Crawl initiates the crawling process for a given URL with the provided options.
+	Crawl(ctx context.Context, url string, maxDepth int, debug bool) ([]PageData, error)
+	// Search initiates the crawling process for a given URL with the provided options.
 	// It returns a slice of PageData and an error if any occurs during the crawling process.
-	Crawl(ctx context.Context, url string, searchTerms, crawlSiteID string, maxDepth int, debug bool) ([]PageData, error)
+	Search(ctx context.Context, url string, searchTerms, crawlSiteID string, maxDepth int, debug bool) ([]PageData, error)
 	// SetupHTMLParsingHandler sets up the handler for HTML parsing with gocolly, using the provided parameters.
 	// It returns an error if the setup fails.
 	SetupHTMLParsingHandler(handler func(*colly.HTMLElement)) error
@@ -54,18 +55,19 @@ type CrawlManagerInterface interface {
 	// It returns an error if the crawling process fails to start.
 	ProcessMatchingLink(options *CrawlOptions, currentURL string, pageData PageData, matchingTerms []string)
 	UpdateStats(options *CrawlOptions, matchingTerms []string)
+	Collector(*colly.Collector) *CollectorWrapper
 }
 
 // CrawlManager is the implementation of the CrawlManagerInterface.
 // It manages the crawling operations, including setting up crawling logic, handling errors, and starting the crawling process.
 // The struct fields are initialized with default values or instances of required types.
 var _ CrawlManagerInterface = &CrawlManager{
-	LoggerField:    nil,                                       // Logger instance for logging messages.
-	Client:         nil,                                       // HTTP client for making requests.
-	MongoDBWrapper: nil,                                       // MongoDB wrapper for database operations.
-	Collector:      NewCollectorWrapper(colly.NewCollector()), // Colly collector for crawling web pages.
-	CrawlingMu:     &sync.Mutex{},                             // Mutex for synchronizing crawling operations.
-	StatsManager:   &StatsManager{},                           // Manager for crawling statistics.
+	LoggerField:       nil,                                     // Logger instance for logging messages.
+	Client:            nil,                                     // HTTP client for making requests.
+	MongoDBWrapper:    nil,                                     // MongoDB wrapper for database operations.
+	CollectorInstance: &CollectorWrapper{colly.NewCollector()}, // Colly collector for crawling web pages.
+	CrawlingMu:        &sync.Mutex{},                           // Mutex for synchronizing crawling operations.
+	StatsManager:      &StatsManager{},                         // Manager for crawling statistics.
 }
 
 // Logger returns the logger instance associated with the CrawlManager.
@@ -100,19 +102,6 @@ func (cm *CrawlManager) initializeStatsManager() {
 	defer cm.CrawlingMu.Unlock()
 }
 
-// createCrawlingOptions creates and returns a CrawlOptions instance based on the provided parameters.
-// It splits the search terms and then calls createStartCrawlingOptions to create the CrawlOptions.
-// Parameters:
-// - crawlSiteID: The ID of the site to crawl.
-// - searchTerms: The search terms to match against the crawled content.
-// - debug: A flag indicating whether to enable debug mode for the crawling process.
-// Returns:
-// - *CrawlOptions: A pointer to a CrawlOptions instance configured with the provided parameters.
-func (cm *CrawlManager) createCrawlingOptions(crawlSiteID, searchTerms string, debug bool) *CrawlOptions {
-	splitSearchTerms := cm.splitSearchTerms(searchTerms)
-	return cm.createStartCrawlingOptions(crawlSiteID, splitSearchTerms, debug)
-}
-
 // SetupHTMLParsingHandler sets up the handler for HTML parsing with gocolly, using the provided parameters.
 // It configures the collector to handle HTML elements matching the "a[href]" selector by invoking the provided handler function.
 // Parameters:
@@ -120,7 +109,7 @@ func (cm *CrawlManager) createCrawlingOptions(crawlSiteID, searchTerms string, d
 // Returns:
 // - error: An error if the setup fails.
 func (cm *CrawlManager) SetupHTMLParsingHandler(handler func(*colly.HTMLElement)) error {
-	cm.Collector.OnHTML("a[href]", handler)
+	cm.CollectorInstance.OnHTML("a[href]", handler)
 	return nil
 }
 
@@ -129,7 +118,7 @@ func (cm *CrawlManager) SetupHTMLParsingHandler(handler func(*colly.HTMLElement)
 // Parameters:
 // - collector: A pointer to the colly.Collector instance for which the error handling is being set up.
 func (cm *CrawlManager) SetupErrorEventHandler(collector *colly.Collector) {
-	cm.Collector.OnError(func(r *colly.Response, err error) {
+	cm.CollectorInstance.OnError(func(r *colly.Response, err error) {
 		statusCode := r.StatusCode
 		requestURL := r.Request.URL.String()
 
@@ -175,7 +164,7 @@ func (cm *CrawlManager) CrawlURL(url string) error {
 		return cm.HandleVisitError(url, err)
 	}
 
-	cm.Collector.Wait()
+	cm.CollectorInstance.Wait()
 
 	cm.Logger().Info("[CrawlURL] Crawling completed.")
 	return nil
