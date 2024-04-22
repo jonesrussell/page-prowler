@@ -8,18 +8,18 @@
 		"ghcr.io/guiyomh/features/gomarkdoc:0": {},
 		"ghcr.io/guiyomh/features/goreleaser:0": {},
 		"ghcr.io/guiyomh/features/gotestsum:0": {},
-		"ghcr.io/devcontainers/features/docker-in-docker:2": {},
-		"ghcr.io/devcontainers-contrib/features/elasticsearch-asdf:2": {}
+		"ghcr.io/devcontainers-contrib/features/elasticsearch-asdf:2": {},
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
 	},
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"phind.phind"
+				"phind.phind",
+				"GitHub.vscode-pull-request-github"
 			]
 		}
 	},
 	"mounts": [
-		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
 		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssl,target=/ssl,type=bind"
 	],
 	"forwardPorts": [
