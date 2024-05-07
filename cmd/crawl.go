@@ -24,7 +24,10 @@ to quickly create a Cobra application.`,
 	RunE: runCrawlCmd,
 }
 
-func runCrawlCmd(cmd *cobra.Command, args []string) error {
+func runCrawlCmd(
+	cmd *cobra.Command,
+	_ []string,
+) error {
 
 	ctx := cmd.Context()
 

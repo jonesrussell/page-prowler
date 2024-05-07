@@ -165,7 +165,7 @@ func (cm *CrawlManager) ProcessMatchingLink(options *CrawlOptions, href string, 
 // Parameters:
 // - options: The CrawlOptions containing the search terms.
 // - matchingTerms: A slice of strings representing the matching terms.
-func (cm *CrawlManager) UpdateStats(options *CrawlOptions, matchingTerms []string) {
+func (cm *CrawlManager) UpdateStats(_ *CrawlOptions, matchingTerms []string) {
 	if len(matchingTerms) > 0 {
 		cm.incrementMatchedLinks()
 		cm.LoggerField.Debug("Incremented matched links count")
