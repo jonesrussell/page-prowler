@@ -1,8 +1,6 @@
 package crawler
 
 import (
-	"log"
-
 	"github.com/gocolly/colly"
 )
 
@@ -24,7 +22,7 @@ type CollectorInterface interface {
 	GetUnderlyingCollector() *colly.Collector
 }
 
-// CollectorWrapper is a wrapper around the colly.Collector that implements the CollectorInterface.
+// CollectorWrapper is a wrapper around to colly.Collector that implements the CollectorInterface.
 type CollectorWrapper struct {
 	collector *colly.Collector
 }
@@ -32,18 +30,6 @@ type CollectorWrapper struct {
 // GetUnderlyingCollector implements the CollectorInterface method.
 func (cw *CollectorWrapper) GetUnderlyingCollector() *colly.Collector {
 	return cw.collector
-}
-
-// OnScraped implements CollectorInterface.
-func (cw *CollectorWrapper) OnScraped(callback func(*colly.Response)) {
-	// Example implementation: Log a message when the OnScraped event is triggered.
-	log.Println("OnScraped event triggered")
-
-	// If you want to execute the callback provided to OnScraped, you can do so here.
-	// However, since the original implementation panics, it's unclear if this is the intended behavior.
-	// If you have a specific callback function you want to execute, you can call it directly.
-	// For example:
-	// callback(&colly.Response{})
 }
 
 // NewCollectorWrapper creates a new CollectorWrapper with specific allowed domains.
@@ -69,7 +55,7 @@ func (cw *CollectorWrapper) Wait() {
 	cw.collector.Wait()
 }
 
-func (cw *CollectorWrapper) Limit(limitRule colly.LimitRule) error {
+func (cw *CollectorWrapper) Limit() error {
 	return nil
 }
 
@@ -78,7 +64,7 @@ func (cw *CollectorWrapper) AllowURLRevisit() bool {
 	return cw.collector.AllowURLRevisit
 }
 
-// Implement other methods as needed
+// SetAllowedDomains Implement other methods as needed
 func (cw *CollectorWrapper) SetAllowedDomains(domains []string) {
 	cw.collector.AllowedDomains = domains
 }
@@ -88,7 +74,7 @@ func (cw *CollectorWrapper) IgnoreRobotsTxt() bool {
 	return cw.collector.IgnoreRobotsTxt
 }
 
-// SetIgnoreRobotsTxt implements CollectorInterface.
+// SetAllowURLRevisit SetIgnoreRobotsTxt implements CollectorInterface.
 func (cw *CollectorWrapper) SetAllowURLRevisit(allow bool) {
 	cw.collector.AllowURLRevisit = allow
 }

@@ -20,14 +20,17 @@ type Logger interface {
 	Event(e *debug.Event)
 }
 
-// zapLogger is a concrete implementation of Logger using Zap.
-type zapLogger struct {
+// ZapLogger is a concrete implementation of Logger using Zap.
+type ZapLogger struct {
 	logger *zap.Logger
 	start  time.Time
 }
 
 // New creates a new Logger instance with the given log level.
-func New(level zapcore.Level) (*zapLogger, error) {
+func New(level zapcore.Level) (
+	*ZapLogger,
+	error,
+) {
 	config := zap.NewProductionConfig() // Adjust for development if needed
 	config.Level.SetLevel(level)
 
@@ -36,45 +39,45 @@ func New(level zapcore.Level) (*zapLogger, error) {
 		return nil, fmt.Errorf("failed to build logger: %v", err)
 	}
 
-	return &zapLogger{
+	return &ZapLogger{
 		logger: logger,
 		start:  time.Now(),
 	}, nil
 }
 
 // Info logs a message at the Info level.
-func (l *zapLogger) Info(msg string) {
+func (l *ZapLogger) Info(msg string) {
 	l.logger.Info(msg)
 }
 
 // Error logs a message at the Error level.
-func (l *zapLogger) Error(msg string) {
+func (l *ZapLogger) Error(msg string) {
 	l.logger.Error(msg)
 }
 
 // Fatal logs a message at the Fatal level, then exits the process.
-func (l *zapLogger) Fatal(msg string) {
+func (l *ZapLogger) Fatal(msg string) {
 	l.logger.Fatal(msg)
 }
 
 // Debug logs a message at the Debug level.
-func (l *zapLogger) Debug(msg string) {
+func (l *ZapLogger) Debug(msg string) {
 	l.logger.Debug(msg)
 }
 
 // Warn logs a message at the Warn level.
-func (l *zapLogger) Warn(msg string) {
+func (l *ZapLogger) Warn(msg string) {
 	l.logger.Warn(msg)
 }
 
 // Init initializes the logger.
-func (l *zapLogger) Init() error {
+func (l *ZapLogger) Init() error {
 	// Add any custom initialization for Zap here (optional)
 	return nil
 }
 
 // Event logs a debug event.
-func (l *zapLogger) Event(e *debug.Event) {
+func (l *ZapLogger) Event(e *debug.Event) {
 	l.logger.Debug("Colly Debug Event",
 		zap.String("Type", e.Type),
 		zap.Uint32("RequestID", e.RequestID),

@@ -62,8 +62,8 @@ func NewStatsManager() *StatsManager {
 	}
 }
 
-// Add a Collector method to the CrawlManager struct.
-func (cm *CrawlManager) Collector(c *colly.Collector) *CollectorWrapper {
+// Collector method to the CrawlManager struct.
+func (cm *CrawlManager) Collector(_ *colly.Collector) *CollectorWrapper {
 	return cm.CollectorInstance
 }
 
@@ -76,7 +76,7 @@ var _ CrawlManagerInterface = &CrawlManager{
 	CrawlingMu:        &sync.Mutex{},
 }
 
-func (cm *CrawlManager) Crawl(ctx context.Context, url string, maxDepth int, debug bool) ([]PageData, error) {
+func (cm *CrawlManager) Crawl(_ context.Context, url string, maxDepth int, debug bool) ([]PageData, error) {
 	cm.LoggerField.Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", url))
 
 	/*if err := cm.validateParameters(url, maxDepth); err != nil {
@@ -109,7 +109,7 @@ func (cm *CrawlManager) Crawl(ctx context.Context, url string, maxDepth int, deb
 	return *options.Results, nil
 }
 
-func (cm *CrawlManager) Search(ctx context.Context, url string, searchTerms, crawlSiteID string, maxDepth int, debug bool) ([]PageData, error) {
+func (cm *CrawlManager) Search(_ context.Context, url string, searchTerms, crawlSiteID string, maxDepth int, debug bool) ([]PageData, error) {
 	cm.LoggerField.Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", url))
 
 	if err := cm.validateParameters(url, searchTerms, crawlSiteID, maxDepth); err != nil {
@@ -173,8 +173,7 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 	cm.LoggerField.Debug(fmt.Sprintf("Allowed Domains: %v", allowedDomains))
 	cm.CollectorInstance.SetAllowedDomains(allowedDomains)
 
-	limitRule := cm.createLimitRule()
-	if err := cm.CollectorInstance.Limit(limitRule); err != nil {
+	if err := cm.CollectorInstance.Limit(); err != nil {
 		cm.LoggerField.Error(fmt.Sprintf("Failed to set limit rule: %v", err))
 		return err
 	}
@@ -184,12 +183,12 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 	cm.CollectorInstance.SetIgnoreRobotsTxt(false)
 
 	// Register OnScraped callback
-	cm.CollectorInstance.OnScraped(func(r *colly.Response) {
-		cm.LoggerField.Debug(fmt.Sprintf("[OnScraped] Page scraped: %s", r.Request.URL.String()))
-		cm.StatsManager.LinkStatsMu.Lock()
-		defer cm.StatsManager.LinkStatsMu.Unlock()
-		cm.StatsManager.LinkStats.IncrementTotalPages()
-	})
+	//cm.CollectorInstance.OnScraped(func(r *colly.Response) {
+	//	cm.LoggerField.Debug(fmt.Sprintf("[OnScraped] Page scraped: %s", r.Request.URL.String()))
+	//	cm.StatsManager.LinkStatsMu.Lock()
+	//	defer cm.StatsManager.LinkStatsMu.Unlock()
+	//	cm.StatsManager.LinkStats.IncrementTotalPages()
+	//})
 
 	return nil
 }

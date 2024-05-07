@@ -50,9 +50,7 @@ type CrawlManagerInterface interface {
 	HandleVisitError(url string, err error) error
 	// Logger returns the logger instance associated with the CrawlManager.
 	Logger() logger.Logger
-	// StartCrawling initiates the crawling process with the given parameters.
-	// It validates the input parameters, configures the collector, and starts the crawling process.
-	// It returns an error if the crawling process fails to start.
+
 	ProcessMatchingLink(options *CrawlOptions, currentURL string, pageData PageData, matchingTerms []string)
 	UpdateStats(options *CrawlOptions, matchingTerms []string)
 	Collector(*colly.Collector) *CollectorWrapper
@@ -117,7 +115,7 @@ func (cm *CrawlManager) SetupHTMLParsingHandler(handler func(*colly.HTMLElement)
 // It configures the collector to handle different types of errors, specifically logging 500 Internal Server Errors without printing the stack trace, and logging other errors normally.
 // Parameters:
 // - collector: A pointer to the colly.Collector instance for which the error handling is being set up.
-func (cm *CrawlManager) SetupErrorEventHandler(collector *colly.Collector) {
+func (cm *CrawlManager) SetupErrorEventHandler(_ *colly.Collector) {
 	cm.CollectorInstance.OnError(func(r *colly.Response, err error) {
 		statusCode := r.StatusCode
 		requestURL := r.Request.URL.String()
