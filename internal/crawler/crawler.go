@@ -2,7 +2,6 @@ package crawler
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -10,7 +9,6 @@ import (
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/stats"
-	"github.com/jonesrussell/page-prowler/internal/termmatcher"
 )
 
 const (
@@ -28,20 +26,15 @@ const (
 //
 //go:generate mockery --name=CrawlManagerInterface
 type CrawlManagerInterface interface {
-	Crawl(ctx context.Context, url string, maxDepth int, searchTerms string, debug bool) ([]PageData, error)
-	// Search initiates the crawling process for a given URL with the provided options.
-	// It returns a slice of PageData and an error if any occurs during the crawling process.
-	Search(ctx context.Context, url string, searchTerms string, crawlSiteID string, maxDepth int, debug bool) ([]PageData, error)
-	// SetupHTMLParsingHandler sets up the handler for HTML parsing with gocolly, using the provided parameters.
-	// It returns an error if the setup fails.
-	SetupHTMLParsingHandler(handler func(*colly.HTMLElement)) error
+	Crawl(ctx context.Context, options CrawlOptions) error
+	SetupHTMLParsingHandler(handler func(*CrawlOptions, *colly.HTMLElement) error) error
 	// SetupErrorEventHandler sets up the HTTP request error handling for the colly collector.
 	// It configures the collector to handle different types of errors.
 	SetupErrorEventHandler(collector *colly.Collector)
 	// SetupCrawlingLogic configures and initiates the crawling logic.
 	// It sets up the HTML parsing handler and error event handler for the collector.
 	// It returns an error if the setup fails.
-	SetupCrawlingLogic(*CrawlOptions) error
+	SetupCrawlingLogic() error
 	// CrawlURL visits the given URL and performs the crawling operation.
 	// It logs the visit and waits for the collector to finish its tasks.
 	// It returns an error if the visit fails.
@@ -51,10 +44,8 @@ type CrawlManagerInterface interface {
 	HandleVisitError(url string, err error) error
 	// Logger returns the logger instance associated with the CrawlManager.
 	Logger() logger.Logger
-
-	ProcessMatchingLink(options *CrawlOptions, currentURL string, pageData PageData, matchingTerms []string)
+	ProcessMatchingLink(currentURL string, pageData PageData, matchingTerms []string)
 	UpdateStats(options *CrawlOptions, matchingTerms []string)
-	Collector(*colly.Collector) *CollectorWrapper
 }
 
 // CrawlManager is the implementation of the CrawlManagerInterface.
@@ -74,20 +65,6 @@ func (cm *CrawlManager) Logger() logger.Logger {
 	return cm.LoggerField
 }
 
-// validateParameters checks if the provided parameters for crawling are valid.
-// It returns an error if any of the parameters are invalid (e.g., empty strings or non-positive maxDepth).
-// Parameters:
-// - url: The URL to crawl.
-// - searchTerms: The search terms to match against the crawled content.
-// - crawlSiteID: The ID of the site to crawl.
-// - maxDepth: The maximum depth to crawl.
-func (cm *CrawlManager) validateParameters(url, searchTerms, crawlSiteID string, maxDepth int) error {
-	if url == "" || searchTerms == "" || crawlSiteID == "" || maxDepth <= 0 {
-		return errors.New("invalid parameters")
-	}
-	return nil
-}
-
 // initializeStatsManager initializes the StatsManager with default values.
 // It sets up the LinkStats and LinkStatsMu fields of the StatsManager.
 // The method also locks the CrawlingMu mutex to ensure thread safety during the initialization process.
@@ -100,30 +77,16 @@ func (cm *CrawlManager) initializeStatsManager() {
 	defer cm.CrawlingMu.Unlock()
 }
 
-// SetupHTMLParsingHandler sets up the handler for HTML parsing with gocolly, using the provided parameters.
-// It configures the collector to handle HTML elements matching the "a[href]" selector by invoking the provided handler function.
-// Parameters:
-// - handler: A function that takes a *colly.HTMLElement as an argument and performs actions on the element.
-// Returns:
-// - error: An error if the setup fails.
-func (cm *CrawlManager) SetupHTMLParsingHandler(options *CrawlOptions) error {
-	// Define a wrapper function that captures the necessary context
-	handler := func(e *colly.HTMLElement) {
-		href := e.Attr("href")
-		anchorText := e.Text
-
-		// Extract searchTerms from options
-		searchTerms := options.SearchTerms
-
-		// Use termmatcher to process the anchor text
-		processedAnchorText := termmatcher.ProcessContent(anchorText)
-		matchingTerms := termmatcher.GetMatchingTerms(href, processedAnchorText, searchTerms, cm.Logger())
-
-		// Implement logic to store or process matchingTerms as needed
-	}
-
-	// Pass the wrapper function to the interface method
-	cm.CollectorInstance.OnHTML("a[href]", handler)
+func (cm *CrawlManager) SetupHTMLParsingHandler(handler func(*CrawlOptions, *colly.HTMLElement) error) error {
+	// Example usage of the updated handler signature
+	options := &CrawlOptions{} // Assuming you have a way to create or obtain CrawlOptions
+	cm.CollectorInstance.OnHTML("a[href]", func(e *colly.HTMLElement) {
+		if err := handler(options, e); err != nil {
+			// Handle the error appropriately
+			// For example, log the error or return it
+			cm.LoggerField.Error(err.Error())
+		}
+	})
 
 	return nil
 }
@@ -147,15 +110,8 @@ func (cm *CrawlManager) SetupErrorEventHandler(_ *colly.Collector) {
 	})
 }
 
-// SetupCrawlingLogic configures and initiates the crawling logic.
-// It sets up the HTML parsing handler and error event handler for the collector.
-// It returns an error if the setup fails.
-// Parameters:
-// - options: The CrawlOptions containing configuration for the crawling process.
-// Returns:
-// - error: An error if the setup fails.
-func (cm *CrawlManager) SetupCrawlingLogic(options *CrawlOptions) error {
-	err := cm.SetupHTMLParsingHandler(cm.GetAnchorElementHandler(options))
+func (cm *CrawlManager) SetupCrawlingLogic() error {
+	err := cm.SetupHTMLParsingHandler(cm.GetAnchorElementHandler())
 	if err != nil {
 		return cm.handleSetupError(err)
 	}

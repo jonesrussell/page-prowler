@@ -45,14 +45,22 @@ func runCrawlCmd(
 		log.Fatalf("manager is nil")
 	}
 
-	url := viper.GetString("url")
-	if url == "" {
-		return fmt.Errorf("url is required")
-	}
+	// Create an instance of CrawlOptions
+	options := &crawler.CrawlOptions{}
 
-	searchTerms := viper.GetString("searchterms")
-	if searchTerms == "" {
-		return fmt.Errorf("search terms are required")
+	// Populate CrawlOptions fields
+	options.CrawlSiteID = viper.GetString("siteid")
+	options.Debug = viper.GetBool("debug")
+	options.DelayBetweenRequests = viper.GetDuration("delaybetweenrequests")
+	options.MaxConcurrentRequests = viper.GetInt("maxconcurrentrequests")
+	options.MaxDepth = viper.GetInt("maxdepth")
+	options.SearchTerms = viper.GetStringSlice("searchterms")
+	options.StartURL = viper.GetString("url")
+
+	// Now you can use options in your crawl operation
+	err := manager.Crawl(ctx, *options)
+	if err != nil {
+		log.Fatalf("Error starting crawling: %v", err)
 	}
 
 	if Debug {
@@ -65,11 +73,6 @@ func runCrawlCmd(
 		manager.Logger().Info(fmt.Sprintf(" %-12s : %s\n", "REDIS_HOST", viper.GetString("REDIS_HOST")))
 		manager.Logger().Info(fmt.Sprintf(" %-12s : %s\n", "REDIS_PORT", viper.GetString("REDIS_PORT")))
 		manager.Logger().Info(fmt.Sprintf(" %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH")))
-	}
-
-	_, err := manager.Crawl(ctx, url, viper.GetInt("maxdepth"), viper.GetString("searchterms"), viper.GetBool("debug"))
-	if err != nil {
-		log.Fatalf("Error starting crawling: %v", err)
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/hibiken/asynq"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
@@ -44,7 +45,16 @@ func handleCrawlTask(ctx context.Context, task *asynq.Task, cm *crawler.CrawlMan
 		return err
 	}
 
-	_, err = cm.Crawl(ctx, payload.URL, payload.MaxDepth, payload.SearchTerms, debug)
+	searchTermsSlice := strings.Split(payload.SearchTerms, ",")
+
+	options := crawler.CrawlOptions{
+		StartURL:    payload.URL,
+		MaxDepth:    payload.MaxDepth,
+		SearchTerms: searchTermsSlice,
+		Debug:       debug,
+	}
+
+	err = cm.Crawl(ctx, options)
 	return err
 }
 
