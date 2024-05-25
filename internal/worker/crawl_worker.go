@@ -44,7 +44,7 @@ func handleCrawlTask(ctx context.Context, task *asynq.Task, cm *crawler.CrawlMan
 		return err
 	}
 
-	_, err = cm.Crawl(ctx, payload.URL, payload.MaxDepth, debug)
+	_, err = cm.Crawl(ctx, payload.URL, payload.MaxDepth, payload.SearchTerms, debug)
 	return err
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/stats"
+	"github.com/jonesrussell/page-prowler/internal/termmatcher"
 )
 
 const (
@@ -27,10 +28,10 @@ const (
 //
 //go:generate mockery --name=CrawlManagerInterface
 type CrawlManagerInterface interface {
-	Crawl(ctx context.Context, url string, maxDepth int, debug bool) ([]PageData, error)
+	Crawl(ctx context.Context, url string, maxDepth int, searchTerms string, debug bool) ([]PageData, error)
 	// Search initiates the crawling process for a given URL with the provided options.
 	// It returns a slice of PageData and an error if any occurs during the crawling process.
-	Search(ctx context.Context, url string, searchTerms, crawlSiteID string, maxDepth int, debug bool) ([]PageData, error)
+	Search(ctx context.Context, url string, searchTerms string, crawlSiteID string, maxDepth int, debug bool) ([]PageData, error)
 	// SetupHTMLParsingHandler sets up the handler for HTML parsing with gocolly, using the provided parameters.
 	// It returns an error if the setup fails.
 	SetupHTMLParsingHandler(handler func(*colly.HTMLElement)) error
@@ -105,8 +106,25 @@ func (cm *CrawlManager) initializeStatsManager() {
 // - handler: A function that takes a *colly.HTMLElement as an argument and performs actions on the element.
 // Returns:
 // - error: An error if the setup fails.
-func (cm *CrawlManager) SetupHTMLParsingHandler(handler func(*colly.HTMLElement)) error {
+func (cm *CrawlManager) SetupHTMLParsingHandler(options *CrawlOptions) error {
+	// Define a wrapper function that captures the necessary context
+	handler := func(e *colly.HTMLElement) {
+		href := e.Attr("href")
+		anchorText := e.Text
+
+		// Extract searchTerms from options
+		searchTerms := options.SearchTerms
+
+		// Use termmatcher to process the anchor text
+		processedAnchorText := termmatcher.ProcessContent(anchorText)
+		matchingTerms := termmatcher.GetMatchingTerms(href, processedAnchorText, searchTerms, cm.Logger())
+
+		// Implement logic to store or process matchingTerms as needed
+	}
+
+	// Pass the wrapper function to the interface method
 	cm.CollectorInstance.OnHTML("a[href]", handler)
+
 	return nil
 }
 
