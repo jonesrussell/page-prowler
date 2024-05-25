@@ -57,13 +57,31 @@ func runCrawlCmd(
 	options.SearchTerms = viper.GetStringSlice("searchterms")
 	options.StartURL = viper.GetString("url")
 
+	// Print options if Debug is enabled
+	if options.Debug {
+		fmt.Printf("CrawlOptions:\n")
+		fmt.Printf("  CrawlSiteID: %s\n", options.CrawlSiteID)
+		fmt.Printf("  Debug: %t\n", options.Debug)
+		fmt.Printf("  DelayBetweenRequests: %s\n", options.DelayBetweenRequests.String())
+		fmt.Printf("  MaxConcurrentRequests: %d\n", options.MaxConcurrentRequests)
+		fmt.Printf("  MaxDepth: %d\n", options.MaxDepth)
+		fmt.Printf("  SearchTerms: %v\n", options.SearchTerms)
+		fmt.Printf("  StartURL: %s\n", options.StartURL)
+	}
+
+	// Call SetOptions to update the manager's options
+	err := manager.SetOptions(options)
+	if err != nil {
+		log.Fatalf("Error setting options: %v", err)
+	}
+
 	// Now you can use options in your crawl operation
-	err := manager.Crawl(ctx, *options)
+	err = manager.Crawl(ctx, *options)
 	if err != nil {
 		log.Fatalf("Error starting crawling: %v", err)
 	}
 
-	if Debug {
+	if options.Debug {
 		manager.Logger().Info("\nFlags:")
 		cmd.Flags().VisitAll(func(flag *pflag.Flag) {
 			manager.Logger().Info(fmt.Sprintf(" %-12s : %s\n", flag.Name, flag.Value.String()))
