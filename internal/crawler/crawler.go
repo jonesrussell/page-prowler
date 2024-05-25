@@ -122,10 +122,10 @@ func (cm *CrawlManager) SetupErrorEventHandler(_ *colly.Collector) {
 
 		if statusCode == 500 {
 			// Handle 500 Internal Server Error without printing the stack trace
-			cm.LoggerField.Debug(fmt.Sprintf("[SetupErrorEventHandler] Internal Server Error request_url: %s, status_code: %d", requestURL, statusCode))
+			cm.LoggerField.Debug(fmt.Sprintf("[SetupErrorEventHandler] Internal Server Error request_url: %s, status_code: %d, error: %v", requestURL, statusCode, err))
 		} else if statusCode != 404 {
 			// Handle other errors normally
-			cm.LoggerField.Debug(fmt.Sprintf("[SetupErrorEventHandler] Request URL failed request_url: %s, status_code: %d", requestURL, statusCode))
+			cm.LoggerField.Debug(fmt.Sprintf("[SetupErrorEventHandler] Request URL failed request_url: %s, status_code: %d, error: %v", requestURL, statusCode, err))
 		}
 	})
 }
