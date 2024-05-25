@@ -7,7 +7,6 @@ import (
 
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/page-prowler/internal/logger"
-	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/jonesrussell/page-prowler/internal/stats"
 )
@@ -17,7 +16,6 @@ import (
 type CrawlManager struct {
 	LoggerField       logger.Logger
 	Client            prowlredis.ClientInterface
-	MongoDBWrapper    mongodbwrapper.MongoDBInterface
 	CollectorInstance *CollectorWrapper
 	CrawlingMu        *sync.Mutex
 	StatsManager      *StatsManager
@@ -36,12 +34,10 @@ func (cm *CrawlManager) GetCollector() *CollectorWrapper {
 func NewCrawlManager(
 	loggerField logger.Logger,
 	client prowlredis.ClientInterface,
-	mongoDBWrapper mongodbwrapper.MongoDBInterface,
 ) *CrawlManager {
 	return &CrawlManager{
 		LoggerField:       loggerField,
 		Client:            client,
-		MongoDBWrapper:    mongoDBWrapper,
 		CollectorInstance: NewCollectorWrapper(colly.NewCollector()), // Initialize the CollectorInstance field
 		CrawlingMu:        &sync.Mutex{},
 	}
@@ -69,9 +65,9 @@ func (cm *CrawlManager) Collector(_ *colly.Collector) *CollectorWrapper {
 
 // Adjust the variable declaration to use the Collector method.
 var _ CrawlManagerInterface = &CrawlManager{
-	LoggerField:       nil,
-	Client:            nil,
-	MongoDBWrapper:    nil,
+	LoggerField: nil,
+	Client:      nil,
+
 	CollectorInstance: NewCollectorWrapper(colly.NewCollector()),
 	CrawlingMu:        &sync.Mutex{},
 }

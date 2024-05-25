@@ -6,7 +6,6 @@ import (
 
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
-	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/jonesrussell/page-prowler/mocks"
 )
@@ -57,12 +56,11 @@ func TestUtils_GetHostFromURL(t *testing.T) {
 
 func TestCrawlManager_ProcessMatchingLinkAndUpdateStats(t *testing.T) {
 	type fields struct {
-		LoggerField    logger.Logger
-		Client         prowlredis.ClientInterface
-		MongoDBWrapper mongodbwrapper.MongoDBInterface
-		Collector      *crawler.CollectorWrapper
-		CrawlingMu     *sync.Mutex
-		StatsManager   *crawler.StatsManager
+		LoggerField  logger.Logger
+		Client       prowlredis.ClientInterface
+		Collector    *crawler.CollectorWrapper
+		CrawlingMu   *sync.Mutex
+		StatsManager *crawler.StatsManager
 	}
 
 	type args struct {
@@ -79,12 +77,11 @@ func TestCrawlManager_ProcessMatchingLinkAndUpdateStats(t *testing.T) {
 		{
 			name: "Test Case 1",
 			fields: fields{
-				LoggerField:    mocks.NewMockLogger(),
-				Client:         mocks.NewMockClient(),
-				MongoDBWrapper: mocks.NewMockMongoDBWrapper(),
-				Collector:      &crawler.CollectorWrapper{},
-				CrawlingMu:     &sync.Mutex{},
-				StatsManager:   crawler.NewStatsManager(),
+				LoggerField:  mocks.NewMockLogger(),
+				Client:       mocks.NewMockClient(),
+				Collector:    &crawler.CollectorWrapper{},
+				CrawlingMu:   &sync.Mutex{},
+				StatsManager: crawler.NewStatsManager(),
 			},
 			args: args{
 				options:       &crawler.CrawlOptions{Results: &[]crawler.PageData{}},
@@ -97,9 +94,9 @@ func TestCrawlManager_ProcessMatchingLinkAndUpdateStats(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cs := &crawler.CrawlManager{
-				LoggerField:       tt.fields.LoggerField,
-				Client:            tt.fields.Client,
-				MongoDBWrapper:    tt.fields.MongoDBWrapper,
+				LoggerField: tt.fields.LoggerField,
+				Client:      tt.fields.Client,
+
 				CollectorInstance: tt.fields.Collector,
 				CrawlingMu:        tt.fields.CrawlingMu,
 				StatsManager:      tt.fields.StatsManager,

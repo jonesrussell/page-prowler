@@ -137,6 +137,7 @@ func (msi *ServerAPIInterface) PostMatchlinks(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, map[string]string{"message": "Crawling started successfully", "task_id": tid})
 }
 
+//nolint:revive
 func (msi *ServerAPIInterface) GetMatchlinksId(ctx echo.Context, id string) error {
 	queue := DefaultQueueName
 	info, err := msi.Inspector.GetTaskInfo(queue, id)
@@ -157,6 +158,7 @@ func (msi *ServerAPIInterface) GetMatchlinksId(ctx echo.Context, id string) erro
 	return err
 }
 
+//nolint:revive
 func (msi *ServerAPIInterface) DeleteMatchlinksId(ctx echo.Context, id string) error {
 	queue := DefaultQueueName
 	_, err := msi.Inspector.GetTaskInfo(queue, id)

@@ -62,7 +62,6 @@ type CrawlManagerInterface interface {
 var _ CrawlManagerInterface = &CrawlManager{
 	LoggerField:       nil,                                     // Logger instance for logging messages.
 	Client:            nil,                                     // HTTP client for making requests.
-	MongoDBWrapper:    nil,                                     // MongoDB wrapper for database operations.
 	CollectorInstance: &CollectorWrapper{colly.NewCollector()}, // Colly collector for crawling web pages.
 	CrawlingMu:        &sync.Mutex{},                           // Mutex for synchronizing crawling operations.
 	StatsManager:      &StatsManager{},                         // Manager for crawling statistics.

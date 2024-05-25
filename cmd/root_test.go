@@ -68,24 +68,11 @@ func TestPersistentFlags(t *testing.T) {
 	assert.True(t, viper.GetBool("debug"))
 }
 
-func TestInitializeManager_WithNilMongoDBWrapper(t *testing.T) {
-	// Initialize the manager with a mock Redis client and a nil MongoDB wrapper
-	_, err := cmd.InitializeManager(
-		mocks.NewMockClient(),
-		mocks.NewMockLogger(),
-		nil,
-	)
-
-	// Check if an error was returned
-	assert.Error(t, err, "Expected an error when initializing with a nil MongoDB wrapper")
-}
-
 func TestInitializeManager_WithNilRedisClient(t *testing.T) {
 	// Initialize the manager with a nil Redis client and a new mock logger
 	_, err := cmd.InitializeManager(
 		nil,
 		mocks.NewMockLogger(),
-		mocks.NewMockMongoDBWrapper(),
 	)
 
 	// Check if an error was returned
@@ -111,7 +98,6 @@ func TestInitializeManager(t *testing.T) {
 	manager, err := cmd.InitializeManager(
 		mocks.NewMockClient(),
 		mocks.NewMockLogger(),
-		mocks.NewMockMongoDBWrapper(),
 	)
 	if err != nil {
 		t.Fatalf("Failed to initialize manager: %v", err)
@@ -119,6 +105,5 @@ func TestInitializeManager(t *testing.T) {
 
 	// Add assertions
 	assert.NotNil(t, manager.Client, "Client should not be nil")
-	assert.NotNil(t, manager.MongoDBWrapper, "MongoDBWrapper should not be nil")
 	assert.NotNil(t, manager.Logger, "Logger should not be nil")
 }
