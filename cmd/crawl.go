@@ -50,6 +50,11 @@ func runCrawlCmd(
 		return fmt.Errorf("url is required")
 	}
 
+	searchTerms := viper.GetString("searchterms")
+	if searchTerms == "" {
+		return fmt.Errorf("search terms are required")
+	}
+
 	if Debug {
 		manager.Logger().Info("\nFlags:")
 		cmd.Flags().VisitAll(func(flag *pflag.Flag) {
@@ -62,7 +67,7 @@ func runCrawlCmd(
 		manager.Logger().Info(fmt.Sprintf(" %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH")))
 	}
 
-	_, err := manager.Crawl(ctx, url, viper.GetInt("maxdepth"), viper.GetBool("debug"))
+	_, err := manager.Crawl(ctx, url, viper.GetInt("maxdepth"), viper.GetString("searchterms"), viper.GetBool("debug"))
 	if err != nil {
 		log.Fatalf("Error starting crawling: %v", err)
 	}
@@ -79,6 +84,11 @@ func init() {
 
 	crawlCmd.Flags().IntP("maxdepth", "m", 1, "Max depth for crawling")
 	if err := viper.BindPFlag("maxdepth", crawlCmd.Flags().Lookup("maxdepth")); err != nil {
+		log.Fatalf("Error binding flag: %v", err)
+	}
+
+	crawlCmd.Flags().StringP("searchterms", "t", "", "Search terms for crawling")
+	if err := viper.BindPFlag("searchterms", crawlCmd.Flags().Lookup("searchterms")); err != nil {
 		log.Fatalf("Error binding flag: %v", err)
 	}
 

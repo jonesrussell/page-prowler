@@ -65,14 +65,13 @@ func (cm *CrawlManager) Collector(_ *colly.Collector) *CollectorWrapper {
 
 // Adjust the variable declaration to use the Collector method.
 var _ CrawlManagerInterface = &CrawlManager{
-	LoggerField: nil,
-	Client:      nil,
-
+	LoggerField:       nil,
+	Client:            nil,
 	CollectorInstance: NewCollectorWrapper(colly.NewCollector()),
 	CrawlingMu:        &sync.Mutex{},
 }
 
-func (cm *CrawlManager) Crawl(_ context.Context, url string, maxDepth int, debug bool) ([]PageData, error) {
+func (cm *CrawlManager) Crawl(_ context.Context, url string, maxDepth int, searchTerms string, debug bool) ([]PageData, error) {
 	cm.LoggerField.Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", url))
 
 	/*if err := cm.validateParameters(url, maxDepth); err != nil {
