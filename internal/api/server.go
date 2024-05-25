@@ -19,11 +19,11 @@ const (
 	Protocol         = "https://"
 )
 
-type ServerApiInterface struct {
+type ServerAPIInterface struct {
 	Inspector *asynq.Inspector
 }
 
-func (msi *ServerApiInterface) GetGetlinks(ctx echo.Context, params GetGetlinksParams) error {
+func (msi *ServerAPIInterface) GetGetlinks(ctx echo.Context, params GetGetlinksParams) error {
 	siteid := params.Siteid
 	if siteid == "" {
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "siteid cannot be empty"})
@@ -49,7 +49,7 @@ func (msi *ServerApiInterface) GetGetlinks(ctx echo.Context, params GetGetlinksP
 	return ctx.Blob(http.StatusOK, "application/json", jsonOutput)
 }
 
-func (msi *ServerApiInterface) GetMatchlinks(ctx echo.Context) error {
+func (msi *ServerAPIInterface) GetMatchlinks(ctx echo.Context) error {
 	queue := DefaultQueueName
 	activeTasks, err := msi.Inspector.ListActiveTasks(queue)
 	if err != nil {
@@ -74,7 +74,7 @@ func (msi *ServerApiInterface) GetMatchlinks(ctx echo.Context) error {
 }
 
 // PostMatchlinks starts the article posting process.
-func (msi *ServerApiInterface) PostMatchlinks(ctx echo.Context) error {
+func (msi *ServerAPIInterface) PostMatchlinks(ctx echo.Context) error {
 	var req PostMatchlinksJSONBody
 	if err := ctx.Bind(&req); err != nil {
 		return err
@@ -137,7 +137,7 @@ func (msi *ServerApiInterface) PostMatchlinks(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, map[string]string{"message": "Crawling started successfully", "task_id": tid})
 }
 
-func (msi *ServerApiInterface) GetMatchlinksId(ctx echo.Context, id string) error {
+func (msi *ServerAPIInterface) GetMatchlinksId(ctx echo.Context, id string) error {
 	queue := DefaultQueueName
 	info, err := msi.Inspector.GetTaskInfo(queue, id)
 	if err != nil {
@@ -157,7 +157,7 @@ func (msi *ServerApiInterface) GetMatchlinksId(ctx echo.Context, id string) erro
 	return err
 }
 
-func (msi *ServerApiInterface) DeleteMatchlinksId(ctx echo.Context, id string) error {
+func (msi *ServerAPIInterface) DeleteMatchlinksId(ctx echo.Context, id string) error {
 	queue := DefaultQueueName
 	_, err := msi.Inspector.GetTaskInfo(queue, id)
 	if err != nil {
@@ -174,6 +174,6 @@ func (msi *ServerApiInterface) DeleteMatchlinksId(ctx echo.Context, id string) e
 }
 
 // GetPing handles the ping request.
-func (msi *ServerApiInterface) GetPing(ctx echo.Context) error {
+func (msi *ServerAPIInterface) GetPing(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, map[string]string{"message": "Pong"})
 }

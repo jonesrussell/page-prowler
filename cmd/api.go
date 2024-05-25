@@ -53,7 +53,7 @@ var apiCmd = &cobra.Command{
 			Password: redisAuth,
 		})
 
-		apiServerInterface := &api.ServerApiInterface{
+		apiServerInterface := &api.ServerAPIInterface{
 			Inspector: inspector,
 		}
 
