@@ -32,18 +32,16 @@ func (cm *CrawlManager) extractHostFromURL(url string) (string, error) {
 // This function is designed to be used as a callback for the Colly collector to process each anchor element found during the crawl.
 // It extracts the href attribute from the anchor element, processes the link if the href is not empty, and attempts to visit the URL using Colly.
 // If there's an error visiting the URL, it logs the error.
-// Parameters:
-// - options: A pointer to CrawlOptions containing the crawl configuration.
 // Returns:
-// - func(*CrawlOptions, *colly.HTMLElement) error: A function that takes a Colly HTMLElement and a pointer to CrawlOptions as input and processes it according to the specified logic.
-func (cm *CrawlManager) GetAnchorElementHandler() func(*CrawlOptions, *colly.HTMLElement) error {
-	return func(options *CrawlOptions, e *colly.HTMLElement) error {
+// - func(*colly.HTMLElement) error: A function that takes a Colly HTMLElement and a pointer to CrawlOptions as input and processes it according to the specified logic.
+func (cm *CrawlManager) GetAnchorElementHandler() func(*colly.HTMLElement) error {
+	return func(e *colly.HTMLElement) error {
 		href := cm.getHref(e)
 		if href == "" {
 			return nil // Return nil to indicate no error occurred
 		}
 
-		cm.processLink(e, href, options)
+		cm.processLink(e, href)
 		err := cm.visitWithColly(href)
 		if err != nil {
 			cm.LoggerField.Debug(fmt.Sprintf("[GetAnchorElementHandler] Error visiting URL: %s, Error: %v", href, err))
@@ -97,8 +95,8 @@ func (cm *CrawlManager) createPageData(href string) PageData {
 // logSearchTerms logs the search terms used for crawling.
 // Parameters:
 // - options: The CrawlOptions containing the search terms.
-func (cm *CrawlManager) logSearchTerms(options *CrawlOptions) {
-	cm.LoggerField.Debug(fmt.Sprintf("Search terms: %v", options.SearchTerms))
+func (cm *CrawlManager) logSearchTerms() {
+	cm.LoggerField.Debug(fmt.Sprintf("Search terms: %v", cm.Options.SearchTerms))
 }
 
 // getMatchingTerms retrieves the matching terms from the given href and anchor text.
@@ -128,13 +126,13 @@ func (cm *CrawlManager) handleMatchingTerms(options *CrawlOptions, currentURL st
 // - e: The HTML element representing the link.
 // - href: The URL of the link.
 // - options: The CrawlOptions containing the search terms.
-func (cm *CrawlManager) processLink(e *colly.HTMLElement, href string, options *CrawlOptions) {
+func (cm *CrawlManager) processLink(e *colly.HTMLElement, href string) {
 	cm.incrementTotalLinks()
 	cm.logCurrentURL(e)
 	pageData := cm.createPageData(href)
-	cm.logSearchTerms(options)
-	matchingTerms := cm.getMatchingTerms(href, e.Text, options)
-	cm.handleMatchingTerms(options, e.Request.URL.String(), pageData, matchingTerms)
+	cm.logSearchTerms()
+	matchingTerms := cm.getMatchingTerms(href, e.Text, cm.Options)
+	cm.handleMatchingTerms(cm.Options, e.Request.URL.String(), pageData, matchingTerms)
 }
 
 // handleSetupError logs an error if there's an issue setting up the crawling logic.

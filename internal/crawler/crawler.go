@@ -27,7 +27,7 @@ const (
 //go:generate mockery --name=CrawlManagerInterface
 type CrawlManagerInterface interface {
 	Crawl(ctx context.Context, options CrawlOptions) error
-	SetupHTMLParsingHandler(handler func(*CrawlOptions, *colly.HTMLElement) error) error
+	SetupHTMLParsingHandler(handler func(*colly.HTMLElement) error) error
 	// SetupErrorEventHandler sets up the HTTP request error handling for the colly collector.
 	// It configures the collector to handle different types of errors.
 	SetupErrorEventHandler(collector *colly.Collector)
@@ -46,6 +46,8 @@ type CrawlManagerInterface interface {
 	Logger() logger.Logger
 	ProcessMatchingLink(currentURL string, pageData PageData, matchingTerms []string)
 	UpdateStats(options *CrawlOptions, matchingTerms []string)
+	// SetOptions updates the manager's options.
+	SetOptions(options *CrawlOptions) error
 }
 
 // CrawlManager is the implementation of the CrawlManagerInterface.
@@ -77,11 +79,10 @@ func (cm *CrawlManager) initializeStatsManager() {
 	defer cm.CrawlingMu.Unlock()
 }
 
-func (cm *CrawlManager) SetupHTMLParsingHandler(handler func(*CrawlOptions, *colly.HTMLElement) error) error {
+func (cm *CrawlManager) SetupHTMLParsingHandler(handler func(*colly.HTMLElement) error) error {
 	// Example usage of the updated handler signature
-	options := &CrawlOptions{} // Assuming you have a way to create or obtain CrawlOptions
 	cm.CollectorInstance.OnHTML("a[href]", func(e *colly.HTMLElement) {
-		if err := handler(options, e); err != nil {
+		if err := handler(e); err != nil {
 			cm.LoggerField.Warn(err.Error())
 		}
 	})
