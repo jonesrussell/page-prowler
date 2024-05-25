@@ -11,7 +11,7 @@ func TestNewCrawlManager(t *testing.T) {
 	loggerField := mocks.NewMockLogger()
 	client := mocks.NewMockClient()
 
-	cm := crawler.NewCrawlManager(loggerField, client)
+	cm := crawler.NewCrawlManager(loggerField, client, &crawler.CrawlOptions{})
 
 	if cm.CrawlingMu == nil {
 		t.Fatal("Expected CrawlingMu to be initialized, got nil")

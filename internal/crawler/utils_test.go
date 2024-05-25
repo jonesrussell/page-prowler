@@ -84,7 +84,6 @@ func TestCrawlManager_ProcessMatchingLinkAndUpdateStats(t *testing.T) {
 				StatsManager: crawler.NewStatsManager(),
 			},
 			args: args{
-				options:       &crawler.CrawlOptions{Results: &[]crawler.PageData{}},
 				href:          "https://example.com",
 				pageData:      crawler.PageData{},
 				matchingTerms: []string{"example"},
@@ -102,7 +101,7 @@ func TestCrawlManager_ProcessMatchingLinkAndUpdateStats(t *testing.T) {
 				StatsManager:      tt.fields.StatsManager,
 			}
 
-			cs.ProcessMatchingLink(tt.args.options, tt.args.href, tt.args.pageData, tt.args.matchingTerms)
+			cs.ProcessMatchingLink(tt.args.href, tt.args.pageData, tt.args.matchingTerms)
 			cs.UpdateStats(tt.args.options, tt.args.matchingTerms)
 		})
 	}

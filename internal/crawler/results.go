@@ -13,7 +13,9 @@ type Results struct {
 
 // NewResults creates a new instance of Results.
 func NewResults() *Results {
-	return &Results{}
+	return &Results{
+		Pages: make([]PageData, 0), // Initialize Pages slice
+	}
 }
 
 // PageData represents the data of a crawled page.
