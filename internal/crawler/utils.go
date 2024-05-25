@@ -35,19 +35,21 @@ func (cm *CrawlManager) extractHostFromURL(url string) (string, error) {
 // Parameters:
 // - options: A pointer to CrawlOptions containing the crawl configuration.
 // Returns:
-// - func(e *colly.HTMLElement): A function that takes a Colly HTMLElement as input and processes it according to the specified logic.
-func (cm *CrawlManager) GetAnchorElementHandler(options *CrawlOptions) func(e *colly.HTMLElement) {
-	return func(e *colly.HTMLElement) {
+// - func(*CrawlOptions, *colly.HTMLElement) error: A function that takes a Colly HTMLElement and a pointer to CrawlOptions as input and processes it according to the specified logic.
+func (cm *CrawlManager) GetAnchorElementHandler() func(*CrawlOptions, *colly.HTMLElement) error {
+	return func(options *CrawlOptions, e *colly.HTMLElement) error {
 		href := cm.getHref(e)
 		if href == "" {
-			return
+			return nil // Return nil to indicate no error occurred
 		}
 
 		cm.processLink(e, href, options)
 		err := cm.visitWithColly(href)
 		if err != nil {
 			cm.LoggerField.Debug(fmt.Sprintf("[GetAnchorElementHandler] Error visiting URL: %s, Error: %v", href, err))
+			return err // Return the error to propagate it
 		}
+		return nil // No error occurred
 	}
 }
 
@@ -117,7 +119,7 @@ func (cm *CrawlManager) getMatchingTerms(href string, anchorText string, options
 // - pageData: The PageData instance for the current URL.
 // - matchingTerms: A slice of strings representing the matching terms.
 func (cm *CrawlManager) handleMatchingTerms(options *CrawlOptions, currentURL string, pageData PageData, matchingTerms []string) {
-	cm.ProcessMatchingLink(options, currentURL, pageData, matchingTerms)
+	cm.ProcessMatchingLink(currentURL, pageData, matchingTerms)
 	cm.UpdateStats(options, matchingTerms)
 }
 
@@ -151,14 +153,14 @@ func (cm *CrawlManager) handleSetupError(err error) error {
 // - href: The URL of the matching link.
 // - pageData: The PageData instance for the matching link.
 // - matchingTerms: A slice of strings representing the matching terms.
-func (cm *CrawlManager) ProcessMatchingLink(options *CrawlOptions, href string, pageData PageData, matchingTerms []string) {
+func (cm *CrawlManager) ProcessMatchingLink(href string, pageData PageData, matchingTerms []string) {
 	if href == "" {
 		cm.LoggerField.Error("Missing URL for matching link")
 		return
 	}
 
 	pageData.UpdatePageData(href, matchingTerms)
-	cm.AppendResult(options, pageData)
+	cm.AppendResult(pageData)
 }
 
 // UpdateStats updates the stats for matched and non-matched links.

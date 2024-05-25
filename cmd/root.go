@@ -139,5 +139,9 @@ func InitializeManager(
 		return nil, errors.New("appLogger cannot be nil")
 	}
 
-	return crawler.NewCrawlManager(appLogger, redisClient), nil
+	// Create an instance of CrawlOptions
+	options := &crawler.CrawlOptions{}
+
+	// Pass the options instance to NewCrawlManager
+	return crawler.NewCrawlManager(appLogger, redisClient, options), nil
 }

@@ -1,11 +1,20 @@
 package crawler
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
 )
+
+// Results holds the results of the crawling process.
+type Results struct {
+	Pages []PageData
+}
+
+// NewResults creates a new instance of Results.
+func NewResults() *Results {
+	return &Results{}
+}
 
 // PageData represents the data of a crawled page.
 type PageData struct {
@@ -47,62 +56,9 @@ func (p *PageData) UnmarshalBinary(data []byte) error {
 	return p.Validate()
 }
 
-// SaveResultsToRedis saves the crawling results to a Redis set.
-// It marshals each PageData into a JSON string and adds it to the set.
-// Parameters:
-// - ctx: The context for the Redis operation.
-// - results: The slice of PageData to save.
-// - key: The Redis key to use for the set.
-// Returns:
-// - error: An error if the marshaling or saving to Redis fails.
-func (cm *CrawlManager) SaveResultsToRedis(ctx context.Context, results []PageData, key string) error {
-	cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Number of results before processing: %d", len(results)))
-
-	for _, result := range results {
-		cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Processing result %v", result))
-
-		data, err := json.Marshal(result)
-		if err != nil {
-			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during marshalling to JSON: %v", err))
-			return err
-		}
-		str := string(data)
-		err = cm.Client.SAdd(ctx, key, str)
-		if err != nil {
-			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during saving to Redis: %v", err))
-			return err
-		}
-		cm.LoggerField.Debug("SaveResultsToRedis: Added elements to the set")
-
-		// Debugging: Verify that the result was saved correctly
-		isMember, err := cm.Client.SIsMember(ctx, key, str)
-		if err != nil {
-			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during checking membership in Redis set: %v", err))
-			return err
-		}
-		if !isMember {
-			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Result was not saved correctly in Redis set: %v", str))
-		} else {
-			cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Result was saved correctly in Redis set, key: %s, result: %s", key, str))
-		}
-	}
-
-	cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Number of results after processing: %d", len(results)))
-
-	return nil
-}
-
 // UpdatePageData updates the PageData with the provided href and matching terms.
 // It sets the ParentURL and MatchingTerms fields of the PageData.
 func (p *PageData) UpdatePageData(href string, matchingTerms []string) {
 	p.MatchingTerms = matchingTerms
 	p.ParentURL = href
-}
-
-// AppendResult appends a PageData to the Results slice in the CrawlOptions.
-// Parameters:
-// - options: The CrawlOptions containing the Results slice.
-// - pageData: The PageData to append to the Results slice.
-func (cm *CrawlManager) AppendResult(options *CrawlOptions, pageData PageData) {
-	*options.Results = append(*options.Results, pageData)
 }

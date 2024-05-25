@@ -1,13 +1,17 @@
 package crawler
 
 import (
+	"log"
+	"time"
+
 	"github.com/gocolly/colly"
 )
 
-// CollectorInterface defines the interface for the collector.
+// CollectorInterface defines the interface for the crawling logic.
 type CollectorInterface interface {
-	Visit(URL string) error
-	OnHTML(selector string, cb func(*colly.HTMLElement))
+	Visit(url string) error
+	OnRequest(requestFunc func(*colly.Request))
+	OnHTML(selector string, htmlFunc func(*colly.HTMLElement))
 	OnError(func(r *colly.Response, err error))
 	OnScraped(callback func(*colly.Response))
 	Wait()
@@ -27,19 +31,31 @@ type CollectorWrapper struct {
 	collector *colly.Collector
 }
 
+// Modify NewCollectorWrapper to apply middleware
+func NewCollectorWrapper(collector *colly.Collector) *CollectorWrapper {
+	wrapper := &CollectorWrapper{collector: collector}
+	addUserAgentHeader(wrapper.GetUnderlyingCollector())
+	return wrapper
+}
+
 // GetUnderlyingCollector implements the CollectorInterface method.
 func (cw *CollectorWrapper) GetUnderlyingCollector() *colly.Collector {
 	return cw.collector
 }
 
-// NewCollectorWrapper creates a new CollectorWrapper with specific allowed domains.
-func NewCollectorWrapper(collector *colly.Collector) *CollectorWrapper {
-	return &CollectorWrapper{collector: collector}
+// Enhanced Visit method with logging and timing
+func (cw *CollectorWrapper) Visit(URL string) error {
+	startTime := time.Now()
+	err := cw.collector.Visit(URL)
+	log.Printf("Visited %s in %v", URL, time.Since(startTime))
+	return err
 }
 
-// Visit is a wrapper method that delegates to the underlying colly.Collector.
-func (cw *CollectorWrapper) Visit(URL string) error {
-	return cw.collector.Visit(URL)
+// Example of a middleware function to add a User-Agent header
+func addUserAgentHeader(c *colly.Collector) {
+	c.OnRequest(func(r *colly.Request) {
+		r.Headers.Set("User-Agent", "My Custom User Agent")
+	})
 }
 
 // OnHTML is a wrapper method that delegates to the underlying colly.Collector.

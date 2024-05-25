@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -14,11 +15,13 @@ import (
 // CrawlManager is the main struct that manages the crawling operations.
 // It includes fields for logging, MongoDB operations, and the Colly collector.
 type CrawlManager struct {
-	LoggerField       logger.Logger
 	Client            prowlredis.ClientInterface
 	CollectorInstance *CollectorWrapper
 	CrawlingMu        *sync.Mutex
+	LoggerField       logger.Logger
+	Options           *CrawlOptions
 	StatsManager      *StatsManager
+	Results           *Results
 }
 
 func (cm *CrawlManager) GetStatsManager() *StatsManager {
@@ -34,12 +37,15 @@ func (cm *CrawlManager) GetCollector() *CollectorWrapper {
 func NewCrawlManager(
 	loggerField logger.Logger,
 	client prowlredis.ClientInterface,
+	options *CrawlOptions,
 ) *CrawlManager {
 	return &CrawlManager{
 		LoggerField:       loggerField,
 		Client:            client,
 		CollectorInstance: NewCollectorWrapper(colly.NewCollector()), // Initialize the CollectorInstance field
 		CrawlingMu:        &sync.Mutex{},
+		Options:           options, // Store the provided CrawlOptions
+		Results:           NewResults(),
 	}
 }
 
@@ -58,83 +64,32 @@ func NewStatsManager() *StatsManager {
 	}
 }
 
-// Collector method to the CrawlManager struct.
-func (cm *CrawlManager) Collector(_ *colly.Collector) *CollectorWrapper {
-	return cm.CollectorInstance
-}
-
-// Adjust the variable declaration to use the Collector method.
-var _ CrawlManagerInterface = &CrawlManager{
-	LoggerField:       nil,
-	Client:            nil,
-	CollectorInstance: NewCollectorWrapper(colly.NewCollector()),
-	CrawlingMu:        &sync.Mutex{},
-}
-
-func (cm *CrawlManager) Crawl(_ context.Context, url string, maxDepth int, searchTerms string, debug bool) ([]PageData, error) {
-	cm.LoggerField.Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", url))
-
-	/*if err := cm.validateParameters(url, maxDepth); err != nil {
-		return nil, err
-	}*/
+func (cm *CrawlManager) Crawl(_ context.Context, options CrawlOptions) error {
+	cm.LoggerField.Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", options.StartURL))
 
 	cm.initializeStatsManager()
 
-	host, err := cm.extractHostFromURL(url)
+	host, err := cm.extractHostFromURL(options.StartURL)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if err := cm.ConfigureCollector([]string{host}, maxDepth); err != nil {
-		return nil, err
+	if err := cm.ConfigureCollector([]string{host}, options.MaxDepth); err != nil {
+		return err
 	}
 
-	var results []PageData
-	options := NewCrawlOptions(debug, &results)
-	if err := cm.SetupCrawlingLogic(options); err != nil {
-		return nil, err
+	if err := cm.SetupCrawlingLogic(); err != nil {
+		return err
 	}
 
-	if err := cm.visitWithColly(url); err != nil {
-		return nil, cm.HandleVisitError(url, err)
+	if err := cm.visitWithColly(options.StartURL); err != nil {
+		return cm.HandleVisitError(options.StartURL, err)
 	}
 
 	cm.CollectorInstance.Wait()
 	cm.Logger().Info("[Crawl] Crawling completed.")
-	return *options.Results, nil
-}
 
-func (cm *CrawlManager) Search(_ context.Context, url string, searchTerms, crawlSiteID string, maxDepth int, debug bool) ([]PageData, error) {
-	cm.LoggerField.Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", url))
-
-	if err := cm.validateParameters(url, searchTerms, crawlSiteID, maxDepth); err != nil {
-		return nil, err
-	}
-
-	cm.initializeStatsManager()
-
-	host, err := cm.extractHostFromURL(url)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := cm.ConfigureCollector([]string{host}, maxDepth); err != nil {
-		return nil, err
-	}
-
-	var results []PageData
-	options := NewCrawlOptions(debug, &results)
-	if err := cm.SetupCrawlingLogic(options); err != nil {
-		return nil, err
-	}
-
-	if err := cm.visitWithColly(url); err != nil {
-		return nil, cm.HandleVisitError(url, err)
-	}
-
-	cm.CollectorInstance.Wait()
-	cm.Logger().Info("[Crawl] Crawling completed.")
-	return *options.Results, nil
+	return nil
 }
 
 // HandleVisitError handles the error occurred during the visit of a URL.
@@ -189,19 +144,61 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 }
 
 func (cm *CrawlManager) visitWithColly(url string) error {
-	// Assuming you have a method to set up the Colly collector
-	var results []PageData
-	options := NewCrawlOptions(false, &results)
-	err := cm.SetupCrawlingLogic(options)
+	// Visit the URL with the Colly collector
+	err := cm.CollectorInstance.Visit(url)
 	if err != nil {
 		return err
 	}
 
-	// Visit the URL with the Colly collector
-	err = cm.CollectorInstance.Visit(url)
-	if err != nil {
-		return err
+	// Wait for the collector to finish its tasks
+	cm.CollectorInstance.Wait()
+
+	return nil
+}
+
+// AppendResult appends a PageData to the Results.
+func (cm *CrawlManager) AppendResult(pageData PageData) {
+	cm.Results.Pages = append(cm.Results.Pages, pageData)
+}
+
+// GetResults retrieves the Results managed by this CrawlManager.
+func (cm *CrawlManager) GetResults() *Results {
+	return cm.Results
+}
+
+func (cm *CrawlManager) SaveResultsToRedis(ctx context.Context, results []PageData, key string) error {
+	cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Number of results before processing: %d", len(results)))
+
+	for _, result := range results {
+		cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Processing result %v", result))
+
+		data, err := json.Marshal(result)
+		if err != nil {
+			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during marshalling to JSON: %v", err))
+			return err
+		}
+		str := string(data)
+		err = cm.Client.SAdd(ctx, key, str)
+		if err != nil {
+			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during saving to Redis: %v", err))
+			return err
+		}
+		cm.LoggerField.Debug("SaveResultsToRedis: Added elements to the set")
+
+		// Debugging: Verify that the result was saved correctly
+		isMember, err := cm.Client.SIsMember(ctx, key, str)
+		if err != nil {
+			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during checking membership in Redis set: %v", err))
+			return err
+		}
+		if !isMember {
+			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Result was not saved correctly in Redis set: %v", str))
+		} else {
+			cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Result was saved correctly in Redis set, key: %s, result: %s", key, str))
+		}
 	}
+
+	cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Number of results after processing: %d", len(results)))
 
 	return nil
 }
