@@ -10,9 +10,8 @@ import (
 func TestNewCrawlManager(t *testing.T) {
 	loggerField := mocks.NewMockLogger()
 	client := mocks.NewMockClient()
-	mongoDBWrapper := mocks.NewMockMongoDBWrapper()
 
-	cm := crawler.NewCrawlManager(loggerField, client, mongoDBWrapper)
+	cm := crawler.NewCrawlManager(loggerField, client)
 
 	if cm.CrawlingMu == nil {
 		t.Fatal("Expected CrawlingMu to be initialized, got nil")

@@ -9,7 +9,6 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
-	"github.com/jonesrussell/page-prowler/internal/mongodbwrapper"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -46,7 +45,6 @@ var RootCmd = &cobra.Command{
 		redisHost := viper.GetString("REDIS_HOST")
 		redisPort := viper.GetString("REDIS_PORT")
 		redisAuth := viper.GetString("REDIS_AUTH")
-		mongodbURI := viper.GetString("MONGODB_URI")
 
 		if redisHost == "" {
 			log.Println("REDIS_HOST is not set but is required")
@@ -56,11 +54,6 @@ var RootCmd = &cobra.Command{
 		if redisPort == "" {
 			log.Println("REDIS_PORT is not set but is required")
 			return fmt.Errorf("REDIS_PORT is not set but is required")
-		}
-
-		if mongodbURI == "" {
-			log.Println("MONGODB_URI is not set but is required")
-			return fmt.Errorf("MONGODB_URI is not set but is required")
 		}
 
 		cfg := &prowlredis.Options{
@@ -75,13 +68,7 @@ var RootCmd = &cobra.Command{
 			return fmt.Errorf("failed to initialize Redis client: %v", err)
 		}
 
-		mongoDBWrapper, err := mongodbwrapper.NewMongoDB(ctx, mongodbURI)
-		if err != nil {
-			log.Printf("Failed to initialize MongoDB wrapper: %v", err)
-			return fmt.Errorf("failed to initialize MongoDB wrapper: %v", err)
-		}
-
-		manager, err := InitializeManager(redisClient, appLogger, mongoDBWrapper)
+		manager, err := InitializeManager(redisClient, appLogger)
 		if err != nil {
 			log.Printf("Error initializing manager: %v", err)
 			return err
@@ -144,7 +131,6 @@ func initializeLogger() (logger.Logger, error) {
 func InitializeManager(
 	redisClient prowlredis.ClientInterface,
 	appLogger logger.Logger,
-	mongoDBWrapper mongodbwrapper.MongoDBInterface,
 ) (*crawler.CrawlManager, error) {
 	if redisClient == nil {
 		return nil, errors.New("redisClient cannot be nil")
@@ -152,9 +138,6 @@ func InitializeManager(
 	if appLogger == nil {
 		return nil, errors.New("appLogger cannot be nil")
 	}
-	if mongoDBWrapper == nil {
-		return nil, errors.New("mongoDBWrapper cannot be nil")
-	}
 
-	return crawler.NewCrawlManager(appLogger, redisClient, mongoDBWrapper), nil
+	return crawler.NewCrawlManager(appLogger, redisClient), nil
 }
