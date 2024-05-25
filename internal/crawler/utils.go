@@ -186,17 +186,6 @@ func (cm *CrawlManager) incrementNonMatchedLinkCount() {
 	cm.LoggerField.Debug("Incremented not matched links count")
 }
 
-// createLimitRule creates a new LimitRule for the Colly collector with default values.
-// Returns:
-// - colly.LimitRule: A new LimitRule instance.
-func (cm *CrawlManager) createLimitRule() colly.LimitRule {
-	return colly.LimitRule{
-		DomainGlob:  "*",
-		Parallelism: DefaultParallelism,
-		Delay:       DefaultDelay,
-	}
-}
-
 // GetHostFromURL extracts the host from the given URL.
 // Parameters:
 // - inputURL: The URL to parse and extract the host from.
