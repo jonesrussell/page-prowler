@@ -149,11 +149,14 @@ func (cm *CrawlManager) handleSetupError(err error) error {
 
 // ProcessMatchingLink processes a matching link by updating the page data and appending the result.
 // Parameters:
-// - options: The CrawlOptions containing the search terms.
 // - href: The URL of the matching link.
 // - pageData: The PageData instance for the matching link.
 // - matchingTerms: A slice of strings representing the matching terms.
 func (cm *CrawlManager) ProcessMatchingLink(href string, pageData PageData, matchingTerms []string) {
+	if cm.LoggerField == nil {
+		fmt.Println("Warning: LoggerField is nil")
+		return
+	}
 	if href == "" {
 		cm.LoggerField.Error("Missing URL for matching link")
 		return

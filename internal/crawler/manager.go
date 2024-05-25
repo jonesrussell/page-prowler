@@ -158,6 +158,10 @@ func (cm *CrawlManager) visitWithColly(url string) error {
 
 // AppendResult appends a PageData to the Results.
 func (cm *CrawlManager) AppendResult(pageData PageData) {
+	if cm.Results == nil || cm.Results.Pages == nil {
+		fmt.Println("Warning: Results or Pages is nil")
+		return
+	}
 	cm.Results.Pages = append(cm.Results.Pages, pageData)
 }
 
