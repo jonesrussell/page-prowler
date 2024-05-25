@@ -82,9 +82,7 @@ func (cm *CrawlManager) SetupHTMLParsingHandler(handler func(*CrawlOptions, *col
 	options := &CrawlOptions{} // Assuming you have a way to create or obtain CrawlOptions
 	cm.CollectorInstance.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		if err := handler(options, e); err != nil {
-			// Handle the error appropriately
-			// For example, log the error or return it
-			cm.LoggerField.Error(err.Error())
+			cm.LoggerField.Warn(err.Error())
 		}
 	})
 
