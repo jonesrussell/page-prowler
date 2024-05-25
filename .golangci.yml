@@ -1,33 +1,23 @@
 linters-settings:
-  revive:
-    ignore-generated-header: true
-    severity: warning
-    rules:
-      - name: atomic
-      - name: unhandled-error
-        arguments : ["fmt.Printf", "myFunction"]
-  govet:
-    check-shadowing: true
   golint:
     min-confidence: 0
   gocyclo:
     min-complexity: 10
-  maligned:
-    suggest-new: true
-  dupl:
-    threshold: 100
   goconst:
     min-len: 2
     min-occurrences: 2
   misspell:
     locale: US
+  errcheck:
+    exclude-functions:
+      - 'fmt.Printf'
+      - 'myFunction'
 
 linters:
   disable-all: true
   enable:
     - revive
     - errcheck
-    - govet
     - ineffassign
     - typecheck
     - staticcheck
@@ -40,5 +30,3 @@ run:
   tests: false
   build-tags:
     - mytag
-  skip-dirs:
-    - internal/crawler/api.gen.go
