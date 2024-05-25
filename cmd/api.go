@@ -25,7 +25,7 @@ var apiCmd = &cobra.Command{
 		  For example, you can start a new article matching job with the '/matchlinks' endpoint, or retrieve the status of a job with the '/matchlinks/info/{id}' endpoint.
 		  Similarly, you can start a new crawling job with the '/crawling/start' endpoint, or retrieve the status of a crawling job with the '/crawling/info/{id}' endpoint.
 		  The server also includes a '/ping' endpoint for health checks.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		e := echo.New()
 
 		// Enable CORS

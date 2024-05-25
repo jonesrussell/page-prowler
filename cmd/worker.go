@@ -10,7 +10,7 @@ import (
 var workerCmd = &cobra.Command{
 	Use:   "worker",
 	Short: "Start the Asynq worker",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		concurrency := 10 // Replace with the concurrency level you want
 		manager := cmd.Context().Value(common.CrawlManagerKey).(*crawler.CrawlManager)
 		worker.StartWorker(concurrency, manager, Debug)

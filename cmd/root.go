@@ -33,7 +33,7 @@ var RootCmd = &cobra.Command{
 
 	In addition to the command line interface, Page Prowler also provides an HTTP API for interacting with the tool.`,
 	SilenceErrors: false,
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+	PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 		// Initialize your dependencies here
 		ctx := context.Background()
 
