@@ -8,7 +8,7 @@ GO_LDFLAGS = -ldflags "-s -w"
 BINARY_DIR = bin
 BINARY_NAME = page-prowler
 
-all: fmt lint test build
+all: fmt lint test generate build
 
 build:
 	$(GO) build $(GO_LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME) main.go
