@@ -46,7 +46,7 @@ var RootCmd = &cobra.Command{
 		redisHost := viper.GetString("REDIS_HOST")
 		redisPort := viper.GetString("REDIS_PORT")
 		redisAuth := viper.GetString("REDIS_AUTH")
-		mongodbUri := viper.GetString("MONGODB_URI")
+		mongodbURI := viper.GetString("MONGODB_URI")
 
 		if redisHost == "" {
 			log.Println("REDIS_HOST is not set but is required")
@@ -58,7 +58,7 @@ var RootCmd = &cobra.Command{
 			return fmt.Errorf("REDIS_PORT is not set but is required")
 		}
 
-		if mongodbUri == "" {
+		if mongodbURI == "" {
 			log.Println("MONGODB_URI is not set but is required")
 			return fmt.Errorf("MONGODB_URI is not set but is required")
 		}
@@ -75,7 +75,7 @@ var RootCmd = &cobra.Command{
 			return fmt.Errorf("failed to initialize Redis client: %v", err)
 		}
 
-		mongoDBWrapper, err := mongodbwrapper.NewMongoDB(ctx, mongodbUri)
+		mongoDBWrapper, err := mongodbwrapper.NewMongoDB(ctx, mongodbURI)
 		if err != nil {
 			log.Printf("Failed to initialize MongoDB wrapper: %v", err)
 			return fmt.Errorf("failed to initialize MongoDB wrapper: %v", err)
