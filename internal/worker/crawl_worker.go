@@ -54,7 +54,12 @@ func handleCrawlTask(ctx context.Context, task *asynq.Task, cm *crawler.CrawlMan
 		Debug:       debug,
 	}
 
-	err = cm.Crawl(ctx, options)
+	err = cm.SetOptions(&options)
+	if err != nil {
+		return err
+	}
+
+	err = cm.Crawl(ctx)
 	return err
 }
 

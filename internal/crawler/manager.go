@@ -64,17 +64,19 @@ func NewStatsManager() *StatsManager {
 	}
 }
 
-func (cm *CrawlManager) Crawl(_ context.Context, options CrawlOptions) error {
-	cm.LoggerField.Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", options.StartURL))
+func (cm *CrawlManager) Crawl(_ context.Context) error {
+	startURL := cm.GetOptions().StartURL
+
+	cm.LoggerField.Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", startURL))
 
 	cm.initializeStatsManager()
 
-	host, err := cm.extractHostFromURL(options.StartURL)
+	host, err := cm.extractHostFromURL(startURL)
 	if err != nil {
 		return err
 	}
 
-	if err := cm.ConfigureCollector([]string{host}, options.MaxDepth); err != nil {
+	if err := cm.ConfigureCollector([]string{host}, cm.GetOptions().MaxDepth); err != nil {
 		return err
 	}
 
@@ -82,11 +84,12 @@ func (cm *CrawlManager) Crawl(_ context.Context, options CrawlOptions) error {
 		return err
 	}
 
-	if err := cm.visitWithColly(options.StartURL); err != nil {
-		return cm.HandleVisitError(options.StartURL, err)
+	if err := cm.visitWithColly(startURL); err != nil {
+		return cm.HandleVisitError(startURL, err)
 	}
 
 	cm.CollectorInstance.Wait()
+
 	cm.Logger().Info("[Crawl] Crawling completed.")
 
 	return nil

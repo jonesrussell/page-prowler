@@ -76,7 +76,7 @@ func runCrawlCmd(
 	}
 
 	// Now you can use options in your crawl operation
-	err = manager.Crawl(ctx, *options)
+	err = manager.Crawl(ctx)
 	if err != nil {
 		log.Fatalf("Error starting crawling: %v", err)
 	}
