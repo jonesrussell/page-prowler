@@ -64,12 +64,12 @@ func (msi *ServerAPIInterface) GetMatchlinks(ctx echo.Context) error {
 	allTasks := append(activeTasks, pendingTasks...)
 
 	// Convert the tasks to JSON and write it to the response
-	tasksJson, err := json.Marshal(allTasks)
+	tasksJSON, err := json.Marshal(allTasks)
 	if err != nil {
 		return err
 	}
 
-	_, err = ctx.Response().Write(tasksJson)
+	_, err = ctx.Response().Write(tasksJSON)
 	return err
 }
 
@@ -148,12 +148,12 @@ func (msi *ServerAPIInterface) GetMatchlinksId(ctx echo.Context, id string) erro
 	}
 
 	// Convert the task info to JSON and write it to the response
-	taskJson, err := json.Marshal(info)
+	taskJSON, err := json.Marshal(info)
 	if err != nil {
 		return err
 	}
 
-	_, err = ctx.Response().Write(taskJson)
+	_, err = ctx.Response().Write(taskJSON)
 	return err
 }
 
