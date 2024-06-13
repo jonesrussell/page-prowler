@@ -11,10 +11,10 @@
             "mode": "debug",
             "program": "${workspaceFolder}",
             "args": [
-                "matchlinks",
+                "crawl",
                 "-s=jr42",
-                "-t=PRIVACY",
-                "-u=https://www.jonesrussell42.xyz/",
+                "-t=drugs,shoot",
+                "-u=https://www.cp24.com/",
                 "--maxdepth=1",
                 "--debug"
             ]
