@@ -70,7 +70,7 @@ func TestPersistentFlags(t *testing.T) {
 
 func TestInitializeManager_WithNilRedisClient(t *testing.T) {
 	// Initialize the manager with a nil Redis client and a new mock logger
-	_, err := cmd.InitializeManager(
+	_, err := cmd.NewManager(
 		nil,
 		mocks.NewMockLogger(),
 	)
@@ -95,7 +95,7 @@ func TestInitializeManager(t *testing.T) {
 	}
 
 	// Initialize the manager with a mock Redis client and a new mock logger
-	manager, err := cmd.InitializeManager(
+	manager, err := cmd.NewManager(
 		mocks.NewMockClient(),
 		mocks.NewMockLogger(),
 	)

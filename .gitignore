@@ -5,6 +5,8 @@
 *.so
 *.dylib
 
+snyk-linux
+
 # Test binary, built with `go test -c`
 *.test
 

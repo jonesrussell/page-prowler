@@ -38,7 +38,7 @@ func (l *AsynqLoggerWrapper) Fatal(args ...interface{}) {
 
 // Implement the rest of the asynq.Logger methods in a similar way
 
-func handleCrawlTask(ctx context.Context, task *asynq.Task, cm *crawler.CrawlManager, debug bool) error {
+func handleCrawlTask(task *asynq.Task, cm *crawler.CrawlManager, debug bool) error {
 	var payload tasks.CrawlTaskPayload
 	err := json.Unmarshal(task.Payload(), &payload)
 	if err != nil {
@@ -59,7 +59,7 @@ func handleCrawlTask(ctx context.Context, task *asynq.Task, cm *crawler.CrawlMan
 		return err
 	}
 
-	err = cm.Crawl(ctx)
+	err = cm.Crawl()
 	return err
 }
 
@@ -79,8 +79,8 @@ func StartWorker(concurrency int, cm *crawler.CrawlManager, debug bool) {
 
 	// mux maps a task type to a handler
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(tasks.CrawlTaskType, func(ctx context.Context, task *asynq.Task) error {
-		return handleCrawlTask(ctx, task, cm, debug)
+	mux.HandleFunc(tasks.CrawlTaskType, func(_ context.Context, task *asynq.Task) error {
+		return handleCrawlTask(task, cm, debug)
 	})
 
 	// Run the server with the handler mux.

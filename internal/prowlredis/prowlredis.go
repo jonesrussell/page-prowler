@@ -22,6 +22,7 @@ type ClientInterface interface {
 	SMembers(ctx context.Context, key string) ([]string, error)
 	SIsMember(ctx context.Context, key string, member interface{}) (bool, error)
 	Options() *Options
+	Close() error
 }
 
 // Client represents the Redis client.

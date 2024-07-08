@@ -1,7 +1,6 @@
 package crawler
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -26,7 +25,7 @@ const (
 //
 //go:generate mockery --name=CrawlManagerInterface
 type CrawlManagerInterface interface {
-	Crawl(ctx context.Context) error
+	Crawl() error
 	SetupHTMLParsingHandler(handler func(*colly.HTMLElement) error) error
 	// SetupErrorEventHandler sets up the HTTP request error handling for the colly collector.
 	// It configures the collector to handle different types of errors.

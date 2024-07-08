@@ -13,7 +13,7 @@ import (
 )
 
 // CrawlManager is the main struct that manages the crawling operations.
-// It includes fields for logging, MongoDB operations, and the Colly collector.
+// It includes fields for logging, Redis operations, and the Colly collector.
 type CrawlManager struct {
 	Client            prowlredis.ClientInterface
 	CollectorInstance *CollectorWrapper
@@ -33,7 +33,7 @@ func (cm *CrawlManager) GetCollector() *CollectorWrapper {
 }
 
 // NewCrawlManager creates a new instance of CrawlManager with the provided logger,
-// Redis client, and MongoDB wrapper. It initializes the CrawlingMu mutex.
+// Redis client. It initializes the CrawlingMu mutex.
 func NewCrawlManager(
 	loggerField logger.Logger,
 	client prowlredis.ClientInterface,
@@ -64,7 +64,7 @@ func NewStatsManager() *StatsManager {
 	}
 }
 
-func (cm *CrawlManager) Crawl(_ context.Context) error {
+func (cm *CrawlManager) Crawl() error {
 	startURL := cm.GetOptions().StartURL
 
 	cm.LoggerField.Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", startURL))

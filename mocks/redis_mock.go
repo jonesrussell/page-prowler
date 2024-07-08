@@ -35,6 +35,10 @@ func NewMockClient() prowlredis.ClientInterface {
 	}
 }
 
+func (m *MockClient) Close() error {
+	return nil
+}
+
 func (m *MockClient) Ping(_ context.Context) error {
 	return m.pingErr
 }

@@ -1,14 +1,17 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log"
 
-	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
+	"github.com/jonesrussell/page-prowler/internal/logger"
+	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"go.uber.org/fx"
 )
 
 // crawlCmd represents the crawl command
@@ -21,26 +24,26 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	RunE: runCrawlCmd,
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		return fx.New(
+			fx.Provide(
+				func(logger logger.Logger, client prowlredis.ClientInterface) *crawler.CrawlManager {
+					options := &crawler.CrawlOptions{} // Assuming options are configured here or passed differently
+					return crawler.NewCrawlManager(logger, client, options)
+				},
+			),
+			fx.Invoke(func(manager *crawler.CrawlManager, lc fx.Lifecycle) {
+				lc.Append(fx.Hook{
+					OnStart: func(context.Context) error {
+						return runCrawlCmd(cmd, manager)
+					},
+				})
+			}),
+		).Start(context.Background())
+	},
 }
 
-func runCrawlCmd(
-	cmd *cobra.Command,
-	_ []string,
-) error {
-
-	ctx := cmd.Context()
-
-	// Access the CrawlManager from the context
-	value := ctx.Value(common.CrawlManagerKey)
-	if value == nil {
-		log.Fatalf("common.CrawlManagerKey not found in context")
-	}
-
-	manager, ok := value.(crawler.CrawlManagerInterface)
-	if !ok {
-		log.Fatalf("Value in context is not of type crawler.CrawlManagerInterface")
-	}
+func runCrawlCmd(cmd *cobra.Command, manager crawler.CrawlManagerInterface) error {
 	if manager == nil {
 		log.Fatalf("manager is nil")
 	}
@@ -76,7 +79,7 @@ func runCrawlCmd(
 	}
 
 	// Now you can use options in your crawl operation
-	err = manager.Crawl(ctx)
+	err = manager.Crawl()
 	if err != nil {
 		log.Fatalf("Error starting crawling: %v", err)
 	}

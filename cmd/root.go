@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/fx"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -32,53 +32,16 @@ var RootCmd = &cobra.Command{
 
 	In addition to the command line interface, Page Prowler also provides an HTTP API for interacting with the tool.`,
 	SilenceErrors: false,
-	PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-		// Initialize your dependencies here
-		ctx := context.Background()
+	RunE: func(_ *cobra.Command, _ []string) error {
+		app := fx.New(
+			fx.Provide(
+				NewManager,
+			),
+		)
 
-		appLogger, err := initializeLogger()
-		if err != nil {
-			log.Println("Error initializing logger:", err)
-			return err
+		if err := app.Start(context.Background()); err != nil {
+			log.Fatal(err)
 		}
-
-		redisHost := viper.GetString("REDIS_HOST")
-		redisPort := viper.GetString("REDIS_PORT")
-		redisAuth := viper.GetString("REDIS_AUTH")
-
-		if redisHost == "" {
-			log.Println("REDIS_HOST is not set but is required")
-			return fmt.Errorf("REDIS_HOST is not set but is required")
-		}
-
-		if redisPort == "" {
-			log.Println("REDIS_PORT is not set but is required")
-			return fmt.Errorf("REDIS_PORT is not set but is required")
-		}
-
-		cfg := &prowlredis.Options{
-			Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
-			Password: redisAuth,
-			DB:       0, // TODO: redisDB
-		}
-
-		redisClient, err := prowlredis.NewClient(ctx, cfg)
-		if err != nil {
-			log.Printf("Failed to initialize Redis client: %v", err)
-			return fmt.Errorf("failed to initialize Redis client: %v", err)
-		}
-
-		manager, err := InitializeManager(redisClient, appLogger)
-		if err != nil {
-			log.Printf("Error initializing manager: %v", err)
-			return err
-		}
-
-		// Set the manager to the context
-		ctx = context.WithValue(ctx, common.CrawlManagerKey, manager)
-
-		// Set the context of the command
-		cmd.SetContext(ctx)
 
 		return nil
 	},
@@ -97,41 +60,95 @@ func init() {
 	// Initialize Viper
 	viper.AutomaticEnv() // Read environment variables
 	viper.SetConfigFile(".env")
-	err := viper.ReadInConfig()
-	if err != nil {
-		log.Println("Could not read config file")
-	}
+	checkError(viper.ReadInConfig(), "Could not read config file")
 
-	err = viper.BindEnv("debug")
-	if err != nil {
-		log.Fatalf("Error binding debug flag: %v", err)
-	} // Bind the DEBUG environment variable to a config key
+	checkError(viper.BindEnv("debug"), "Error binding debug flag") // Bind the DEBUG environment variable to a config key
 
 	RootCmd.PersistentFlags().BoolVarP(&Debug, "debug", "d", viper.GetBool("debug"), "Enable debug output")
 
 	// Bind the environment variable to the flag
-	err = viper.BindEnv("siteid")
-	if err != nil {
-		log.Fatalf("Failed to bind env var: %v", err)
-	}
+	checkError(viper.BindEnv("siteid"), "Failed to bind env var")
 
 	// Define the siteid flag and set its default value from the environment variable
 	RootCmd.PersistentFlags().StringVarP(&Siteid, "siteid", "s", viper.GetString("siteid"), "Set siteid for redis set key")
 }
 
-func initializeLogger() (logger.Logger, error) {
-	var level zapcore.Level
-	level = zapcore.InfoLevel
-	if Debug {
-		level = zapcore.DebugLevel
+func checkError(err error, msg string) {
+	if err != nil {
+		log.Fatalf("%s: %v", msg, err)
 	}
-	return logger.New(level) // Use the new logger constructor
 }
 
-func InitializeManager(
-	redisClient prowlredis.ClientInterface,
-	appLogger logger.Logger,
-) (*crawler.CrawlManager, error) {
+func NewRedisClient(lc fx.Lifecycle) (prowlredis.ClientInterface, error) {
+	cfg, err := getRedisConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	var client prowlredis.ClientInterface
+
+	lc.Append(fx.Hook{
+		OnStart: func(context.Context) error {
+			client, err = prowlredis.NewClient(context.Background(), cfg)
+			return err
+		},
+		OnStop: func(_ context.Context) error {
+			if client != nil {
+				return client.Close()
+			}
+			return nil
+		},
+	})
+
+	return client, nil
+}
+
+func getRedisConfig() (*prowlredis.Options, error) {
+	redisHost := viper.GetString("REDIS_HOST")
+	redisPort := viper.GetString("REDIS_PORT")
+	redisAuth := viper.GetString("REDIS_AUTH")
+
+	if redisHost == "" {
+		return nil, fmt.Errorf("REDIS_HOST is not set but is required")
+	}
+
+	if redisPort == "" {
+		return nil, fmt.Errorf("REDIS_PORT is not set but is required")
+	}
+
+	return &prowlredis.Options{
+		Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
+		Password: redisAuth,
+		DB:       0, // TODO: redisDB
+	}, nil
+}
+
+func NewLogger() (logger.Logger, error) {
+	loggerInstance, err := logger.New(getLoggerLevel())
+	if err != nil {
+		return nil, err
+	}
+	return loggerInstance, nil
+}
+
+func getLoggerLevel() zapcore.Level {
+	if Debug {
+		return zapcore.DebugLevel
+	}
+	return zapcore.InfoLevel
+}
+
+func NewManager(lc fx.Lifecycle) (*crawler.CrawlManager, error) {
+	appLogger, err := NewLogger()
+	if err != nil {
+		return nil, err
+	}
+
+	redisClient, err := NewRedisClient(lc)
+	if err != nil {
+		return nil, err
+	}
+
 	if redisClient == nil {
 		return nil, errors.New("redisClient cannot be nil")
 	}
