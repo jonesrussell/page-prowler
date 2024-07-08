@@ -26,7 +26,7 @@ require (
 	github.com/adrg/strutil v0.3.1
 	github.com/bbalet/stopwords v1.0.0
 	github.com/caneroj1/stemmer v0.0.0-20170128035808-c9f2ce1504d5
-	github.com/getkin/kin-openapi v0.125.0
+	github.com/getkin/kin-openapi v0.126.0
 	github.com/hibiken/asynq v0.24.1
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/oapi-codegen/runtime v1.1.1
