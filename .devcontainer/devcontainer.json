@@ -9,13 +9,19 @@
 		"ghcr.io/guiyomh/features/goreleaser:0": {},
 		"ghcr.io/guiyomh/features/gotestsum:0": {},
 		"ghcr.io/devcontainers-contrib/features/elasticsearch-asdf:2": {},
-		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+		"ghcr.io/nils-geistmann/devcontainers-features/zsh:0": {},
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+		"ghcr.io/stuartleeks/dev-container-features/shell-history:0": {}
+
 	},
 	"customizations": {
 		"vscode": {
 			"extensions": [
 				"phind.phind",
-				"GitHub.vscode-pull-request-github"
+				"GitHub.vscode-pull-request-github",
+				"nhoizey.gremlins",
+				"task.vscode-task",
+				"premparihar.gotestexplorer"
 			]
 		}
 	},
@@ -24,6 +30,5 @@
 	],
 	"forwardPorts": [
 		3000
-	],
-	"postCreateCommand": "go install github.com/go-delve/delve/cmd/dlv@latest && go install github.com/spf13/cobra-cli@latest"
+	]
 }
