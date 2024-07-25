@@ -4,6 +4,8 @@ go 1.21
 
 toolchain go1.21.3
 
+replace github.com/jonesrussell/loggo => /workspaces/loggo
+
 require (
 	github.com/PuerkitoBio/goquery v1.9.2 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
@@ -28,6 +30,7 @@ require (
 	github.com/caneroj1/stemmer v0.0.0-20170128035808-c9f2ce1504d5
 	github.com/getkin/kin-openapi v0.126.0
 	github.com/hibiken/asynq v0.24.1
+	github.com/jonesrussell/loggo v0.1.1
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/redis/go-redis/v9 v9.6.0
@@ -73,6 +76,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sagikazarmark/locafero v0.6.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
+	github.com/samber/lo v1.46.0 // indirect
+	github.com/samber/slog-multi v1.2.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect

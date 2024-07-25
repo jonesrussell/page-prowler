@@ -6,7 +6,7 @@ import (
 	"net/url"
 
 	"github.com/gocolly/colly"
-	"github.com/jonesrussell/page-prowler/internal/logger"
+	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/termmatcher"
 )
 
@@ -21,7 +21,7 @@ import (
 func (cm *CrawlManager) extractHostFromURL(url string) (string, error) {
 	host, err := GetHostFromURL(url, cm.Logger())
 	if err != nil {
-		cm.LoggerField.Error(fmt.Sprintf("Failed to parse URL: url: %v, error: %v", url, err))
+		cm.LoggerField.Error(fmt.Sprintf("Failed to parse URL: url: %v, error: %v", url, err), nil)
 		return "", err
 	}
 	cm.LoggerField.Debug(fmt.Sprintf("Extracted host from URL: %s", host))
@@ -141,7 +141,7 @@ func (cm *CrawlManager) processLink(e *colly.HTMLElement, href string) {
 // Returns:
 // - error: The error passed to the function.
 func (cm *CrawlManager) handleSetupError(err error) error {
-	cm.LoggerField.Error(fmt.Sprintf("Error setting up crawling logic: %v", err))
+	cm.LoggerField.Error(fmt.Sprintf("Error setting up crawling logic: %v", err), nil)
 	return err
 }
 
@@ -151,12 +151,8 @@ func (cm *CrawlManager) handleSetupError(err error) error {
 // - pageData: The PageData instance for the matching link.
 // - matchingTerms: A slice of strings representing the matching terms.
 func (cm *CrawlManager) ProcessMatchingLink(href string, pageData PageData, matchingTerms []string) {
-	if cm.LoggerField == nil {
-		fmt.Println("Warning: LoggerField is nil")
-		return
-	}
 	if href == "" {
-		cm.LoggerField.Error("Missing URL for matching link")
+		cm.LoggerField.Error("Missing URL for matching link", nil)
 		return
 	}
 
@@ -192,20 +188,20 @@ func (cm *CrawlManager) incrementNonMatchedLinkCount() {
 // GetHostFromURL extracts the host from the given URL.
 // Parameters:
 // - inputURL: The URL to parse and extract the host from.
-// - appLogger: The logger instance to log any errors.
+// - appLogger: The loggo instance to log any errors.
 // Returns:
 // - string: The extracted host from the URL.
 // - error: An error if the URL cannot be parsed or if the host cannot be extracted.
-func GetHostFromURL(inputURL string, appLogger logger.Logger) (string, error) {
+func GetHostFromURL(inputURL string, appLogger *loggo.Logger) (string, error) {
 	parsedURL, err := url.Parse(inputURL)
 	if err != nil {
-		appLogger.Error(fmt.Sprintf("Failed to parse URL: %s, Error: %v", inputURL, err))
+		appLogger.Error(fmt.Sprintf("Failed to parse URL: %s, Error: %v", inputURL, err), nil)
 		return "", err
 	}
 
 	host := parsedURL.Hostname()
 	if host == "" {
-		appLogger.Error("failed to extract host from URL")
+		appLogger.Error("failed to extract host from URL", nil)
 		return "", errors.New("failed to extract host from URL")
 	}
 

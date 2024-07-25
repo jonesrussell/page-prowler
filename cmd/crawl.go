@@ -1,8 +1,9 @@
 package cmd
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"log"
 
 	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
@@ -11,40 +12,102 @@ import (
 	"github.com/spf13/viper"
 )
 
-// crawlCmd represents the crawl command
-var crawlCmd = &cobra.Command{
-	Use:   "crawl",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
+// NewCrawlCmd creates a new crawl command
+func NewCrawlCmd() *cobra.Command {
+	crawlCmd := &cobra.Command{
+		Use:   "crawl",
+		Short: "A brief description of your command",
+		Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	RunE: runCrawlCmd,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := cmd.Context()
+
+			// Get the manager from the context
+			manager, ok := ctx.Value(common.CrawlManagerKey).(*crawler.CrawlManager)
+			if !ok {
+				return errors.New("failed to get manager from context")
+			}
+
+			cmd.Flags().StringP("url", "u", "", "URL to crawl")
+			if err := viper.BindPFlag("url", cmd.Flags().Lookup("url")); err != nil {
+				manager.Logger().Error("Error binding flag", err)
+			}
+
+			cmd.Flags().IntP("maxdepth", "m", 1, "Max depth for crawling")
+			if err := viper.BindPFlag("maxdepth", cmd.Flags().Lookup("maxdepth")); err != nil {
+				manager.Logger().Error("Error binding flag", err)
+			}
+
+			cmd.Flags().StringP("searchterms", "t", "", "Search terms for crawling")
+			if err := viper.BindPFlag("searchterms", cmd.Flags().Lookup("searchterms")); err != nil {
+				manager.Logger().Error("Error binding flag", err)
+			}
+
+			return runCrawlCmd(cmd, args, manager, ctx)
+		},
+	}
+
+	return crawlCmd
 }
 
 func runCrawlCmd(
 	cmd *cobra.Command,
 	_ []string,
+	manager crawler.CrawlManagerInterface,
+	ctx context.Context,
 ) error {
-
-	ctx := cmd.Context()
-
-	// Access the CrawlManager from the context
-	value := ctx.Value(common.CrawlManagerKey)
-	if value == nil {
-		log.Fatalf("common.CrawlManagerKey not found in context")
+	options, err := getCrawlOptions()
+	if err != nil {
+		manager.Logger().Error("Error getting options", err)
+		return err
 	}
 
-	manager, ok := value.(crawler.CrawlManagerInterface)
-	if !ok {
-		log.Fatalf("Value in context is not of type crawler.CrawlManagerInterface")
-	}
-	if manager == nil {
-		log.Fatalf("manager is nil")
+	// Print options if Debug is enabled
+	if options.Debug {
+		manager.Logger().Info("CrawlOptions:")
+		manager.Logger().Info(fmt.Sprintf("  CrawlSiteID: %s", options.CrawlSiteID))
+		manager.Logger().Info(fmt.Sprintf("  Debug: %t", options.Debug))
+		manager.Logger().Info(fmt.Sprintf("  DelayBetweenRequests: %s", options.DelayBetweenRequests.String()))
+		manager.Logger().Info(fmt.Sprintf("  MaxConcurrentRequests: %d", options.MaxConcurrentRequests))
+		manager.Logger().Info(fmt.Sprintf("  MaxDepth: %d", options.MaxDepth))
+		manager.Logger().Info(fmt.Sprintf("  SearchTerms: %v", options.SearchTerms))
+		manager.Logger().Info(fmt.Sprintf("  StartURL: %s", options.StartURL))
 	}
 
+	// Call SetOptions to update the manager's options
+	err = manager.SetOptions(options)
+	if err != nil {
+		manager.Logger().Error("Error setting options", err)
+		return err
+	}
+
+	// Now you can use options in your crawl operation
+	err = manager.Crawl()
+	if err != nil {
+		manager.Logger().Error("Error starting crawling", err)
+		return err
+	}
+
+	if options.Debug {
+		manager.Logger().Info("\nFlags:")
+		cmd.Flags().VisitAll(func(flag *pflag.Flag) {
+			manager.Logger().Info(fmt.Sprintf(" %-12s : %s", flag.Name, flag.Value.String()))
+		})
+
+		manager.Logger().Info("\nRedis Environment Variables:")
+		manager.Logger().Info(fmt.Sprintf(" %-12s : %s", "REDIS_HOST", viper.GetString("REDIS_HOST")))
+		manager.Logger().Info(fmt.Sprintf(" %-12s : %s", "REDIS_PORT", viper.GetString("REDIS_PORT")))
+		manager.Logger().Info(fmt.Sprintf(" %-12s : %s", "REDIS_AUTH", viper.GetString("REDIS_AUTH")))
+	}
+
+	return nil
+}
+
+func getCrawlOptions() (*crawler.CrawlOptions, error) {
 	// Create an instance of CrawlOptions
 	options := &crawler.CrawlOptions{}
 
@@ -57,61 +120,5 @@ func runCrawlCmd(
 	options.SearchTerms = viper.GetStringSlice("searchterms")
 	options.StartURL = viper.GetString("url")
 
-	// Print options if Debug is enabled
-	if options.Debug {
-		fmt.Printf("CrawlOptions:\n")
-		fmt.Printf("  CrawlSiteID: %s\n", options.CrawlSiteID)
-		fmt.Printf("  Debug: %t\n", options.Debug)
-		fmt.Printf("  DelayBetweenRequests: %s\n", options.DelayBetweenRequests.String())
-		fmt.Printf("  MaxConcurrentRequests: %d\n", options.MaxConcurrentRequests)
-		fmt.Printf("  MaxDepth: %d\n", options.MaxDepth)
-		fmt.Printf("  SearchTerms: %v\n", options.SearchTerms)
-		fmt.Printf("  StartURL: %s\n", options.StartURL)
-	}
-
-	// Call SetOptions to update the manager's options
-	err := manager.SetOptions(options)
-	if err != nil {
-		log.Fatalf("Error setting options: %v", err)
-	}
-
-	// Now you can use options in your crawl operation
-	err = manager.Crawl(ctx)
-	if err != nil {
-		log.Fatalf("Error starting crawling: %v", err)
-	}
-
-	if options.Debug {
-		manager.Logger().Info("\nFlags:")
-		cmd.Flags().VisitAll(func(flag *pflag.Flag) {
-			manager.Logger().Info(fmt.Sprintf(" %-12s : %s\n", flag.Name, flag.Value.String()))
-		})
-
-		manager.Logger().Info("\nRedis Environment Variables:")
-		manager.Logger().Info(fmt.Sprintf(" %-12s : %s\n", "REDIS_HOST", viper.GetString("REDIS_HOST")))
-		manager.Logger().Info(fmt.Sprintf(" %-12s : %s\n", "REDIS_PORT", viper.GetString("REDIS_PORT")))
-		manager.Logger().Info(fmt.Sprintf(" %-12s : %s\n", "REDIS_AUTH", viper.GetString("REDIS_AUTH")))
-	}
-
-	return nil
-}
-
-// init initializes the matchlinks command.
-func init() {
-	crawlCmd.Flags().StringP("url", "u", "", "URL to crawl")
-	if err := viper.BindPFlag("url", crawlCmd.Flags().Lookup("url")); err != nil {
-		log.Fatalf("Error binding flag: %v", err)
-	}
-
-	crawlCmd.Flags().IntP("maxdepth", "m", 1, "Max depth for crawling")
-	if err := viper.BindPFlag("maxdepth", crawlCmd.Flags().Lookup("maxdepth")); err != nil {
-		log.Fatalf("Error binding flag: %v", err)
-	}
-
-	crawlCmd.Flags().StringP("searchterms", "t", "", "Search terms for crawling")
-	if err := viper.BindPFlag("searchterms", crawlCmd.Flags().Lookup("searchterms")); err != nil {
-		log.Fatalf("Error binding flag: %v", err)
-	}
-
-	RootCmd.AddCommand(crawlCmd)
+	return options, nil
 }
