@@ -9,7 +9,7 @@ import (
 	"github.com/adrg/strutil/metrics"
 	"github.com/bbalet/stopwords"
 	"github.com/caneroj1/stemmer"
-	"github.com/jonesrussell/page-prowler/internal/logger"
+	"github.com/jonesrussell/loggo"
 )
 
 const minTitleLength = 5 // Set the minimum character limit as needed
@@ -58,7 +58,7 @@ func ProcessContent(content string) string {
 }
 
 // GetMatchingTerms checks if the URL title matches any of the provided search terms and returns the matching terms.
-func GetMatchingTerms(href string, anchorText string, searchTerms []string, logger logger.Logger) []string {
+func GetMatchingTerms(href string, anchorText string, searchTerms []string, logger *loggo.Logger) []string {
 	content := ExtractLastSegmentFromURL(href)
 	processedContent := ProcessContent(content)
 	logger.Debug(fmt.Sprintf("Processed content from URL: %v", processedContent))
@@ -117,7 +117,7 @@ func StemContent(content string) string {
 	return strings.Join(lowercaseStemmedWords, " ")
 }
 
-func CompareTerms(searchTerm string, content string, swg *metrics.SmithWatermanGotoh, mylogger logger.Logger) float64 {
+func CompareTerms(searchTerm string, content string, swg *metrics.SmithWatermanGotoh, mylogger *loggo.Logger) float64 {
 	searchTerm = strings.ToLower(searchTerm)
 	similarity := strutil.Similarity(searchTerm, content, swg)
 
@@ -138,7 +138,7 @@ func CreateSWG() *metrics.SmithWatermanGotoh {
 	return swg
 }
 
-func CompareAndAppendTerm(searchTerm string, content string, swg *metrics.SmithWatermanGotoh, matchingTerms *[]string, mylogger logger.Logger) {
+func CompareAndAppendTerm(searchTerm string, content string, swg *metrics.SmithWatermanGotoh, matchingTerms *[]string, mylogger *loggo.Logger) {
 	similarity := CompareTerms(searchTerm, content, swg, mylogger)
 	mylogger.Debug(fmt.Sprintf("Compared terms: searchTerm=%s, similarity=%.2f", searchTerm, similarity))
 	if similarity >= 0.9 { // Increase the threshold to 0.9
@@ -147,7 +147,7 @@ func CompareAndAppendTerm(searchTerm string, content string, swg *metrics.SmithW
 	}
 }
 
-func FindMatchingTerms(content string, searchTerms []string, mylogger logger.Logger) []string {
+func FindMatchingTerms(content string, searchTerms []string, mylogger *loggo.Logger) []string {
 	var matchingTerms []string
 	swg := CreateSWG()
 
