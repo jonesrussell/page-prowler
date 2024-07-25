@@ -35,9 +35,13 @@ func NewRootCmd(manager *crawler.CrawlManager) *cobra.Command {
 
 	// Create a new crawl command with the manager
 	crawlCmd := NewCrawlCmd()
+	resultsCmd := NewResultsCmd()
+	apiCmd := NewAPICmd()
 
 	// Add the crawl command to the root command
 	rootCmd.AddCommand(crawlCmd)
+	rootCmd.AddCommand(resultsCmd)
+	rootCmd.AddCommand(apiCmd)
 
 	return rootCmd
 }
