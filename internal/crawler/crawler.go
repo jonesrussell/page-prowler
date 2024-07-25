@@ -1,13 +1,12 @@
 package crawler
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/gocolly/colly"
-	"github.com/jonesrussell/page-prowler/internal/logger"
+	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/stats"
 )
 
@@ -26,7 +25,7 @@ const (
 //
 //go:generate mockery --name=CrawlManagerInterface
 type CrawlManagerInterface interface {
-	Crawl(ctx context.Context) error
+	Crawl() error
 	SetupHTMLParsingHandler(handler func(*colly.HTMLElement) error) error
 	// SetupErrorEventHandler sets up the HTTP request error handling for the colly collector.
 	// It configures the collector to handle different types of errors.
@@ -43,7 +42,7 @@ type CrawlManagerInterface interface {
 	// It logs the error and returns it.
 	HandleVisitError(url string, err error) error
 	// Logger returns the logger instance associated with the CrawlManager.
-	Logger() logger.Logger
+	Logger() *loggo.Logger
 	ProcessMatchingLink(currentURL string, pageData PageData, matchingTerms []string)
 	UpdateStats(options *CrawlOptions, matchingTerms []string)
 	// SetOptions updates the manager's options.
@@ -53,17 +52,11 @@ type CrawlManagerInterface interface {
 // CrawlManager is the implementation of the CrawlManagerInterface.
 // It manages the crawling operations, including setting up crawling logic, handling errors, and starting the crawling process.
 // The struct fields are initialized with default values or instances of required types.
-var _ CrawlManagerInterface = &CrawlManager{
-	LoggerField:       nil,                                     // Logger instance for logging messages.
-	Client:            nil,                                     // HTTP client for making requests.
-	CollectorInstance: &CollectorWrapper{colly.NewCollector()}, // Colly collector for crawling web pages.
-	CrawlingMu:        &sync.Mutex{},                           // Mutex for synchronizing crawling operations.
-	StatsManager:      &StatsManager{},                         // Manager for crawling statistics.
-}
+var _ CrawlManagerInterface = &CrawlManager{}
 
 // Logger returns the logger instance associated with the CrawlManager.
 // It provides access to the logging functionality for the crawling operations.
-func (cm *CrawlManager) Logger() logger.Logger {
+func (cm *CrawlManager) Logger() *loggo.Logger {
 	return cm.LoggerField
 }
 

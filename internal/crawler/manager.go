@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/gocolly/colly"
-	"github.com/jonesrussell/page-prowler/internal/logger"
+	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/jonesrussell/page-prowler/internal/stats"
 )
@@ -18,7 +18,7 @@ type CrawlManager struct {
 	Client            prowlredis.ClientInterface
 	CollectorInstance *CollectorWrapper
 	CrawlingMu        *sync.Mutex
-	LoggerField       logger.Logger
+	LoggerField       *loggo.Logger
 	Options           *CrawlOptions
 	StatsManager      *StatsManager
 	Results           *Results
@@ -35,16 +35,17 @@ func (cm *CrawlManager) GetCollector() *CollectorWrapper {
 // NewCrawlManager creates a new instance of CrawlManager with the provided logger,
 // Redis client, and MongoDB wrapper. It initializes the CrawlingMu mutex.
 func NewCrawlManager(
-	loggerField logger.Logger,
+	loggerField *loggo.Logger,
 	client prowlredis.ClientInterface,
+	collectorInstance *CollectorWrapper,
 	options *CrawlOptions,
 ) *CrawlManager {
 	return &CrawlManager{
 		LoggerField:       loggerField,
 		Client:            client,
-		CollectorInstance: NewCollectorWrapper(colly.NewCollector()), // Initialize the CollectorInstance field
+		CollectorInstance: collectorInstance,
 		CrawlingMu:        &sync.Mutex{},
-		Options:           options, // Store the provided CrawlOptions
+		Options:           options,
 		Results:           NewResults(),
 	}
 }
@@ -64,10 +65,10 @@ func NewStatsManager() *StatsManager {
 	}
 }
 
-func (cm *CrawlManager) Crawl(_ context.Context) error {
+func (cm *CrawlManager) Crawl() error {
 	startURL := cm.GetOptions().StartURL
 
-	cm.LoggerField.Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", startURL))
+	cm.Logger().Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", startURL))
 
 	cm.initializeStatsManager()
 
@@ -103,7 +104,7 @@ func (cm *CrawlManager) Crawl(_ context.Context) error {
 // Returns:
 // - error: The error that was logged and returned.
 func (cm *CrawlManager) HandleVisitError(url string, err error) error {
-	cm.LoggerField.Error(fmt.Sprintf("Error visiting URL: url: %s, error: %v", url, err))
+	cm.Logger().Error(fmt.Sprintf("Error visiting URL: url: %s", url), err, nil) // Add nil as the third argument
 	return err
 }
 
@@ -123,11 +124,11 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 		),
 	}
 
-	cm.LoggerField.Debug(fmt.Sprintf("Allowed Domains: %v", allowedDomains))
+	cm.Logger().Debug(fmt.Sprintf("Allowed Domains: %v", allowedDomains))
 	cm.CollectorInstance.SetAllowedDomains(allowedDomains)
 
 	if err := cm.CollectorInstance.Limit(); err != nil {
-		cm.LoggerField.Error(fmt.Sprintf("Failed to set limit rule: %v", err))
+		cm.Logger().Error(fmt.Sprintf("Failed to set limit rule: %v", err), nil)
 		return err
 	}
 
@@ -137,7 +138,7 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 
 	// Register OnScraped callback
 	//cm.CollectorInstance.OnScraped(func(r *colly.Response) {
-	//	cm.LoggerField.Debug(fmt.Sprintf("[OnScraped] Page scraped: %s", r.Request.URL.String()))
+	//	cm.Logger().Debug(fmt.Sprintf("[OnScraped] Page scraped: %s", r.Request.URL.String()))
 	//	cm.StatsManager.LinkStatsMu.Lock()
 	//	defer cm.StatsManager.LinkStatsMu.Unlock()
 	//	cm.StatsManager.LinkStats.IncrementTotalPages()
@@ -174,38 +175,41 @@ func (cm *CrawlManager) GetResults() *Results {
 }
 
 func (cm *CrawlManager) SaveResultsToRedis(ctx context.Context, results []PageData, key string) error {
-	cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Number of results before processing: %d", len(results)))
+	cm.Logger().Debug(fmt.Sprintf("SaveResultsToRedis: Number of results before processing: %d", len(results)))
 
 	for _, result := range results {
-		cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Processing result %v", result))
+		cm.Logger().Debug(fmt.Sprintf("SaveResultsToRedis: Processing result %v", result))
 
 		data, err := json.Marshal(result)
 		if err != nil {
-			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during marshalling to JSON: %v", err))
+			cm.Logger().Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during marshalling to JSON: %v", err), nil)
 			return err
 		}
 		str := string(data)
+
 		err = cm.Client.SAdd(ctx, key, str)
 		if err != nil {
-			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during saving to Redis: %v", err))
+			cm.Logger().Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during saving to Redis: %v", err), err, nil) // Add nil as the third argument
 			return err
 		}
-		cm.LoggerField.Debug("SaveResultsToRedis: Added elements to the set")
+
+		cm.Logger().Debug("SaveResultsToRedis: Added elements to the set")
 
 		// Debugging: Verify that the result was saved correctly
 		isMember, err := cm.Client.SIsMember(ctx, key, str)
 		if err != nil {
-			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during checking membership in Redis set: %v", err))
+			cm.Logger().Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during checking membership in Redis set: %v", err), err, nil) // Add nil as the third argument
 			return err
 		}
+
 		if !isMember {
-			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Result was not saved correctly in Redis set: %v", str))
+			cm.Logger().Error(fmt.Sprintf("SaveResultsToRedis: Result was not saved correctly in Redis set: %v", str), nil)
 		} else {
-			cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Result was saved correctly in Redis set, key: %s, result: %s", key, str))
+			cm.Logger().Debug(fmt.Sprintf("SaveResultsToRedis: Result was saved correctly in Redis set, key: %s, result: %s", key, str))
 		}
 	}
 
-	cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Number of results after processing: %d", len(results)))
+	cm.Logger().Debug(fmt.Sprintf("SaveResultsToRedis: Number of results after processing: %d", len(results)))
 
 	return nil
 }
