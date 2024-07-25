@@ -7,13 +7,13 @@ import (
 	"strings"
 
 	"github.com/hibiken/asynq"
+	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
-	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/tasks"
 )
 
 type AsynqLoggerWrapper struct {
-	logger logger.Logger
+	logger loggo.Logger
 }
 
 func (l *AsynqLoggerWrapper) Debug(args ...interface{}) {
@@ -36,9 +36,7 @@ func (l *AsynqLoggerWrapper) Fatal(args ...interface{}) {
 	l.logger.Debug(fmt.Sprint(args...))
 }
 
-// Implement the rest of the asynq.Logger methods in a similar way
-
-func handleCrawlTask(ctx context.Context, task *asynq.Task, cm *crawler.CrawlManager, debug bool) error {
+func handleCrawlTask(task *asynq.Task, cm *crawler.CrawlManager, debug bool) error {
 	var payload tasks.CrawlTaskPayload
 	err := json.Unmarshal(task.Payload(), &payload)
 	if err != nil {
@@ -59,7 +57,7 @@ func handleCrawlTask(ctx context.Context, task *asynq.Task, cm *crawler.CrawlMan
 		return err
 	}
 
-	err = cm.Crawl(ctx)
+	err = cm.Crawl()
 	return err
 }
 
@@ -73,18 +71,18 @@ func StartWorker(concurrency int, cm *crawler.CrawlManager, debug bool) {
 		},
 		asynq.Config{
 			Concurrency: concurrency,
-			Logger:      &AsynqLoggerWrapper{logger: cm.Logger()}, // Use the Logger from CrawlManager
+			Logger:      &AsynqLoggerWrapper{logger: *cm.Logger()}, // Use the Logger from CrawlManager
 		},
 	)
 
 	// mux maps a task type to a handler
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(tasks.CrawlTaskType, func(ctx context.Context, task *asynq.Task) error {
-		return handleCrawlTask(ctx, task, cm, debug)
+		return handleCrawlTask(task, cm, debug)
 	})
 
 	// Run the server with the handler mux.
 	if err := srv.Run(mux); err != nil {
-		cm.Logger().Fatal(fmt.Sprintf("could not run server: %v", err))
+		cm.Logger().Fatal(fmt.Sprintf("could not run server: %v", err), nil)
 	}
 }

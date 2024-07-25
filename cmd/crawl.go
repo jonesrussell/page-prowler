@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -47,7 +46,7 @@ to quickly create a Cobra application.`,
 				manager.Logger().Error("Error binding flag", err)
 			}
 
-			return runCrawlCmd(cmd, args, manager, ctx)
+			return runCrawlCmd(cmd, args, manager)
 		},
 	}
 
@@ -58,7 +57,6 @@ func runCrawlCmd(
 	cmd *cobra.Command,
 	_ []string,
 	manager crawler.CrawlManagerInterface,
-	ctx context.Context,
 ) error {
 	options, err := getCrawlOptions()
 	if err != nil {

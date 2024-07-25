@@ -6,16 +6,23 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-var ClearlinksCmd = &cobra.Command{
-	Use:   "clearlinks",
-	Short: "Clear the Redis set for a given siteid",
-	RunE:  ClearlinksMain,
+// NewClearlinksCmd creates a new clearlinks command
+func NewClearlinksCmd() *cobra.Command {
+	clearlinksCmd := &cobra.Command{
+		Use:   "clearlinks",
+		Short: "Clear the Redis set for a given siteid",
+		RunE:  ClearlinksMain,
+	}
+
+	return clearlinksCmd
 }
 
 func ClearlinksMain(cmd *cobra.Command, _ []string) error {
-	if Siteid == "" {
+	siteid := viper.GetString("siteid")
+	if siteid == "" {
 		return ErrSiteidRequired
 	}
 
@@ -26,20 +33,17 @@ func ClearlinksMain(cmd *cobra.Command, _ []string) error {
 
 	redisClient := manager.Client
 
-	err := redisClient.Del(cmd.Context(), Siteid)
+	err := redisClient.Del(cmd.Context(), siteid)
 	if err != nil {
 		return fmt.Errorf("failed to clear Redis set: %v", err)
 	}
 
-	if Debug {
+	debug := viper.GetBool("debug")
+	if debug {
 		manager.LoggerField.Debug("Debugging enabled. Clearing Redis set...")
 	}
 
 	manager.Logger().Info("Redis set cleared successfully")
 
 	return nil
-}
-
-func init() {
-	resultsCmd.AddCommand(ClearlinksCmd)
 }
