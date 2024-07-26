@@ -12,13 +12,8 @@ import (
 )
 
 const (
-	// DefaultParallelism defines the default number of concurrent operations allowed during crawling.
-	// It is set to 2 to balance between performance and resource usage.
 	DefaultParallelism = 2
-
-	// DefaultDelay specifies the default delay between consecutive crawling operations in milliseconds.
-	// It is set to 3000 milliseconds (3 seconds) to avoid overwhelming the target server with requests.
-	DefaultDelay = 3000 * time.Millisecond
+	DefaultDelay       = 3000 * time.Millisecond
 )
 
 type LoggerDebugger struct {
@@ -26,53 +21,28 @@ type LoggerDebugger struct {
 	debug.Debugger
 }
 
-// Now you can use LoggerDebugger wherever you need a loggo.LoggerInterface or a debug.Debugger.
 var _ loggo.LoggerInterface = &LoggerDebugger{}
 var _ debug.Debugger = &LoggerDebugger{}
 
-// CrawlManagerInterface defines the interface for managing crawling operations.
-// It includes methods for setting up crawling logic, handling errors, and starting the crawling process.
-//
-//go:generate go run github.com/golang/mock/mockgen -destination=mocks/mock_crawl_manager_interface.go -package=mocks . CrawlManagerInterface
 type CrawlManagerInterface interface {
 	Crawl() error
 	SetupHTMLParsingHandler(handler func(*colly.HTMLElement) error) error
-	// SetupErrorEventHandler sets up the HTTP request error handling for the colly collector.
-	// It configures the collector to handle different types of errors.
-	SetupErrorEventHandler(collector *colly.Collector)
-	// SetupCrawlingLogic configures and initiates the crawling logic.
-	// It sets up the HTML parsing handler and error event handler for the collector.
-	// It returns an error if the setup fails.
+	SetupErrorEventHandler()
 	SetupCrawlingLogic() error
-	// CrawlURL visits the given URL and performs the crawling operation.
-	// It logs the visit and waits for the collector to finish its tasks.
-	// It returns an error if the visit fails.
 	CrawlURL(url string) error
-	// HandleVisitError handles the error occurred during the visit of a URL.
-	// It logs the error and returns it.
 	HandleVisitError(url string, err error) error
-	// Logger returns the logger instance associated with the CrawlManager.
 	Logger() loggo.LoggerInterface
 	ProcessMatchingLink(currentURL string, pageData PageData, matchingTerms []string)
 	UpdateStats(options *CrawlOptions, matchingTerms []string)
-	// SetOptions updates the manager's options.
 	SetOptions(options *CrawlOptions) error
 }
 
-// CrawlManager is the implementation of the CrawlManagerInterface.
-// It manages the crawling operations, including setting up crawling logic, handling errors, and starting the crawling process.
-// The struct fields are initialized with default values or instances of required types.
 var _ CrawlManagerInterface = &CrawlManager{}
 
-// Logger returns the logger instance associated with the CrawlManager.
-// It provides access to the logging functionality for the crawling operations.
 func (cm *CrawlManager) Logger() loggo.LoggerInterface {
 	return cm.LoggerField
 }
 
-// initializeStatsManager initializes the StatsManager with default values.
-// It sets up the LinkStats and LinkStatsMu fields of the StatsManager.
-// The method also locks the CrawlingMu mutex to ensure thread safety during the initialization process.
 func (cm *CrawlManager) initializeStatsManager() {
 	cm.StatsManager = &StatsManager{
 		LinkStats:   &stats.Stats{},
@@ -83,7 +53,6 @@ func (cm *CrawlManager) initializeStatsManager() {
 }
 
 func (cm *CrawlManager) SetupHTMLParsingHandler(handler func(*colly.HTMLElement) error) error {
-	// Example usage of the updated handler signature
 	cm.CollectorInstance.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		if err := handler(e); err != nil {
 			cm.LoggerField.Warn(err.Error())
@@ -93,20 +62,14 @@ func (cm *CrawlManager) SetupHTMLParsingHandler(handler func(*colly.HTMLElement)
 	return nil
 }
 
-// SetupErrorEventHandler sets up the HTTP request error handling for the colly collector.
-// It configures the collector to handle different types of errors, specifically logging 500 Internal Server Errors without printing the stack trace, and logging other errors normally.
-// Parameters:
-// - collector: A pointer to the colly.Collector instance for which the error handling is being set up.
-func (cm *CrawlManager) SetupErrorEventHandler(_ *colly.Collector) {
+func (cm *CrawlManager) SetupErrorEventHandler() {
 	cm.CollectorInstance.OnError(func(r *colly.Response, err error) {
 		statusCode := r.StatusCode
 		requestURL := r.Request.URL.String()
 
 		if statusCode == 500 {
-			// Handle 500 Internal Server Error without printing the stack trace
 			cm.LoggerField.Debug(fmt.Sprintf("[SetupErrorEventHandler] Internal Server Error request_url: %s, status_code: %d, error: %v", requestURL, statusCode, err))
 		} else if statusCode != 404 {
-			// Handle other errors normally
 			cm.LoggerField.Debug(fmt.Sprintf("[SetupErrorEventHandler] Request URL failed request_url: %s, status_code: %d, error: %v", requestURL, statusCode, err))
 		}
 	})
@@ -118,17 +81,11 @@ func (cm *CrawlManager) SetupCrawlingLogic() error {
 		return cm.handleSetupError(err)
 	}
 
-	cm.SetupErrorEventHandler(&colly.Collector{})
+	cm.SetupErrorEventHandler()
 
 	return nil
 }
 
-// CrawlURL visits the given URL and performs the crawling operation.
-// It logs the visit, waits for the collector to finish its tasks, and logs the completion of the crawling process.
-// Parameters:
-// - url: The URL to visit and crawl.
-// Returns:
-// - error: An error if the visit fails or if an error occurs during the crawling process.
 func (cm *CrawlManager) CrawlURL(url string) error {
 	cm.LoggerField.Debug(fmt.Sprintf("[CrawlURL] Visiting URL: %v", url))
 
