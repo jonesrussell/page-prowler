@@ -1,45 +1,42 @@
 package mocks
 
 import (
-	"github.com/gocolly/colly/debug"
+	"fmt"
+	"os"
+
 	"github.com/jonesrussell/loggo"
 )
 
 type MockLogger struct {
-	events []*debug.Event
+	// Removed unused 'events' field
 }
 
 func (m *MockLogger) Debug(msg string, args ...interface{}) {
-	// Implement the method here.
+	fmt.Printf("[DEBUG] "+msg+"\n", args...)
 }
 
 func (m *MockLogger) Info(msg string, args ...interface{}) {
-	// Implement the method here.
+	fmt.Printf("[INFO] "+msg+"\n", args...)
 }
 
 func (m *MockLogger) Warn(msg string, args ...interface{}) {
-	// Implement the method here.
+	fmt.Printf("[WARN] "+msg+"\n", args...)
 }
 
 func (m *MockLogger) Error(msg string, err error, args ...interface{}) {
-	// Implement the method here.
+	fmt.Printf("[ERROR] "+msg+": %v\n", append(args, err)...)
 }
 
 func (m *MockLogger) Fatal(msg string, err error, args ...interface{}) {
-	// Implement the method here.
+	fmt.Printf("[FATAL] "+msg+": %v\n", append(args, err)...)
+	os.Exit(1)
 }
 
-func (m *MockLogger) WithOperation(operationID string) loggo.LoggerInterface {
-	// Implement the method here.
+func (m *MockLogger) WithOperation(_ string) loggo.LoggerInterface {
+	// Renamed 'operationID' to '_'
 	return m
 }
 
-// Event implements logger.Logger.
-func (m *MockLogger) Event(e *debug.Event) {
-	// Store the event for later assertions
-	m.events = append(m.events, e)
-}
-
-func NewMockLogger() *MockLogger {
+func NewMockLogger() loggo.LoggerInterface {
 	return &MockLogger{}
 }
