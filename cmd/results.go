@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
 )
 
 // NewResultsCmd creates a new results command
-func NewResultsCmd() *cobra.Command {
+func NewResultsCmd(manager crawler.CrawlManagerInterface) *cobra.Command {
 	resultsCmd := &cobra.Command{
 		Use:   "results",
 		Short: "A brief description of your command",

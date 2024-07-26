@@ -10,7 +10,7 @@ import (
 )
 
 // NewClearlinksCmd creates a new clearlinks command
-func NewClearlinksCmd() *cobra.Command {
+func NewClearlinksCmd(manager crawler.CrawlManagerInterface) *cobra.Command {
 	clearlinksCmd := &cobra.Command{
 		Use:   "clearlinks",
 		Short: "Clear the Redis set for a given siteid",

@@ -65,7 +65,11 @@ func NewStatsManager() *StatsManager {
 }
 
 func (cm *CrawlManager) Crawl() error {
-	startURL := cm.GetOptions().StartURL
+	// Get and print options
+	options := cm.GetOptions()
+	cm.Logger().Debug(fmt.Sprintf("[Crawl] Options: %+v", options))
+
+	startURL := options.StartURL
 
 	cm.Logger().Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", startURL))
 
@@ -76,7 +80,7 @@ func (cm *CrawlManager) Crawl() error {
 		return err
 	}
 
-	if err := cm.ConfigureCollector([]string{host}, cm.GetOptions().MaxDepth); err != nil {
+	if err := cm.ConfigureCollector([]string{host}, options.MaxDepth); err != nil {
 		return err
 	}
 

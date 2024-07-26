@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -12,7 +11,7 @@ import (
 )
 
 // NewCrawlCmd creates a new crawl command
-func NewCrawlCmd() *cobra.Command {
+func NewCrawlCmd(manager crawler.CrawlManagerInterface) *cobra.Command {
 	crawlCmd := &cobra.Command{
 		Use:   "crawl",
 		Short: "A brief description of your command",
@@ -23,31 +22,23 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := cmd.Context()
-
-			// Get the manager from the context
-			manager, ok := ctx.Value(common.CrawlManagerKey).(*crawler.CrawlManager)
-			if !ok {
-				return errors.New("failed to get manager from context")
-			}
-
-			cmd.Flags().StringP("url", "u", "", "URL to crawl")
-			if err := viper.BindPFlag("url", cmd.Flags().Lookup("url")); err != nil {
-				manager.Logger().Error("Error binding flag", err)
-			}
-
-			cmd.Flags().IntP("maxdepth", "m", 1, "Max depth for crawling")
-			if err := viper.BindPFlag("maxdepth", cmd.Flags().Lookup("maxdepth")); err != nil {
-				manager.Logger().Error("Error binding flag", err)
-			}
-
-			cmd.Flags().StringP("searchterms", "t", "", "Search terms for crawling")
-			if err := viper.BindPFlag("searchterms", cmd.Flags().Lookup("searchterms")); err != nil {
-				manager.Logger().Error("Error binding flag", err)
-			}
-
 			return runCrawlCmd(cmd, args, manager)
 		},
+	}
+
+	crawlCmd.Flags().StringP("url", "u", "", "URL to crawl")
+	if err := viper.BindPFlag("url", crawlCmd.Flags().Lookup("url")); err != nil {
+		fmt.Println("Error binding flag", err)
+	}
+
+	crawlCmd.Flags().IntP("maxdepth", "m", 1, "Max depth for crawling")
+	if err := viper.BindPFlag("maxdepth", crawlCmd.Flags().Lookup("maxdepth")); err != nil {
+		fmt.Println("Error binding flag", err)
+	}
+
+	crawlCmd.Flags().StringP("searchterms", "t", "", "Search terms for crawling")
+	if err := viper.BindPFlag("searchterms", crawlCmd.Flags().Lookup("searchterms")); err != nil {
+		fmt.Println("Error binding flag", err)
 	}
 
 	return crawlCmd
@@ -56,11 +47,24 @@ to quickly create a Cobra application.`,
 func runCrawlCmd(
 	cmd *cobra.Command,
 	_ []string,
-	manager crawler.CrawlManagerInterface,
+	manager crawler.CrawlManagerInterface, // remove the pointer here
 ) error {
+	// Check if manager is nil
+	if manager == nil {
+		fmt.Println("Error: manager is nil")
+		return errors.New("manager is nil")
+	}
+
+	logger := manager.Logger()
+	// Check if Logger is nil
+	if logger == nil {
+		fmt.Println("Error: Logger is nil")
+		return errors.New("Logger is nil")
+	}
+
 	options, err := getCrawlOptions()
 	if err != nil {
-		manager.Logger().Error("Error getting options", err)
+		logger.Error("Error getting options", err)
 		return err
 	}
 
@@ -83,6 +87,7 @@ func runCrawlCmd(
 		return err
 	}
 
+	manager.Logger().Info("Starting crawling")
 	// Now you can use options in your crawl operation
 	err = manager.Crawl()
 	if err != nil {

@@ -19,7 +19,7 @@ const (
 )
 
 // NewAPICmd creates a new api command
-func NewAPICmd() *cobra.Command {
+func NewAPICmd(manager crawler.CrawlManagerInterface) *cobra.Command {
 	apiCmd := &cobra.Command{
 		Use:   "api",
 		Short: "Start the API server",
@@ -35,12 +35,6 @@ func NewAPICmd() *cobra.Command {
 				AllowOrigins: []string{"*"},
 				AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
 			}))
-
-			// Get the manager from the context
-			manager, ok := cmd.Context().Value(common.CrawlManagerKey).(*crawler.CrawlManager)
-			if !ok || manager == nil {
-				log.Fatalf("CrawlManager is not initialized")
-			}
 
 			// Add the middleware to the Echo instance
 			e.Use(CrawlManagerMiddleware(manager))
@@ -74,7 +68,7 @@ func NewAPICmd() *cobra.Command {
 	return apiCmd
 }
 
-func CrawlManagerMiddleware(manager *crawler.CrawlManager) echo.MiddlewareFunc {
+func CrawlManagerMiddleware(manager crawler.CrawlManagerInterface) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			// Set the CrawlManager in the context using the string constant as the key

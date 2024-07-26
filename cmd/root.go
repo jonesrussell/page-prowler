@@ -1,12 +1,10 @@
 package cmd
 
 import (
-	"context"
 	"errors"
 
 	"github.com/jonesrussell/loggo"
 
-	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
 )
@@ -27,19 +25,13 @@ func NewRootCmd(manager *crawler.CrawlManager) *cobra.Command {
 		SilenceErrors: false,
 	}
 
-	// Set the manager to the context
-	ctx := context.WithValue(context.Background(), common.CrawlManagerKey, manager)
-
-	// Set the context of the command
-	rootCmd.SetContext(ctx)
-
 	// Create a new crawl command with the manager
-	crawlCmd := NewCrawlCmd()
-	resultsCmd := NewResultsCmd()
-	apiCmd := NewAPICmd()
-	workerCmd := NewWorkerCmd()
-	getLinksCmd := NewGetLinksCmd()
-	clearlinksCmd := NewClearlinksCmd()
+	crawlCmd := NewCrawlCmd(manager)
+	resultsCmd := NewResultsCmd(manager)
+	apiCmd := NewAPICmd(manager)
+	workerCmd := NewWorkerCmd(manager)
+	getLinksCmd := NewGetLinksCmd(manager)
+	clearlinksCmd := NewClearlinksCmd(manager)
 
 	// Add the crawl command to the root command
 	rootCmd.AddCommand(crawlCmd)
