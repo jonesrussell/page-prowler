@@ -44,4 +44,4 @@ docker-push:
 	docker push $(USERNAME)/$(PROJECTNAME):$(VERSION)
 
 generate:
-	go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen api.yaml > internal/api/api.gen.go
+	go run github.com/oapi-codegen/oapi-codegen/v2./cmd/oapi-codegen api.yaml > internal/api/api.gen.go

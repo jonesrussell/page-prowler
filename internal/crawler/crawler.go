@@ -23,7 +23,7 @@ const (
 // CrawlManagerInterface defines the interface for managing crawling operations.
 // It includes methods for setting up crawling logic, handling errors, and starting the crawling process.
 //
-//go:generate mockery --name=CrawlManagerInterface
+//go:generate go run github.com/golang/mock/mockgen -destination=mocks/mock_crawl_manager_interface.go -package=mocks . CrawlManagerInterface
 type CrawlManagerInterface interface {
 	Crawl() error
 	SetupHTMLParsingHandler(handler func(*colly.HTMLElement) error) error

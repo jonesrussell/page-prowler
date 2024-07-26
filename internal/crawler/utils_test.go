@@ -4,8 +4,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
-	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/jonesrussell/page-prowler/mocks"
 )
@@ -13,7 +13,7 @@ import (
 func TestUtils_GetHostFromURL(t *testing.T) {
 	type args struct {
 		inputURL  string
-		appLogger logger.Logger
+		appLogger loggo.Logger
 	}
 	tests := []struct {
 		name    string
@@ -56,7 +56,7 @@ func TestUtils_GetHostFromURL(t *testing.T) {
 
 func TestCrawlManager_ProcessMatchingLinkAndUpdateStats(t *testing.T) {
 	type fields struct {
-		LoggerField  logger.Logger
+		LoggerField  loggo.Logger
 		Client       prowlredis.ClientInterface
 		Collector    *crawler.CollectorWrapper
 		CrawlingMu   *sync.Mutex
