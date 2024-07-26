@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -87,10 +88,17 @@ func (cm *CrawlManager) SetupCrawlingLogic() error {
 }
 
 func (cm *CrawlManager) CrawlURL(url string) error {
+	// Check if CrawlManager or LoggerField is nil
+	if cm == nil || cm.LoggerField == nil {
+		fmt.Println("Error: CrawlManager or LoggerField is nil")
+		return errors.New("CrawlManager or LoggerField is nil")
+	}
+
 	cm.LoggerField.Debug(fmt.Sprintf("[CrawlURL] Visiting URL: %v", url))
 
 	err := cm.visitWithColly(url)
 	if err != nil {
+		cm.LoggerField.Error(fmt.Sprintf("[CrawlURL] Error visiting URL: %v", url), err)
 		return cm.HandleVisitError(url, err)
 	}
 

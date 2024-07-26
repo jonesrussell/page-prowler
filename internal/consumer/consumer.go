@@ -22,7 +22,7 @@ type Link struct {
 	MatchingTerms []string `json:"matching_terms"`
 }
 
-func RetrieveAndUnmarshalLinks(ctx context.Context, manager *crawler.CrawlManager, siteid string) ([]Link, error) {
+func RetrieveAndUnmarshalLinks(ctx context.Context, manager crawler.CrawlManagerInterface, siteid string) ([]Link, error) {
 	links, err := manager.Client.SMembers(ctx, siteid)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get links from Redis: %v", err)
