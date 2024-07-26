@@ -13,7 +13,9 @@ import (
 )
 
 func TestRootCmd(t *testing.T) {
-	assert.Equal(t, cmd.RootCmd.Use, "page-prowler", "RootCmd.Use should be 'page-prowler'")
+	manager := // initialize your manager here...
+	rootCmd := cmd.NewRootCmd(manager)
+	assert.Equal(t, rootCmd.Use, "page-prowler", "RootCmd.Use should be 'page-prowler'")
 }
 
 func TestExecute(t *testing.T) {

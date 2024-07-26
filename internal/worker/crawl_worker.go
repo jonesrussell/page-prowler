@@ -13,7 +13,7 @@ import (
 )
 
 type AsynqLoggerWrapper struct {
-	logger loggo.Logger
+	logger loggo.LoggerInterface
 }
 
 func (l *AsynqLoggerWrapper) Debug(args ...interface{}) {
@@ -71,13 +71,13 @@ func StartWorker(concurrency int, cm *crawler.CrawlManager, debug bool) {
 		},
 		asynq.Config{
 			Concurrency: concurrency,
-			Logger:      &AsynqLoggerWrapper{logger: *cm.Logger()}, // Use the Logger from CrawlManager
+			Logger:      &AsynqLoggerWrapper{logger: cm.Logger()}, // Use the Logger from CrawlManager
 		},
 	)
 
 	// mux maps a task type to a handler
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(tasks.CrawlTaskType, func(ctx context.Context, task *asynq.Task) error {
+	mux.HandleFunc(tasks.CrawlTaskType, func(_ context.Context, task *asynq.Task) error {
 		return handleCrawlTask(task, cm, debug)
 	})
 

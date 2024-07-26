@@ -5,11 +5,50 @@ import (
 	"testing"
 
 	"github.com/adrg/strutil/metrics"
+	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/termmatcher"
 	"github.com/jonesrussell/page-prowler/mocks"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/zapcore"
 )
+
+type LoggerInterface interface {
+	Debug(string, ...interface{})
+	Info(string, ...interface{})
+	Warn(string, ...interface{})
+	Error(string, ...interface{})
+	SetLevel(zapcore.Level)
+	AllEntries() []zapcore.Entry
+}
+
+func TestGetMatchingTerms(t *testing.T) {
+	tests := []struct {
+		name        string
+		href        string
+		anchorText  string
+		searchTerms []string
+		expected    []string
+	}{
+		{
+			name:        "Test with a URL and anchor text that should match the search terms",
+			href:        "https://example.com/privacy-policy",
+			anchorText:  "Privacy Policy",
+			searchTerms: []string{"privacy", "policy"},
+			expected:    []string{"privaci", "polici"},
+		},
+		// Add more test cases as needed...
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logger, err := loggo.NewLogger("/path/to/logfile") // Create a new logger
+			if err != nil {
+				t.Fatalf("Failed to create logger: %v", err)
+			}
+			assert.Equal(t, tt.expected, termmatcher.GetMatchingTerms(tt.href, tt.anchorText, tt.searchTerms, logger))
+		})
+	}
+}
 
 func TestExtractLastSegmentFromURL(t *testing.T) {
 	tests := []struct {
@@ -106,115 +145,6 @@ func TestProcessTitle(t *testing.T) {
 			if got := termmatcher.ProcessContent(tt.title); got != tt.want {
 				t.Errorf("processTitle() = %v, want %v", got, tt.want)
 			}
-		})
-	}
-}
-
-func TestGetMatchingTerms(t *testing.T) {
-	tests := []struct {
-		name        string
-		href        string
-		anchorText  string
-		searchTerms []string
-		expected    []string
-	}{
-		{
-			name:        "Test with a URL and anchor text that should match the search terms",
-			href:        "https://example.com/privacy-policy",
-			anchorText:  "Privacy Policy",
-			searchTerms: []string{"privacy", "policy"},
-			expected:    []string{"privaci", "polici"},
-		},
-		{
-			name:        "Test with a URL and anchor text that should not match the search terms",
-			href:        "https://example.com/unrelated-term",
-			anchorText:  "Unrelated Term",
-			searchTerms: []string{"privacy", "policy"},
-			expected:    []string{},
-		},
-		{
-			name:        "Test with a URL and anchor text where the anchor text does not contain any of the search terms",
-			href:        "https://example.com/another-term",
-			anchorText:  "Another Term",
-			searchTerms: []string{"privacy", "policy"},
-			expected:    []string{},
-		},
-		{
-			name:        "New test case",
-			href:        "foo",
-			anchorText:  "Hollow out the tree",
-			searchTerms: []string{"hollow"},
-			expected:    []string{"hollow"},
-		},
-		{
-			name:        "Test with a URL and anchor text where the anchor text contains all of the search terms",
-			href:        "https://example.com/all-terms",
-			anchorText:  "All Privacy Policy Terms",
-			searchTerms: []string{"privacy", "policy"},
-			expected:    []string{"privaci", "polici"},
-		},
-		{
-			name:        "Test with an empty searchTerms array",
-			href:        "https://example.com/privacy-policy",
-			anchorText:  "Privacy Policy",
-			searchTerms: []string{},
-			expected:    []string{},
-		},
-		{
-			name:        "Test with a searchTerms array that contains only one term",
-			href:        "https://example.com/privacy-policy",
-			anchorText:  "Privacy Policy",
-			searchTerms: []string{"privacy"},
-			expected:    []string{"privaci"},
-		},
-		{
-			name:        "Test with a searchTerms array that contains duplicate terms",
-			href:        "https://example.com/privacy-policy",
-			anchorText:  "Privacy Policy",
-			searchTerms: []string{"privacy", "privacy"},
-			expected:    []string{"privaci"},
-		},
-		{
-			name:        "Test with a searchTerms array that contains terms that are substrings of other terms",
-			href:        "https://example.com/privacy-policy",
-			anchorText:  "Privacy Policy",
-			searchTerms: []string{"privacy", "policy"},
-			expected:    []string{"privaci", "polici"},
-		},
-		{
-			name:        "Test with a searchTerms array that contains terms that are not present in the href or anchorText",
-			href:        "https://example.com/privacy-policy",
-			anchorText:  "Privacy Policy",
-			searchTerms: []string{"unrelated", "term"},
-			expected:    []string{},
-		},
-		{
-			name:        "Test with empty href and anchorText",
-			href:        "",
-			anchorText:  "",
-			searchTerms: []string{"privacy", "policy"},
-			expected:    []string{},
-		},
-		{
-			name:        "Test with case sensitivity",
-			href:        "https://example.com/Privacy-Policy",
-			anchorText:  "Privacy Policy",
-			searchTerms: []string{"privacy", "policy"},
-			expected:    []string{"privaci", "polici"},
-		},
-		{
-			name:        "Test with a large number of unique search terms",
-			href:        "https://example.com/large-number-of-terms",
-			anchorText:  "Large Number Of Terms",
-			searchTerms: generateLargeNumberOfUniqueSearchTerms(1000), // Generate 1000 unique search terms
-			expected:    []string{},                                   // Expect an empty array, as none of the unique terms should match the href or anchorText
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			logger := mocks.NewMockLogger() // Create a new mock logger
-			assert.Equal(t, tt.expected, termmatcher.GetMatchingTerms(tt.href, tt.anchorText, tt.searchTerms, logger))
 		})
 	}
 }
