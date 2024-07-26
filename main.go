@@ -16,7 +16,7 @@ import (
 
 func InitializeManager(
 	redisClient prowlredis.ClientInterface,
-	appLogger *loggo.Logger,
+	appLogger loggo.LoggerInterface,
 ) (*crawler.CrawlManager, error) {
 	if redisClient == nil {
 		return nil, errors.New("redisClient cannot be nil")
@@ -30,7 +30,10 @@ func InitializeManager(
 
 	// Pass the options instance to NewCrawlManager
 	collector := crawler.NewCollectorWrapper(colly.NewCollector())
-	return crawler.NewCrawlManager(appLogger, redisClient, collector, options), nil
+
+	loggerDebugger, _ := appLogger.(*crawler.LoggerDebugger)
+
+	return crawler.NewCrawlManager(loggerDebugger, redisClient, collector, options), nil
 }
 
 func main() {

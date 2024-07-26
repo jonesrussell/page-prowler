@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/gocolly/colly"
-	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/jonesrussell/page-prowler/internal/stats"
 )
@@ -18,7 +17,7 @@ type CrawlManager struct {
 	Client            prowlredis.ClientInterface
 	CollectorInstance *CollectorWrapper
 	CrawlingMu        *sync.Mutex
-	LoggerField       *loggo.Logger
+	LoggerField       *LoggerDebugger
 	Options           *CrawlOptions
 	StatsManager      *StatsManager
 	Results           *Results
@@ -35,7 +34,7 @@ func (cm *CrawlManager) GetCollector() *CollectorWrapper {
 // NewCrawlManager creates a new instance of CrawlManager with the provided logger,
 // Redis client, and MongoDB wrapper. It initializes the CrawlingMu mutex.
 func NewCrawlManager(
-	loggerField *loggo.Logger,
+	loggerField *LoggerDebugger,
 	client prowlredis.ClientInterface,
 	collectorInstance *CollectorWrapper,
 	options *CrawlOptions,

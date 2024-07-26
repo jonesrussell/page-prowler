@@ -58,7 +58,7 @@ func ProcessContent(content string) string {
 }
 
 // GetMatchingTerms checks if the URL title matches any of the provided search terms and returns the matching terms.
-func GetMatchingTerms(href string, anchorText string, searchTerms []string, logger *loggo.Logger) []string {
+func GetMatchingTerms(href string, anchorText string, searchTerms []string, logger loggo.LoggerInterface) []string {
 	content := ExtractLastSegmentFromURL(href)
 	processedContent := ProcessContent(content)
 	logger.Debug(fmt.Sprintf("Processed content from URL: %v", processedContent))
@@ -117,7 +117,7 @@ func StemContent(content string) string {
 	return strings.Join(lowercaseStemmedWords, " ")
 }
 
-func CompareTerms(searchTerm string, content string, swg *metrics.SmithWatermanGotoh, mylogger *loggo.Logger) float64 {
+func CompareTerms(searchTerm string, content string, swg *metrics.SmithWatermanGotoh, mylogger loggo.LoggerInterface) float64 {
 	searchTerm = strings.ToLower(searchTerm)
 	similarity := strutil.Similarity(searchTerm, content, swg)
 
@@ -138,7 +138,7 @@ func CreateSWG() *metrics.SmithWatermanGotoh {
 	return swg
 }
 
-func CompareAndAppendTerm(searchTerm string, content string, swg *metrics.SmithWatermanGotoh, matchingTerms *[]string, mylogger *loggo.Logger) {
+func CompareAndAppendTerm(searchTerm string, content string, swg *metrics.SmithWatermanGotoh, matchingTerms *[]string, mylogger loggo.LoggerInterface) {
 	similarity := CompareTerms(searchTerm, content, swg, mylogger)
 	mylogger.Debug(fmt.Sprintf("Compared terms: searchTerm=%s, similarity=%.2f", searchTerm, similarity))
 	if similarity >= 0.9 { // Increase the threshold to 0.9
@@ -147,7 +147,7 @@ func CompareAndAppendTerm(searchTerm string, content string, swg *metrics.SmithW
 	}
 }
 
-func FindMatchingTerms(content string, searchTerms []string, mylogger *loggo.Logger) []string {
+func FindMatchingTerms(content string, searchTerms []string, mylogger loggo.LoggerInterface) []string {
 	var matchingTerms []string
 	swg := CreateSWG()
 

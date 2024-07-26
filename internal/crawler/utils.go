@@ -107,7 +107,7 @@ func (cm *CrawlManager) logSearchTerms() {
 // Returns:
 // - []string: A slice of strings representing the matching terms.
 func (cm *CrawlManager) getMatchingTerms(href string, anchorText string, options *CrawlOptions) []string {
-	return termmatcher.GetMatchingTerms(href, anchorText, options.SearchTerms, cm.Logger())
+	return termmatcher.GetMatchingTerms(href, anchorText, options.SearchTerms, cm.Logger().(*loggo.Logger))
 }
 
 // handleMatchingTerms processes the matching terms and updates the stats.
@@ -192,7 +192,7 @@ func (cm *CrawlManager) incrementNonMatchedLinkCount() {
 // Returns:
 // - string: The extracted host from the URL.
 // - error: An error if the URL cannot be parsed or if the host cannot be extracted.
-func GetHostFromURL(inputURL string, appLogger *loggo.Logger) (string, error) {
+func GetHostFromURL(inputURL string, appLogger loggo.LoggerInterface) (string, error) {
 	parsedURL, err := url.Parse(inputURL)
 	if err != nil {
 		appLogger.Error(fmt.Sprintf("Failed to parse URL: %s, Error: %v", inputURL, err), nil)

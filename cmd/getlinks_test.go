@@ -9,6 +9,7 @@ import (
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/mocks"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 func Test_GetlinksCmd(t *testing.T) {
@@ -29,7 +30,7 @@ func Test_GetlinksCmd(t *testing.T) {
 				in1:     []string{},
 			},
 			setup: func() {
-				cmd.Siteid = ""
+				viper.Set("Siteid", "")
 			},
 			wantErr: true,
 		},
@@ -40,7 +41,7 @@ func Test_GetlinksCmd(t *testing.T) {
 				in1:     []string{},
 			},
 			setup: func() {
-				cmd.Siteid = "foobar"
+				viper.Set("Siteid", "foobar")
 			},
 			wantErr: false,
 		},

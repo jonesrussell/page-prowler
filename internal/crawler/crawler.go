@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gocolly/colly"
+	"github.com/gocolly/colly/debug"
 	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/stats"
 )
@@ -19,6 +20,15 @@ const (
 	// It is set to 3000 milliseconds (3 seconds) to avoid overwhelming the target server with requests.
 	DefaultDelay = 3000 * time.Millisecond
 )
+
+type LoggerDebugger struct {
+	loggo.LoggerInterface
+	debug.Debugger
+}
+
+// Now you can use LoggerDebugger wherever you need a loggo.LoggerInterface or a debug.Debugger.
+var _ loggo.LoggerInterface = &LoggerDebugger{}
+var _ debug.Debugger = &LoggerDebugger{}
 
 // CrawlManagerInterface defines the interface for managing crawling operations.
 // It includes methods for setting up crawling logic, handling errors, and starting the crawling process.
@@ -42,7 +52,7 @@ type CrawlManagerInterface interface {
 	// It logs the error and returns it.
 	HandleVisitError(url string, err error) error
 	// Logger returns the logger instance associated with the CrawlManager.
-	Logger() *loggo.Logger
+	Logger() loggo.LoggerInterface
 	ProcessMatchingLink(currentURL string, pageData PageData, matchingTerms []string)
 	UpdateStats(options *CrawlOptions, matchingTerms []string)
 	// SetOptions updates the manager's options.
@@ -56,7 +66,7 @@ var _ CrawlManagerInterface = &CrawlManager{}
 
 // Logger returns the logger instance associated with the CrawlManager.
 // It provides access to the logging functionality for the crawling operations.
-func (cm *CrawlManager) Logger() *loggo.Logger {
+func (cm *CrawlManager) Logger() loggo.LoggerInterface {
 	return cm.LoggerField
 }
 
