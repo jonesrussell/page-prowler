@@ -4,7 +4,7 @@ go 1.21
 
 toolchain go1.21.3
 
-replace github.com/jonesrussell/loggo => /workspaces/loggo
+replace github.com/jonesrussell/loggo => ../loggo
 
 require (
 	github.com/PuerkitoBio/goquery v1.9.2 // indirect
