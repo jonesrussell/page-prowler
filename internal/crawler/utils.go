@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
+	"time"
 
 	"github.com/gocolly/colly"
 	"github.com/jonesrussell/loggo"
@@ -28,25 +30,23 @@ func (cm *CrawlManager) extractHostFromURL(url string) (string, error) {
 	return host, nil
 }
 
-// GetAnchorElementHandler returns a function that handles anchor elements during the crawl.
-// This function is designed to be used as a callback for the Colly collector to process each anchor element found during the crawl.
-// It extracts the href attribute from the anchor element, processes the link if the href is not empty, and attempts to visit the URL using Colly.
-// If there's an error visiting the URL, it logs the error.
-// Returns:
-// - func(*colly.HTMLElement) error: A function that takes a Colly HTMLElement and a pointer to CrawlOptions as input and processes it according to the specified logic.
 func (cm *CrawlManager) GetAnchorElementHandler() func(*colly.HTMLElement) error {
 	return func(e *colly.HTMLElement) error {
+		start := time.Now()
 		href := cm.getHref(e)
-		if href == "" {
-			return nil // Return nil to indicate no error occurred
+		if href == "" || strings.HasSuffix(href, ".png") || strings.HasSuffix(href, ".jpg") || strings.HasSuffix(href, ".jpeg") {
+			return nil // Skip if href is empty or is an image file
 		}
 
 		cm.processLink(e, href)
 		err := cm.visitWithColly(href)
 		if err != nil {
-			cm.LoggerField.Debug(fmt.Sprintf("[GetAnchorElementHandler] Error visiting URL: %s, Error: %v", href, err))
+			elapsed := time.Since(start)
+			cm.LoggerField.Debug(fmt.Sprintf("[GetAnchorElementHandler] Error visiting URL: %s, Error: %v, Elapsed time: %s", href, err, elapsed))
 			return err // Return the error to propagate it
 		}
+		elapsed := time.Since(start)
+		cm.LoggerField.Debug(fmt.Sprintf("[GetAnchorElementHandler] Visited URL: %s, Elapsed time: %s", href, elapsed))
 		return nil // No error occurred
 	}
 }
@@ -121,28 +121,16 @@ func (cm *CrawlManager) handleMatchingTerms(options *CrawlOptions, currentURL st
 	cm.UpdateStats(options, matchingTerms)
 }
 
-// processLink processes a link by incrementing the total links count, logging the current URL, creating page data, logging search terms, getting matching terms, and handling matching terms.
-// Parameters:
-// - e: The HTML element representing the link.
-// - href: The URL of the link.
-// - options: The CrawlOptions containing the search terms.
 func (cm *CrawlManager) processLink(e *colly.HTMLElement, href string) {
+	start := time.Now()
 	cm.incrementTotalLinks()
 	cm.logCurrentURL(e)
 	pageData := cm.createPageData(href)
 	cm.logSearchTerms()
 	matchingTerms := cm.getMatchingTerms(href, e.Text, cm.Options)
 	cm.handleMatchingTerms(cm.Options, e.Request.URL.String(), pageData, matchingTerms)
-}
-
-// handleSetupError logs an error if there's an issue setting up the crawling logic.
-// Parameters:
-// - err: The error encountered during setup.
-// Returns:
-// - error: The error passed to the function.
-func (cm *CrawlManager) handleSetupError(err error) error {
-	cm.LoggerField.Error(fmt.Sprintf("Error setting up crawling logic: %v", err), nil)
-	return err
+	elapsed := time.Since(start)
+	cm.LoggerField.Debug(fmt.Sprintf("[processLink] Processed link: %s, Elapsed time: %s", href, elapsed))
 }
 
 // ProcessMatchingLink processes a matching link by updating the page data and appending the result.

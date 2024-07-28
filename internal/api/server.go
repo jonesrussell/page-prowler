@@ -111,11 +111,12 @@ func (msi *ServerAPIInterface) PostMatchlinks(ctx echo.Context) error {
 	if !ok || manager == nil {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "CrawlManager not found in context"})
 	}
-	redisDetails := manager.Client.Options()
+	client := manager.Client()       // Call the Client method to get the client
+	redisDetails := client.Options() // Call the Options method on the client
 	redisAddr := redisDetails.Addr
 	redisAuth := redisDetails.Password
 
-	client := asynq.NewClient(asynq.RedisClientOpt{
+	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
 		Addr:     redisAddr,
 		Password: redisAuth,
 	})
@@ -128,7 +129,7 @@ func (msi *ServerAPIInterface) PostMatchlinks(ctx echo.Context) error {
 		Debug:       *req.Debug,
 	}
 
-	tid, err := tasks.EnqueueCrawlTask(client, payload)
+	tid, err := tasks.EnqueueCrawlTask(asynqClient, payload)
 	if err != nil {
 		log.Println("Error enqueuing crawl task: ", err)
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})

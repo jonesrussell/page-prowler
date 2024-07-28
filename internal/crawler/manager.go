@@ -5,22 +5,42 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/gocolly/colly"
+	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/jonesrussell/page-prowler/internal/stats"
 )
 
+type CrawlManagerInterface interface {
+	Crawl() error
+	SetupErrorEventHandler()
+	CrawlURL(url string) error
+	HandleVisitError(url string, err error) error
+	Logger() loggo.LoggerInterface
+	ProcessMatchingLink(currentURL string, pageData PageData, matchingTerms []string)
+	UpdateStats(options *CrawlOptions, matchingTerms []string)
+	SetOptions(options *CrawlOptions) error
+	Client() prowlredis.ClientInterface
+}
+
 // CrawlManager is the main struct that manages the crawling operations.
 // It includes fields for logging, MongoDB operations, and the Colly collector.
 type CrawlManager struct {
-	Client            prowlredis.ClientInterface
+	client            prowlredis.ClientInterface
 	CollectorInstance *CollectorWrapper
 	CrawlingMu        *sync.Mutex
-	LoggerField       *LoggerDebugger
+	LoggerField       loggo.LoggerInterface
 	Options           *CrawlOptions
 	StatsManager      *StatsManager
 	Results           *Results
+}
+
+var _ CrawlManagerInterface = &CrawlManager{}
+
+func (cm *CrawlManager) Client() prowlredis.ClientInterface {
+	return cm.client
 }
 
 func (cm *CrawlManager) GetStatsManager() *StatsManager {
@@ -34,14 +54,14 @@ func (cm *CrawlManager) GetCollector() *CollectorWrapper {
 // NewCrawlManager creates a new instance of CrawlManager with the provided logger,
 // Redis client, and MongoDB wrapper. It initializes the CrawlingMu mutex.
 func NewCrawlManager(
-	loggerField *LoggerDebugger,
+	loggerField loggo.LoggerInterface,
 	client prowlredis.ClientInterface,
 	collectorInstance *CollectorWrapper,
 	options *CrawlOptions,
 ) *CrawlManager {
 	return &CrawlManager{
 		LoggerField:       loggerField,
-		Client:            client,
+		client:            client,
 		CollectorInstance: collectorInstance,
 		CrawlingMu:        &sync.Mutex{},
 		Options:           options,
@@ -65,6 +85,8 @@ func NewStatsManager() *StatsManager {
 }
 
 func (cm *CrawlManager) Crawl() error {
+	cm.Logger().Info("[Crawl] Starting Crawl function")
+
 	// Get and print options
 	options := cm.GetOptions()
 	cm.Logger().Debug(fmt.Sprintf("[Crawl] Options: %+v", options))
@@ -84,13 +106,14 @@ func (cm *CrawlManager) Crawl() error {
 		return err
 	}
 
-	if err := cm.SetupCrawlingLogic(); err != nil {
-		return err
-	}
-
+	start := time.Now()
 	if err := cm.visitWithColly(startURL); err != nil {
+		elapsed := time.Since(start)
+		cm.Logger().Error(fmt.Sprintf("Error visiting URL: %s, elapsed time: %s", startURL, elapsed), err)
 		return cm.HandleVisitError(startURL, err)
 	}
+	elapsed := time.Since(start)
+	cm.Logger().Info(fmt.Sprintf("Visited URL: %s, elapsed time: %s", startURL, elapsed))
 
 	cm.CollectorInstance.Wait()
 
@@ -111,51 +134,55 @@ func (cm *CrawlManager) HandleVisitError(url string, err error) error {
 	return err
 }
 
-// ConfigureCollector sets up the Colly collector with the specified allowed domains and maximum depth.
-// It also configures the collector to log debug information, respect robots.txt, and register an OnScraped callback.
-// Parameters:
-// - allowedDomains: A slice of strings representing the allowed domains for crawling.
-// - maxDepth: The maximum depth to crawl.
-// Returns:
-// - error: An error if the collector configuration fails.
 func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int) error {
-	cm.CollectorInstance = &CollectorWrapper{
-		colly.NewCollector(
-			colly.Async(false),
-			colly.MaxDepth(maxDepth),
-			colly.Debugger(cm.LoggerField),
-		),
-	}
+	collector := colly.NewCollector(
+		colly.Async(false),
+		colly.MaxDepth(maxDepth),
+	)
 
 	cm.Logger().Debug(fmt.Sprintf("Allowed Domains: %v", allowedDomains))
-	cm.CollectorInstance.SetAllowedDomains(allowedDomains)
+	collector.AllowedDomains = allowedDomains
 
-	if err := cm.CollectorInstance.Limit(); err != nil {
+	if err := collector.Limit(&colly.LimitRule{}); err != nil {
 		cm.Logger().Error(fmt.Sprintf("Failed to set limit rule: %v", err), nil)
 		return err
 	}
 
 	// Respect robots.txt
-	cm.CollectorInstance.SetAllowURLRevisit(false)
-	cm.CollectorInstance.SetIgnoreRobotsTxt(false)
+	collector.AllowURLRevisit = false
+	collector.IgnoreRobotsTxt = false
 
-	// Register OnScraped callback
-	//cm.CollectorInstance.OnScraped(func(r *colly.Response) {
-	//	cm.Logger().Debug(fmt.Sprintf("[OnScraped] Page scraped: %s", r.Request.URL.String()))
-	//	cm.StatsManager.LinkStatsMu.Lock()
-	//	defer cm.StatsManager.LinkStatsMu.Unlock()
-	//	cm.StatsManager.LinkStats.IncrementTotalPages()
-	//})
+	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
+		href := cm.getHref(e)
+		if href == "" {
+			return // Return to indicate no error occurred
+		}
+
+		cm.processLink(e, href)
+		err := cm.visitWithColly(href)
+		if err != nil {
+			cm.LoggerField.Debug(fmt.Sprintf("[GetAnchorElementHandler] Error visiting URL: %s, Error: %v", href, err))
+			// Handle the error here
+		}
+	})
+
+	cm.CollectorInstance = &CollectorWrapper{collector}
 
 	return nil
 }
 
 func (cm *CrawlManager) visitWithColly(url string) error {
 	// Visit the URL with the Colly collector
+	start := time.Now()
 	err := cm.CollectorInstance.Visit(url)
+	elapsed := time.Since(start)
 	if err != nil {
+		cm.Logger().Error(fmt.Sprintf("Error visiting URL: %s, elapsed time: %s", url, elapsed), err)
 		return err
 	}
+
+	// Log a debug message
+	cm.Logger().Debug(fmt.Sprintf("Visited URL: %s, elapsed time: %s", url, elapsed))
 
 	// Wait for the collector to finish its tasks
 	cm.CollectorInstance.Wait()
@@ -180,6 +207,8 @@ func (cm *CrawlManager) GetResults() *Results {
 func (cm *CrawlManager) SaveResultsToRedis(ctx context.Context, results []PageData, key string) error {
 	cm.Logger().Debug(fmt.Sprintf("SaveResultsToRedis: Number of results before processing: %d", len(results)))
 
+	client := cm.Client() // Call the Client method to get the client
+
 	for _, result := range results {
 		cm.Logger().Debug(fmt.Sprintf("SaveResultsToRedis: Processing result %v", result))
 
@@ -190,7 +219,7 @@ func (cm *CrawlManager) SaveResultsToRedis(ctx context.Context, results []PageDa
 		}
 		str := string(data)
 
-		err = cm.Client.SAdd(ctx, key, str)
+		err = client.SAdd(ctx, key, str) // Call the SAdd method on the client
 		if err != nil {
 			cm.Logger().Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during saving to Redis: %v", err), err, nil) // Add nil as the third argument
 			return err
@@ -199,7 +228,7 @@ func (cm *CrawlManager) SaveResultsToRedis(ctx context.Context, results []PageDa
 		cm.Logger().Debug("SaveResultsToRedis: Added elements to the set")
 
 		// Debugging: Verify that the result was saved correctly
-		isMember, err := cm.Client.SIsMember(ctx, key, str)
+		isMember, err := client.SIsMember(ctx, key, str) // Call the SIsMember method on the client
 		if err != nil {
 			cm.Logger().Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during checking membership in Redis set: %v", err), err, nil) // Add nil as the third argument
 			return err

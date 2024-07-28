@@ -36,7 +36,7 @@ func (l *AsynqLoggerWrapper) Fatal(args ...interface{}) {
 	l.logger.Debug(fmt.Sprint(args...))
 }
 
-func handleCrawlTask(task *asynq.Task, cm *crawler.CrawlManager, debug bool) error {
+func handleCrawlTask(task *asynq.Task, cm crawler.CrawlManagerInterface, debug bool) error {
 	var payload tasks.CrawlTaskPayload
 	err := json.Unmarshal(task.Payload(), &payload)
 	if err != nil {
@@ -62,27 +62,28 @@ func handleCrawlTask(task *asynq.Task, cm *crawler.CrawlManager, debug bool) err
 }
 
 func StartWorker(concurrency int, manager crawler.CrawlManagerInterface, debug bool) {
+	client := manager.Client() // Call the Client method to get the client
 	// Initialize a new Asynq server with the default settings.
 	srv := asynq.NewServer(
 		asynq.RedisClientOpt{
-			Addr:     manager.Client.Options().Addr,
-			Password: manager.Client.Options().Password,
-			DB:       manager.Client.Options().DB,
+			Addr:     client.Options().Addr, // Call the Options method on the client
+			Password: client.Options().Password,
+			DB:       client.Options().DB,
 		},
 		asynq.Config{
 			Concurrency: concurrency,
-			Logger:      &AsynqLoggerWrapper{logger: cm.Logger()}, // Use the Logger from CrawlManager
+			Logger:      &AsynqLoggerWrapper{logger: manager.Logger()}, // Use the Logger from CrawlManager
 		},
 	)
 
 	// mux maps a task type to a handler
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(tasks.CrawlTaskType, func(_ context.Context, task *asynq.Task) error {
-		return handleCrawlTask(task, cm, debug)
+		return handleCrawlTask(task, manager, debug) // Pass the manager to the handleCrawlTask function
 	})
 
 	// Run the server with the handler mux.
 	if err := srv.Run(mux); err != nil {
-		cm.Logger().Fatal(fmt.Sprintf("could not run server: %v", err), nil)
+		manager.Logger().Fatal(fmt.Sprintf("could not run server: %v", err), nil)
 	}
 }

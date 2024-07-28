@@ -27,7 +27,7 @@ func NewAPICmd(manager crawler.CrawlManagerInterface) *cobra.Command {
 		  For example, you can start a new article matching job with the '/matchlinks' endpoint, or retrieve the status of a job with the '/matchlinks/info/{id}' endpoint.
 		  Similarly, you can start a new crawling job with the '/crawling/start' endpoint, or retrieve the status of a crawling job with the '/crawling/info/{id}' endpoint.
 		  The server also includes a '/ping' endpoint for health checks.`,
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			e := echo.New()
 
 			// Enable CORS
@@ -39,7 +39,8 @@ func NewAPICmd(manager crawler.CrawlManagerInterface) *cobra.Command {
 			// Add the middleware to the Echo instance
 			e.Use(CrawlManagerMiddleware(manager))
 
-			redisDetails := manager.Client.Options()
+			client := manager.Client()
+			redisDetails := client.Options()
 			redisAddr := redisDetails.Addr
 			redisAuth := redisDetails.Password
 

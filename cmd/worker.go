@@ -12,7 +12,7 @@ func NewWorkerCmd(manager crawler.CrawlManagerInterface) *cobra.Command {
 	workerCmd := &cobra.Command{
 		Use:   "worker",
 		Short: "Start the Asynq worker",
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			concurrency := 10 // Replace with the concurrency level you want
 			debug := viper.GetBool("debug")
 			worker.StartWorker(concurrency, manager, debug)

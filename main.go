@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/jonesrussell/loggo"
 
@@ -31,23 +32,15 @@ func InitializeManager(
 	// Pass the options instance to NewCrawlManager
 	collector := crawler.NewCollectorWrapper(colly.NewCollector())
 
-	loggerDebugger, _ := appLogger.(*crawler.LoggerDebugger)
-
-	return crawler.NewCrawlManager(loggerDebugger, redisClient, collector, options), nil
+	// No need to assert loggerInterface here; pass it directly if InitializeManager expects loggo.LoggerInterface
+	return crawler.NewCrawlManager(appLogger, redisClient, collector, options), nil
 }
 
 func main() {
-	// Create a new logger instance
-	loggerInterface, err := loggo.NewLogger("./loggo.log")
+	// Create a new logger instance with debug level
+	loggerInterface, err := loggo.NewLogger("./loggo.log", slog.LevelDebug)
 	if err != nil {
 		fmt.Println("Error creating logger:", err)
-		return
-	}
-
-	// Perform a type assertion to convert loggerInterface to *loggo.Logger
-	logger, ok := loggerInterface.(*loggo.Logger)
-	if !ok {
-		fmt.Println("Error: logger is not of type *loggo.Logger")
 		return
 	}
 
@@ -56,7 +49,7 @@ func main() {
 	viper.SetConfigFile(".env")
 	err = viper.ReadInConfig()
 	if err != nil {
-		logger.Error("Could not read config file", err)
+		fmt.Println("Could not read config file", err) // Use fmt.Println for simplicity here since logger isn't ready yet
 		return
 	}
 
@@ -64,13 +57,8 @@ func main() {
 	redisPort := viper.GetString("REDIS_PORT")
 	redisAuth := viper.GetString("REDIS_AUTH")
 
-	if redisHost == "" {
-		logger.Error("REDIS_HOST is not set but is required", nil)
-		return
-	}
-
-	if redisPort == "" {
-		logger.Error("REDIS_PORT is not set but is required", nil)
+	if redisHost == "" || redisPort == "" {
+		fmt.Println("REDIS_HOST or REDIS_PORT is not set but is required") // Simplified error handling for brevity
 		return
 	}
 
@@ -83,23 +71,24 @@ func main() {
 	ctx := context.Background()
 	redisClient, err := prowlredis.NewClient(ctx, cfg)
 	if err != nil {
-		logger.Error("Failed to initialize Redis client", err)
+		fmt.Println("Failed to initialize Redis client:", err) // Simplified error handling
 		return
 	}
 
-	// Initialize the manager
-	manager, err := InitializeManager(redisClient, logger)
+	// Initialize the manager with loggerInterface directly, no need for type assertion
+	manager, err := InitializeManager(redisClient, loggerInterface)
 	if err != nil {
-		logger.Error("Error initializing manager", err)
+		fmt.Println("Error initializing manager:", err) // Simplified error handling
 		return
 	}
 
 	// Create a new root command with the manager
 	rootCmd := cmd.NewRootCmd(manager)
 
-	// Execute the root command with the logger
+	// Execute the root command
 	err = rootCmd.Execute()
 	if err != nil {
-		logger.Error("root command execute failed", err)
+		fmt.Println("root command execute failed:", err) // Simplified error handling
+		return
 	}
 }

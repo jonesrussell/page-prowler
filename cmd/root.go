@@ -12,6 +12,8 @@ import (
 var ErrCrawlManagerNotInitialized = errors.New("CrawlManager is not initialized")
 var ErrSiteidRequired = errors.New("siteid is required")
 
+var debug bool
+
 // NewRootCmd now returns *cobra.Command
 func NewRootCmd(manager *crawler.CrawlManager) *cobra.Command {
 	rootCmd := &cobra.Command{
@@ -24,6 +26,9 @@ func NewRootCmd(manager *crawler.CrawlManager) *cobra.Command {
 	In addition to the command line interface, Page Prowler also provides an HTTP API for interacting with the tool.`,
 		SilenceErrors: false,
 	}
+
+	// Add a debug flag
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Enable debug mode")
 
 	// Create a new crawl command with the manager
 	crawlCmd := NewCrawlCmd(manager)
