@@ -6,7 +6,7 @@ import (
 )
 
 // NewResultsCmd creates a new results command
-func NewResultsCmd(manager crawler.CrawlManagerInterface) *cobra.Command {
+func NewResultsCmd(_ crawler.CrawlManagerInterface) *cobra.Command {
 	resultsCmd := &cobra.Command{
 		Use:   "results",
 		Short: "A brief description of your command",

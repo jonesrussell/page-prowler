@@ -10,7 +10,7 @@ import (
 )
 
 // NewClearlinksCmd creates a new clearlinks command
-func NewClearlinksCmd(manager crawler.CrawlManagerInterface) *cobra.Command {
+func NewClearlinksCmd(_ crawler.CrawlManagerInterface) *cobra.Command {
 	clearlinksCmd := &cobra.Command{
 		Use:   "clearlinks",
 		Short: "Clear the Redis set for a given siteid",
@@ -31,7 +31,7 @@ func ClearlinksMain(cmd *cobra.Command, _ []string) error {
 		return ErrCrawlManagerNotInitialized
 	}
 
-	redisClient := manager.Client
+	redisClient := manager.Client()
 
 	err := redisClient.Del(cmd.Context(), siteid)
 	if err != nil {

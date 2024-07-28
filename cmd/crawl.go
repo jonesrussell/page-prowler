@@ -6,7 +6,6 @@ import (
 
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -21,8 +20,8 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runCrawlCmd(cmd, args, manager)
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return runCrawlCmd(manager)
 		},
 	}
 
@@ -45,9 +44,7 @@ to quickly create a Cobra application.`,
 }
 
 func runCrawlCmd(
-	cmd *cobra.Command,
-	_ []string,
-	manager crawler.CrawlManagerInterface, // remove the pointer here
+	manager crawler.CrawlManagerInterface,
 ) error {
 	// Check if manager is nil
 	if manager == nil {
@@ -70,41 +67,29 @@ func runCrawlCmd(
 
 	// Print options if Debug is enabled
 	if options.Debug {
-		manager.Logger().Info("CrawlOptions:")
-		manager.Logger().Info(fmt.Sprintf("  CrawlSiteID: %s", options.CrawlSiteID))
-		manager.Logger().Info(fmt.Sprintf("  Debug: %t", options.Debug))
-		manager.Logger().Info(fmt.Sprintf("  DelayBetweenRequests: %s", options.DelayBetweenRequests.String()))
-		manager.Logger().Info(fmt.Sprintf("  MaxConcurrentRequests: %d", options.MaxConcurrentRequests))
-		manager.Logger().Info(fmt.Sprintf("  MaxDepth: %d", options.MaxDepth))
-		manager.Logger().Info(fmt.Sprintf("  SearchTerms: %v", options.SearchTerms))
-		manager.Logger().Info(fmt.Sprintf("  StartURL: %s", options.StartURL))
+		logger.Info("CrawlOptions:")
+		logger.Info(fmt.Sprintf("  CrawlSiteID: %s", options.CrawlSiteID))
+		logger.Info(fmt.Sprintf("  Debug: %t", options.Debug))
+		logger.Info(fmt.Sprintf("  DelayBetweenRequests: %s", options.DelayBetweenRequests.String()))
+		logger.Info(fmt.Sprintf("  MaxConcurrentRequests: %d", options.MaxConcurrentRequests))
+		logger.Info(fmt.Sprintf("  MaxDepth: %d", options.MaxDepth))
+		logger.Info(fmt.Sprintf("  SearchTerms: %v", options.SearchTerms))
+		logger.Info(fmt.Sprintf("  StartURL: %s", options.StartURL))
 	}
 
 	// Call SetOptions to update the manager's options
 	err = manager.SetOptions(options)
 	if err != nil {
-		manager.Logger().Error("Error setting options", err)
+		logger.Error("Error setting options", err)
 		return err
 	}
 
-	manager.Logger().Info("Starting crawling")
+	logger.Info("Starting crawling")
 	// Now you can use options in your crawl operation
 	err = manager.Crawl()
 	if err != nil {
-		manager.Logger().Error("Error starting crawling", err)
+		logger.Error("Error starting crawling", err)
 		return err
-	}
-
-	if options.Debug {
-		manager.Logger().Info("\nFlags:")
-		cmd.Flags().VisitAll(func(flag *pflag.Flag) {
-			manager.Logger().Info(fmt.Sprintf(" %-12s : %s", flag.Name, flag.Value.String()))
-		})
-
-		manager.Logger().Info("\nRedis Environment Variables:")
-		manager.Logger().Info(fmt.Sprintf(" %-12s : %s", "REDIS_HOST", viper.GetString("REDIS_HOST")))
-		manager.Logger().Info(fmt.Sprintf(" %-12s : %s", "REDIS_PORT", viper.GetString("REDIS_PORT")))
-		manager.Logger().Info(fmt.Sprintf(" %-12s : %s", "REDIS_AUTH", viper.GetString("REDIS_AUTH")))
 	}
 
 	return nil
@@ -116,7 +101,7 @@ func getCrawlOptions() (*crawler.CrawlOptions, error) {
 
 	// Populate CrawlOptions fields
 	options.CrawlSiteID = viper.GetString("siteid")
-	options.Debug = viper.GetBool("debug")
+	options.Debug = debug
 	options.DelayBetweenRequests = viper.GetDuration("delaybetweenrequests")
 	options.MaxConcurrentRequests = viper.GetInt("maxconcurrentrequests")
 	options.MaxDepth = viper.GetInt("maxdepth")
