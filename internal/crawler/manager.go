@@ -5,6 +5,8 @@ import (
 	"sync"
 
 	"github.com/gocolly/colly"
+	"github.com/gocolly/colly/queue"
+	"github.com/gocolly/redisstorage"
 	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/dbmanager"
 	"github.com/jonesrussell/page-prowler/internal/termmatcher"
@@ -29,6 +31,7 @@ type CrawlManager struct {
 	Options           *CrawlOptions
 	Results           *Results
 	StatsManager      *StatsManager
+	Storage           *redisstorage.Storage
 	TermMatcher       *termmatcher.TermMatcher
 }
 
@@ -39,6 +42,7 @@ func NewCrawlManager(
 	dbManager dbmanager.DatabaseManagerInterface,
 	collectorInstance *CollectorWrapper,
 	options *CrawlOptions,
+	storage *redisstorage.Storage,
 ) *CrawlManager {
 	return &CrawlManager{
 		Logger:            logger,
@@ -47,6 +51,7 @@ func NewCrawlManager(
 		CrawlingMu:        &sync.Mutex{},
 		Options:           options,
 		Results:           NewResults(),
+		Storage:           storage,
 		TermMatcher:       termmatcher.NewTermMatcher(logger),
 	}
 }
@@ -69,9 +74,26 @@ func (cm *CrawlManager) Crawl() error {
 		return err
 	}
 
-	if err := cm.CollectorInstance.Visit(startURL); err != nil {
-		return err
+	// Create a new request queue with the Redis storage backend
+	q, err := queue.New(2, cm.Storage)
+	if err != nil {
+		return fmt.Errorf("failed to create queue: %v", err)
 	}
+
+	// Add the start URL to the queue
+	err = q.AddURL(startURL)
+	if err != nil {
+		return fmt.Errorf("failed to add URL to queue: %v", err)
+	}
+
+	// Consume requests
+	err = q.Run(cm.CollectorInstance.GetCollector())
+	if err != nil {
+		return fmt.Errorf("failed to run queue: %v", err)
+	}
+
+	// close redis client
+	defer cm.Storage.Client.Close()
 
 	cm.Logger.Info("[Crawl] Crawling completed.")
 
