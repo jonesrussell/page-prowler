@@ -22,6 +22,8 @@ func (cm *CrawlManager) createPageData(href string) models.PageData {
 }
 
 func (cm *CrawlManager) handleMatchingTerms(options *CrawlOptions, currentURL string, pageData models.PageData, matchingTerms []string) error {
+	cm.LoggerField.Debug("handleMatchingTerms called")
+
 	err := cm.ProcessMatchingLink(currentURL, pageData, matchingTerms)
 	if err != nil {
 		return err
