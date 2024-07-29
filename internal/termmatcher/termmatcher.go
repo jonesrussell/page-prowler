@@ -94,7 +94,7 @@ func (tm *TermMatcher) combineContents(content1 string, content2 string) string 
 	return content1 + " " + content2
 }
 
-func (tm *TermMatcher) compareTerms(searchTerm string, content string) float64 {
+func (tm *TermMatcher) CompareTerms(searchTerm string, content string) float64 {
 	searchTerm = strings.ToLower(searchTerm)
 	similarity := strutil.Similarity(searchTerm, content, tm.swg)
 
@@ -104,7 +104,7 @@ func (tm *TermMatcher) compareTerms(searchTerm string, content string) float64 {
 }
 
 func (tm *TermMatcher) compareAndAppendTerm(searchTerm string, content string) bool {
-	similarity := tm.compareTerms(searchTerm, content)
+	similarity := tm.CompareTerms(searchTerm, content)
 	if similarity >= 0.9 { // Increase the threshold to 0.9
 		tm.logger.Debug(fmt.Sprintf("Matching term found: %v", searchTerm))
 		return true

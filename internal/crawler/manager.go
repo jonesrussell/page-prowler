@@ -10,7 +10,6 @@ import (
 	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/dbmanager"
 	"github.com/jonesrussell/page-prowler/internal/termmatcher"
-	"github.com/jonesrussell/page-prowler/models"
 	"github.com/jonesrussell/page-prowler/utils"
 )
 
@@ -18,7 +17,6 @@ type CrawlManagerInterface interface {
 	Crawl() error
 	GetDBManager() dbmanager.DatabaseManagerInterface
 	GetLogger() loggo.LoggerInterface
-	ProcessMatchingLink(currentURL string, pageData models.PageData, matchingTerms []string) error
 	SetOptions(options *CrawlOptions) error
 	UpdateStats(options *CrawlOptions, matchingTerms []string)
 }

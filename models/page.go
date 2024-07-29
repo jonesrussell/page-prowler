@@ -8,9 +8,10 @@ import (
 
 // PageData represents the data of a crawled page.
 type PageData struct {
-	URL           string   `json:"url,omitempty"`
-	MatchingTerms []string `json:"matching_terms,omitempty"`
-	Error         string   `json:"error,omitempty"`
+	URL             string   `json:"url,omitempty"`
+	MatchingTerms   []string `json:"matching_terms,omitempty"`
+	SimilarityScore float64  `json:"similarity_score,omitempty"`
+	Error           string   `json:"error,omitempty"`
 }
 
 // Validate checks if the PageData fields are valid.
@@ -44,8 +45,9 @@ func (p *PageData) UnmarshalBinary(data []byte) error {
 	return p.Validate()
 }
 
-// UpdatePageData updates the PageData with the provided href and matching terms.
-// It sets the MatchingTerms fields of the PageData.
-func (p *PageData) UpdatePageData(matchingTerms []string) {
+// UpdatePageData updates the PageData with the matching terms, and similarity score.
+// It sets the MatchingTerms and SimilarityScore fields of the PageData.
+func (p *PageData) UpdatePageData(matchingTerms []string, similarityScore float64) {
 	p.MatchingTerms = matchingTerms
+	p.SimilarityScore = similarityScore
 }
