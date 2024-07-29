@@ -73,7 +73,7 @@ func StartWorker(concurrency int, manager crawler.CrawlManagerInterface, debug b
 		},
 		asynq.Config{
 			Concurrency: concurrency,
-			Logger:      &AsynqLoggerWrapper{logger: manager.Logger()}, // Use the Logger from CrawlManager
+			Logger:      &AsynqLoggerWrapper{logger: manager.GetLogger()}, // Use the Logger from CrawlManager
 		},
 	)
 
@@ -85,6 +85,6 @@ func StartWorker(concurrency int, manager crawler.CrawlManagerInterface, debug b
 
 	// Run the server with the handler mux.
 	if err := srv.Run(mux); err != nil {
-		manager.Logger().Fatal(fmt.Sprintf("could not run server: %v", err), nil)
+		manager.GetLogger().Fatal(fmt.Sprintf("could not run server: %v", err), nil)
 	}
 }

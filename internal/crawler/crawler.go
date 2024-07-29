@@ -13,8 +13,8 @@ const (
 	DefaultDelay       = 3000 * time.Millisecond
 )
 
-func (cm *CrawlManager) Logger() loggo.LoggerInterface {
-	return cm.LoggerField
+func (cm *CrawlManager) GetLogger() loggo.LoggerInterface {
+	return cm.Logger
 }
 
 func (cm *CrawlManager) initializeStatsManager() {

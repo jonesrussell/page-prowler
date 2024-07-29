@@ -23,7 +23,9 @@ func (cm *CrawlManager) createPageData(href string) models.PageData {
 }
 
 func (cm *CrawlManager) handleMatchingTerms(options *CrawlOptions, currentURL string, pageData models.PageData, matchingTerms []string) error {
-	cm.LoggerField.Debug("handleMatchingTerms called")
+	cm.Logger.Debug("handleMatchingTerms called")
+
+	pageData.UpdatePageData(currentURL, matchingTerms) // Update the PageData
 
 	err := cm.ProcessMatchingLink(currentURL, pageData, matchingTerms)
 	if err != nil {
@@ -34,9 +36,11 @@ func (cm *CrawlManager) handleMatchingTerms(options *CrawlOptions, currentURL st
 	// Save the result to Redis
 	ctx := context.Background() // Or use a context from your application
 	key := options.CrawlSiteID
-	err = cm.saveResultsToRedis(ctx, []models.PageData{pageData}, key)
+
+	err = cm.DBManager.SaveResultsToRedis(ctx, []models.PageData{pageData}, key)
+
 	if err != nil {
-		cm.LoggerField.Error("Error saving result to Redis: ", err)
+		cm.Logger.Error("Error saving result to Redis: ", err)
 		return err
 	}
 
@@ -63,7 +67,7 @@ func (cm *CrawlManager) ProcessMatchingLink(href string, pageData models.PageDat
 	}
 
 	pageData.UpdatePageData(href, matchingTerms)
-	cm.AppendResult(pageData)
+	cm.Results.Pages = append(cm.Results.Pages, pageData)
 	return nil
 }
 

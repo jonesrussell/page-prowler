@@ -44,10 +44,10 @@ func ClearlinksMain(manager crawler.CrawlManagerInterface) error {
 
 	debug := viper.GetBool("debug")
 	if debug {
-		manager.Logger().Debug("Debugging enabled. Clearing Redis set...")
+		manager.GetLogger().Debug("Debugging enabled. Clearing Redis set...")
 	}
 
-	manager.Logger().Info("Redis set cleared successfully")
+	manager.GetLogger().Info("Redis set cleared successfully")
 
 	return nil
 }
