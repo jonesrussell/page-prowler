@@ -18,7 +18,6 @@ type CrawlManagerInterface interface {
 	GetDBManager() dbmanager.DatabaseManagerInterface
 	Logger() loggo.LoggerInterface
 	ProcessMatchingLink(currentURL string, pageData models.PageData, matchingTerms []string) error
-	SaveResultsToRedis(ctx context.Context, results []models.PageData, key string) error
 	SetOptions(options *CrawlOptions) error
 	UpdateStats(options *CrawlOptions, matchingTerms []string)
 }
@@ -137,12 +136,14 @@ func (cm *CrawlManager) AppendResult(pageData models.PageData) {
 	cm.Results.Pages = append(cm.Results.Pages, pageData)
 }
 
-func (cm *CrawlManager) GetResults() *Results {
-	return cm.Results
-}
-
-func (cm *CrawlManager) SaveResultsToRedis(ctx context.Context, results []models.PageData, key string) error {
-	return cm.DBManager.SaveResultsToRedis(ctx, results, key)
+func (cm *CrawlManager) saveResultsToRedis(ctx context.Context, results []models.PageData, key string) error {
+	err := cm.DBManager.SaveResultsToRedis(ctx, results, key)
+	if err != nil {
+		cm.LoggerField.Error("Error saving results to Redis: ", err)
+		return err
+	}
+	cm.LoggerField.Info("Results successfully saved to Redis.")
+	return nil
 }
 
 func (cm *CrawlManager) GetDBManager() dbmanager.DatabaseManagerInterface {

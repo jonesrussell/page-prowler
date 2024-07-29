@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"context"
 	"errors"
 
 	"github.com/gocolly/colly"
@@ -30,6 +31,15 @@ func (cm *CrawlManager) handleMatchingTerms(options *CrawlOptions, currentURL st
 	}
 	cm.UpdateStats(options, matchingTerms)
 
+	// Save the result to Redis
+	ctx := context.Background() // Or use a context from your application
+	key := options.CrawlSiteID
+	err = cm.saveResultsToRedis(ctx, []models.PageData{pageData}, key)
+	if err != nil {
+		cm.LoggerField.Error("Error saving result to Redis: ", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -37,9 +47,11 @@ func (cm *CrawlManager) processLink(e *colly.HTMLElement, href string) error {
 	cm.StatsManager.LinkStats.IncrementTotalLinks()
 	pageData := cm.createPageData(href)
 	matchingTerms := cm.TermMatcher.GetMatchingTerms(href, e.Text, cm.Options.SearchTerms)
-	err := cm.handleMatchingTerms(cm.Options, e.Request.URL.String(), pageData, matchingTerms)
-	if err != nil {
-		return err
+	if len(matchingTerms) > 0 {
+		err := cm.handleMatchingTerms(cm.Options, e.Request.URL.String(), pageData, matchingTerms)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

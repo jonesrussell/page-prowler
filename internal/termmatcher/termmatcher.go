@@ -105,7 +105,6 @@ func (tm *TermMatcher) compareTerms(searchTerm string, content string) float64 {
 
 func (tm *TermMatcher) compareAndAppendTerm(searchTerm string, content string) bool {
 	similarity := tm.compareTerms(searchTerm, content)
-	tm.logger.Debug(fmt.Sprintf("Compared terms: searchTerm=%s, similarity=%.2f", searchTerm, similarity))
 	if similarity >= 0.9 { // Increase the threshold to 0.9
 		tm.logger.Debug(fmt.Sprintf("Matching term found: %v", searchTerm))
 		return true
@@ -134,7 +133,6 @@ func (tm *TermMatcher) findMatchingTerms(content string, searchTerms []string) [
 	}
 
 	if len(matchingTerms) == 0 {
-		tm.logger.Debug("No matching terms found")
 		return []string{}
 	}
 
