@@ -12,12 +12,7 @@ import (
 
 // CollectorInterface defines the interface for the crawling logic.
 type CollectorInterface interface {
-	AllowURLRevisit() bool
 	GetCollector() *colly.Collector
-	IgnoreRobotsTxt() bool
-	SetAllowedDomains([]string)
-	SetAllowURLRevisit(allow bool)
-	SetIgnoreRobotsTxt(bool)
 	Visit(url string) error
 }
 
@@ -73,28 +68,4 @@ func addUserAgentHeader(c *colly.Collector) {
 		r.Headers.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
 		log.Printf("Visiting: %s", r.URL.String())
 	})
-}
-
-// SetAllowedDomains Implement other methods as needed
-func (cw *CollectorWrapper) SetAllowedDomains(domains []string) {
-	log.Printf("Setting allowed domains: %v", domains)
-	cw.collector.AllowedDomains = domains
-}
-
-// IgnoreRobotsTxt implements CollectorInterface.
-func (cw *CollectorWrapper) IgnoreRobotsTxt() bool {
-	log.Println("Checking if robots.txt is ignored")
-	return cw.collector.IgnoreRobotsTxt
-}
-
-// SetAllowURLRevisit SetIgnoreRobotsTxt implements CollectorInterface.
-func (cw *CollectorWrapper) SetAllowURLRevisit(allow bool) {
-	log.Printf("Setting allow URL revisit to: %v", allow)
-	cw.collector.AllowURLRevisit = allow
-}
-
-// SetIgnoreRobotsTxt implements CollectorInterface.
-func (cw *CollectorWrapper) SetIgnoreRobotsTxt(ignore bool) {
-	log.Printf("Setting ignore robots.txt to: %v", ignore)
-	cw.collector.IgnoreRobotsTxt = ignore
 }

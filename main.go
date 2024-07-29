@@ -44,6 +44,12 @@ func InitializeManager(
 		Output: file,
 	}
 
+	// Create a new Colly collector
+	collector := colly.NewCollector(colly.Debugger(debugger))
+
+	// Pass the options instance to NewCrawlManager
+	collectorWrapper := crawler.NewCollectorWrapper(collector)
+
 	// Create the Redis storage
 	storage := &redisstorage.Storage{
 		Address:  cfg.Addr,
@@ -52,23 +58,23 @@ func InitializeManager(
 		Prefix:   "prowl",
 	}
 
-	// Create a new Colly collector
-	collector := colly.NewCollector(colly.Debugger(debugger))
-
 	// Set the storage for the collector
 	err = collector.SetStorage(storage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set storage: %v", err)
 	}
 
-	// Pass the options instance to NewCrawlManager
-	collectorWrapper := crawler.NewCollectorWrapper(collector)
+	// delete previous data from storage
+	if err := storage.Clear(); err != nil {
+		log.Fatal(err)
+	}
 
 	return crawler.NewCrawlManager(
 		appLogger,
 		dbManager,
 		collectorWrapper,
 		options,
+		storage,
 	), nil
 }
 
