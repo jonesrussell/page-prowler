@@ -23,8 +23,9 @@ type Link struct {
 }
 
 func RetrieveAndUnmarshalLinks(ctx context.Context, manager crawler.CrawlManagerInterface, siteid string) ([]Link, error) {
-	client := manager.Client()
-	links, err := client.SMembers(ctx, siteid)
+	dbManager := manager.GetDBManager()
+
+	links, err := dbManager.GetLinksFromRedis(ctx, siteid)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get links from Redis: %v", err)
 	}

@@ -31,9 +31,9 @@ func ClearlinksMain(cmd *cobra.Command, _ []string) error {
 		return ErrCrawlManagerNotInitialized
 	}
 
-	redisClient := manager.Client()
+	dbManager := manager.DBManager
 
-	err := redisClient.Del(cmd.Context(), siteid)
+	err := dbManager.ClearRedisSet(cmd.Context(), siteid)
 	if err != nil {
 		return fmt.Errorf("failed to clear Redis set: %v", err)
 	}

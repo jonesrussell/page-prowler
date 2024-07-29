@@ -31,3 +31,4 @@ page-prowler
 *.sarif
 go-database/
 loggo.log
+debug.log
