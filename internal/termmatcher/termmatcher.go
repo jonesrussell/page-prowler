@@ -34,37 +34,15 @@ func NewTermMatcher(logger loggo.LoggerInterface) *TermMatcher {
 	}
 }
 
-func (tm *TermMatcher) RemoveHyphens(title string) string {
-	return strings.ReplaceAll(title, "-", " ")
-}
-
-func (tm *TermMatcher) RemoveStopwords(title string) string {
-	return strings.TrimSpace(stopwords.CleanString(title, "en", true))
-}
-
-func (tm *TermMatcher) ProcessAndStem(content string) string {
-	content = strings.ToLower(content)
-	words := strings.Fields(content)
-	words = stemmer.StemMultiple(words)
-	return strings.ToLower(strings.Join(words, " "))
-}
-
-func (tm *TermMatcher) ProcessContent(content string) string {
-	content = tm.RemoveHyphens(content)
-	content = tm.RemoveStopwords(content)
-	content = tm.ProcessAndStem(content)
-	return content
-}
-
 func (tm *TermMatcher) GetMatchingTerms(href string, anchorText string, searchTerms []string) []string {
 	content := utils.ExtractLastSegmentFromURL(href)
-	processedContent := tm.ProcessContent(content)
+	processedContent := tm.processContent(content)
 	tm.logger.Debug(fmt.Sprintf("Processed content from URL: %v", processedContent))
 
-	anchorContent := tm.ProcessContent(anchorText)
+	anchorContent := tm.processContent(anchorText)
 	tm.logger.Debug(fmt.Sprintf("Processed anchor text: %v", anchorContent))
 
-	combinedContent := tm.CombineContents(processedContent, anchorContent)
+	combinedContent := tm.combineContents(processedContent, anchorContent)
 	tm.logger.Debug(fmt.Sprintf("Combined content: %v", combinedContent))
 
 	if len(combinedContent) < minTitleLength {
@@ -72,7 +50,12 @@ func (tm *TermMatcher) GetMatchingTerms(href string, anchorText string, searchTe
 		return []string{}
 	}
 
-	matchingTerms := tm.FindMatchingTerms(combinedContent, searchTerms)
+	var allSearchTerms []string
+	for _, terms := range searchTerms {
+		allSearchTerms = append(allSearchTerms, strings.Split(terms, ",")...)
+	}
+
+	matchingTerms := tm.findMatchingTerms(combinedContent, allSearchTerms)
 
 	seen := make(map[string]bool)
 	var result []string
@@ -93,28 +76,25 @@ func (tm *TermMatcher) GetMatchingTerms(href string, anchorText string, searchTe
 	return result
 }
 
-func (tm *TermMatcher) CombineContents(content1 string, content2 string) string {
+func (tm *TermMatcher) processContent(content string) string {
+	content = strings.ReplaceAll(content, "-", " ")                         // Remove hyphens
+	content = strings.TrimSpace(stopwords.CleanString(content, "en", true)) // Remove stopwords
+
+	// Process and stem
+	content = strings.ToLower(content)
+	words := strings.Fields(content)
+	words = stemmer.StemMultiple(words)
+	return strings.ToLower(strings.Join(words, " "))
+}
+
+func (tm *TermMatcher) combineContents(content1 string, content2 string) string {
 	if content2 == "" {
 		return content1
 	}
 	return content1 + " " + content2
 }
 
-func (tm *TermMatcher) ConvertToLowercase(content string) string {
-	return strings.ToLower(content)
-}
-
-func (tm *TermMatcher) StemContent(content string) string {
-	words := strings.Fields(content)
-	stemmedWords := stemmer.StemMultiple(words)
-	lowercaseStemmedWords := make([]string, len(stemmedWords))
-	for i, word := range stemmedWords {
-		lowercaseStemmedWords[i] = strings.ToLower(word)
-	}
-	return strings.Join(lowercaseStemmedWords, " ")
-}
-
-func (tm *TermMatcher) CompareTerms(searchTerm string, content string) float64 {
+func (tm *TermMatcher) compareTerms(searchTerm string, content string) float64 {
 	searchTerm = strings.ToLower(searchTerm)
 	similarity := strutil.Similarity(searchTerm, content, tm.swg)
 
@@ -123,30 +103,33 @@ func (tm *TermMatcher) CompareTerms(searchTerm string, content string) float64 {
 	return similarity
 }
 
-func (tm *TermMatcher) CompareAndAppendTerm(searchTerm string, content string, matchingTerms *[]string) {
-	similarity := tm.CompareTerms(searchTerm, content)
+func (tm *TermMatcher) compareAndAppendTerm(searchTerm string, content string) bool {
+	similarity := tm.compareTerms(searchTerm, content)
 	tm.logger.Debug(fmt.Sprintf("Compared terms: searchTerm=%s, similarity=%.2f", searchTerm, similarity))
 	if similarity >= 0.9 { // Increase the threshold to 0.9
-		*matchingTerms = append(*matchingTerms, searchTerm)
 		tm.logger.Debug(fmt.Sprintf("Matching term found: %v", searchTerm))
+		return true
 	}
+	return false
 }
 
-func (tm *TermMatcher) FindMatchingTerms(content string, searchTerms []string) []string {
+func (tm *TermMatcher) findMatchingTerms(content string, searchTerms []string) []string {
 	var matchingTerms []string
 
-	content = tm.ConvertToLowercase(content)
-	contentStemmed := tm.StemContent(content)
+	content = tm.convertToLowercase(content)
+	contentStemmed := tm.stemContent(content)
 
 	tm.logger.Debug(fmt.Sprintf("Stemmed content: %v", contentStemmed))
 
 	for _, searchTerm := range searchTerms {
-		searchTerm = tm.ConvertToLowercase(searchTerm)
-		searchTermStemmed := tm.StemContent(searchTerm)
+		searchTerm = tm.convertToLowercase(searchTerm)
+		searchTermStemmed := tm.stemContent(searchTerm)
 
 		words := strings.Fields(searchTermStemmed)
 		for _, word := range words {
-			tm.CompareAndAppendTerm(word, contentStemmed, &matchingTerms)
+			if tm.compareAndAppendTerm(word, contentStemmed) {
+				matchingTerms = append(matchingTerms, word)
+			}
 		}
 	}
 
@@ -157,4 +140,18 @@ func (tm *TermMatcher) FindMatchingTerms(content string, searchTerms []string) [
 
 	tm.logger.Debug(fmt.Sprintf("Matching terms result: %v", matchingTerms))
 	return matchingTerms
+}
+
+func (tm *TermMatcher) convertToLowercase(content string) string {
+	return strings.ToLower(content)
+}
+
+func (tm *TermMatcher) stemContent(content string) string {
+	words := strings.Fields(content)
+	stemmedWords := stemmer.StemMultiple(words)
+	lowercaseStemmedWords := make([]string, len(stemmedWords))
+	for i, word := range stemmedWords {
+		lowercaseStemmedWords[i] = strings.ToLower(word)
+	}
+	return strings.Join(lowercaseStemmedWords, " ")
 }
