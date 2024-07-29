@@ -62,13 +62,14 @@ func handleCrawlTask(task *asynq.Task, cm crawler.CrawlManagerInterface, debug b
 }
 
 func StartWorker(concurrency int, manager crawler.CrawlManagerInterface, debug bool) {
-	client := manager.Client() // Call the Client method to get the client
+	dbManager := manager.GetDBManager()
+
 	// Initialize a new Asynq server with the default settings.
 	srv := asynq.NewServer(
 		asynq.RedisClientOpt{
-			Addr:     client.Options().Addr, // Call the Options method on the client
-			Password: client.Options().Password,
-			DB:       client.Options().DB,
+			Addr:     dbManager.RedisOptions().Addr,
+			Password: dbManager.RedisOptions().Password,
+			DB:       dbManager.RedisOptions().DB,
 		},
 		asynq.Config{
 			Concurrency: concurrency,

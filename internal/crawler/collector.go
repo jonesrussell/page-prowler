@@ -17,7 +17,6 @@ type CollectorInterface interface {
 	OnHTML(selector string, htmlFunc func(*colly.HTMLElement))
 	OnError(func(r *colly.Response, err error))
 	OnScraped(callback func(*colly.Response))
-	Wait()
 	Limit(limitRule colly.LimitRule) error
 	SetAllowedDomains([]string)
 	AllowURLRevisit() bool
@@ -84,7 +83,7 @@ func (cw *CollectorWrapper) Visit(URL string) error {
 // Example of a middleware function to add a User-Agent header
 func addUserAgentHeader(c *colly.Collector) {
 	c.OnRequest(func(r *colly.Request) {
-		r.Headers.Set("User-Agent", "My Custom User Agent")
+		r.Headers.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
 		log.Printf("Visiting: %s", r.URL.String())
 	})
 }
@@ -92,22 +91,6 @@ func addUserAgentHeader(c *colly.Collector) {
 func (cw *CollectorWrapper) OnError(callback func(r *colly.Response, err error)) {
 	log.Println("Setting error callback")
 	cw.collector.OnError(callback)
-}
-
-func (cw *CollectorWrapper) Wait() {
-	log.Println("Waiting for all requests to finish")
-	cw.collector.Wait()
-}
-
-func (cw *CollectorWrapper) Limit() error {
-	log.Println("Setting limit")
-	return nil
-}
-
-// AllowURLRevisit implements CollectorInterface.
-func (cw *CollectorWrapper) AllowURLRevisit() bool {
-	log.Println("Checking if URL revisit is allowed")
-	return cw.collector.AllowURLRevisit
 }
 
 // SetAllowedDomains Implement other methods as needed
