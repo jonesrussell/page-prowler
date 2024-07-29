@@ -7,13 +7,13 @@ import (
 	"strings"
 
 	"github.com/hibiken/asynq"
+	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
-	"github.com/jonesrussell/page-prowler/internal/logger"
 	"github.com/jonesrussell/page-prowler/internal/tasks"
 )
 
 type AsynqLoggerWrapper struct {
-	logger logger.Logger
+	logger loggo.LoggerInterface
 }
 
 func (l *AsynqLoggerWrapper) Debug(args ...interface{}) {
@@ -36,9 +36,7 @@ func (l *AsynqLoggerWrapper) Fatal(args ...interface{}) {
 	l.logger.Debug(fmt.Sprint(args...))
 }
 
-// Implement the rest of the asynq.Logger methods in a similar way
-
-func handleCrawlTask(ctx context.Context, task *asynq.Task, cm *crawler.CrawlManager, debug bool) error {
+func handleCrawlTask(task *asynq.Task, cm crawler.CrawlManagerInterface, debug bool) error {
 	var payload tasks.CrawlTaskPayload
 	err := json.Unmarshal(task.Payload(), &payload)
 	if err != nil {
@@ -59,32 +57,34 @@ func handleCrawlTask(ctx context.Context, task *asynq.Task, cm *crawler.CrawlMan
 		return err
 	}
 
-	err = cm.Crawl(ctx)
+	err = cm.Crawl()
 	return err
 }
 
-func StartWorker(concurrency int, cm *crawler.CrawlManager, debug bool) {
+func StartWorker(concurrency int, manager crawler.CrawlManagerInterface, debug bool) {
+	dbManager := manager.GetDBManager()
+
 	// Initialize a new Asynq server with the default settings.
 	srv := asynq.NewServer(
 		asynq.RedisClientOpt{
-			Addr:     cm.Client.Options().Addr,
-			Password: cm.Client.Options().Password,
-			DB:       cm.Client.Options().DB,
+			Addr:     dbManager.RedisOptions().Addr,
+			Password: dbManager.RedisOptions().Password,
+			DB:       dbManager.RedisOptions().DB,
 		},
 		asynq.Config{
 			Concurrency: concurrency,
-			Logger:      &AsynqLoggerWrapper{logger: cm.Logger()}, // Use the Logger from CrawlManager
+			Logger:      &AsynqLoggerWrapper{logger: manager.GetLogger()}, // Use the Logger from CrawlManager
 		},
 	)
 
 	// mux maps a task type to a handler
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(tasks.CrawlTaskType, func(ctx context.Context, task *asynq.Task) error {
-		return handleCrawlTask(ctx, task, cm, debug)
+	mux.HandleFunc(tasks.CrawlTaskType, func(_ context.Context, task *asynq.Task) error {
+		return handleCrawlTask(task, manager, debug) // Pass the manager to the handleCrawlTask function
 	})
 
 	// Run the server with the handler mux.
 	if err := srv.Run(mux); err != nil {
-		cm.Logger().Fatal(fmt.Sprintf("could not run server: %v", err))
+		manager.GetLogger().Fatal(fmt.Sprintf("could not run server: %v", err), nil)
 	}
 }

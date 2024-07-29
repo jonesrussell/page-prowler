@@ -29,6 +29,6 @@
 		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssl,target=/ssl,type=bind"
 	],
 	"forwardPorts": [
-		3000
+		6379
 	]
 }
