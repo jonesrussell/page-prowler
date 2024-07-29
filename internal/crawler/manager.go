@@ -1,7 +1,6 @@
 package crawler
 
 import (
-	"context"
 	"fmt"
 	"sync"
 
@@ -16,44 +15,44 @@ import (
 type CrawlManagerInterface interface {
 	Crawl() error
 	GetDBManager() dbmanager.DatabaseManagerInterface
-	Logger() loggo.LoggerInterface
+	GetLogger() loggo.LoggerInterface
 	ProcessMatchingLink(currentURL string, pageData models.PageData, matchingTerms []string) error
 	SetOptions(options *CrawlOptions) error
 	UpdateStats(options *CrawlOptions, matchingTerms []string)
 }
 
-var _ CrawlManagerInterface = &CrawlManager{}
-
 type CrawlManager struct {
 	CollectorInstance *CollectorWrapper
 	CrawlingMu        *sync.Mutex
 	DBManager         dbmanager.DatabaseManagerInterface
-	LoggerField       loggo.LoggerInterface
+	Logger            loggo.LoggerInterface
 	Options           *CrawlOptions
 	Results           *Results
 	StatsManager      *StatsManager
 	TermMatcher       *termmatcher.TermMatcher
 }
 
+var _ CrawlManagerInterface = &CrawlManager{}
+
 func NewCrawlManager(
-	loggerField loggo.LoggerInterface,
+	logger loggo.LoggerInterface,
 	dbManager dbmanager.DatabaseManagerInterface,
 	collectorInstance *CollectorWrapper,
 	options *CrawlOptions,
 ) *CrawlManager {
 	return &CrawlManager{
-		LoggerField:       loggerField,
+		Logger:            logger,
 		DBManager:         dbManager,
 		CollectorInstance: collectorInstance,
 		CrawlingMu:        &sync.Mutex{},
 		Options:           options,
 		Results:           NewResults(),
-		TermMatcher:       termmatcher.NewTermMatcher(loggerField),
+		TermMatcher:       termmatcher.NewTermMatcher(logger),
 	}
 }
 
 func (cm *CrawlManager) Crawl() error {
-	cm.LoggerField.Info("[Crawl] Starting Crawl function")
+	cm.Logger.Info("[Crawl] Starting Crawl function")
 
 	options := cm.GetOptions()
 
@@ -66,7 +65,7 @@ func (cm *CrawlManager) Crawl() error {
 		return err
 	}
 
-	if err := cm.ConfigureCollector([]string{host}, options.MaxDepth); err != nil {
+	if err := cm.configureCollector([]string{host}, options.MaxDepth); err != nil {
 		return err
 	}
 
@@ -74,18 +73,22 @@ func (cm *CrawlManager) Crawl() error {
 		return err
 	}
 
-	cm.LoggerField.Info("[Crawl] Crawling completed.")
+	cm.Logger.Info("[Crawl] Crawling completed.")
 
 	return nil
 }
 
-func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int) error {
-	collector := colly.NewCollector(
-		colly.Async(false),
-		colly.MaxDepth(maxDepth),
-	)
+func (cm *CrawlManager) configureCollector(allowedDomains []string, maxDepth int) error {
+	cm.Logger.Debug("[configureCollector]", "maxDepth", maxDepth)
+
+	// Get the underlying colly.Collector from the CollectorWrapper
+	collector := cm.CollectorInstance.GetCollector()
 
 	collector.AllowedDomains = allowedDomains
+	collector.AllowURLRevisit = false
+	collector.Async = false
+	collector.IgnoreRobotsTxt = false
+	collector.MaxDepth = maxDepth
 
 	limitRule := &colly.LimitRule{
 		DomainGlob:  "*",
@@ -96,9 +99,6 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 	if err := collector.Limit(limitRule); err != nil {
 		return err
 	}
-
-	collector.AllowURLRevisit = false
-	collector.IgnoreRobotsTxt = false
 
 	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		href, err := cm.getHref(e)
@@ -124,25 +124,6 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 		fmt.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
 	})
 
-	cm.CollectorInstance = &CollectorWrapper{collector}
-
-	return nil
-}
-
-func (cm *CrawlManager) AppendResult(pageData models.PageData) {
-	if cm.Results == nil || cm.Results.Pages == nil {
-		return
-	}
-	cm.Results.Pages = append(cm.Results.Pages, pageData)
-}
-
-func (cm *CrawlManager) saveResultsToRedis(ctx context.Context, results []models.PageData, key string) error {
-	err := cm.DBManager.SaveResultsToRedis(ctx, results, key)
-	if err != nil {
-		cm.LoggerField.Error("Error saving results to Redis: ", err)
-		return err
-	}
-	cm.LoggerField.Info("Results successfully saved to Redis.")
 	return nil
 }
 

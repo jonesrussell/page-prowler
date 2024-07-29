@@ -35,9 +35,6 @@ func NewCollectorWrapper(collector *colly.Collector) *CollectorWrapper {
 		}).DialContext,
 	})
 
-	// Enable asynchronous operation
-	collector.Async = true
-
 	// Add OnResponse callback
 	collector.OnResponse(func(r *colly.Response) {
 		contentType := r.Headers.Get("Content-Type")

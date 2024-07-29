@@ -12,6 +12,7 @@ import (
 
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/debug"
+	"github.com/gocolly/redisstorage"
 	"github.com/jonesrussell/page-prowler/cmd"
 	"github.com/jonesrussell/page-prowler/dbmanager"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
@@ -22,6 +23,7 @@ import (
 func InitializeManager(
 	dbManager dbmanager.DatabaseManagerInterface, // Add dbManager as a parameter
 	appLogger loggo.LoggerInterface,
+	cfg *prowlredis.Options,
 ) (*crawler.CrawlManager, error) {
 	if dbManager == nil {
 		return nil, errors.New("dbManager cannot be nil")
@@ -40,14 +42,34 @@ func InitializeManager(
 
 	debugger := &debug.LogDebugger{
 		Output: file,
-		// other fields...
+	}
+
+	// Create the Redis storage
+	storage := &redisstorage.Storage{
+		Address:  cfg.Addr,
+		Password: cfg.Password,
+		DB:       1, // TODO: redis storage db
+		Prefix:   "prowl",
+	}
+
+	// Create a new Colly collector
+	collector := colly.NewCollector(colly.Debugger(debugger))
+
+	// Set the storage for the collector
+	err = collector.SetStorage(storage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set storage: %v", err)
 	}
 
 	// Pass the options instance to NewCrawlManager
-	collector := crawler.NewCollectorWrapper(colly.NewCollector(colly.Debugger(debugger)))
+	collectorWrapper := crawler.NewCollectorWrapper(collector)
 
-	// No need to assert loggerInterface here; pass it directly if InitializeManager expects loggo.LoggerInterface
-	return crawler.NewCrawlManager(appLogger, dbManager, collector, options), nil // Pass dbManager to NewCrawlManager
+	return crawler.NewCrawlManager(
+		appLogger,
+		dbManager,
+		collectorWrapper,
+		options,
+	), nil
 }
 
 func main() {
@@ -93,7 +115,7 @@ func main() {
 	dbManager := dbmanager.NewRedisManager(redisClient, logger) // Create a new DatabaseManager instance
 
 	// Initialize the manager with loggerInterface directly, no need for type assertion
-	manager, err := InitializeManager(dbManager, logger) // Pass dbManager to InitializeManager
+	manager, err := InitializeManager(dbManager, logger, cfg) // Pass dbManager to InitializeManager
 	if err != nil {
 		fmt.Println("Error initializing manager:", err)
 		return

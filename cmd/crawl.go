@@ -13,13 +13,7 @@ import (
 func NewCrawlCmd(manager crawler.CrawlManagerInterface) *cobra.Command {
 	crawlCmd := &cobra.Command{
 		Use:   "crawl",
-		Short: "A brief description of your command",
-		Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+		Short: "Crawl!",
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runCrawlCmd(manager)
 		},
@@ -52,7 +46,7 @@ func runCrawlCmd(
 		return errors.New("manager is nil")
 	}
 
-	logger := manager.Logger()
+	logger := manager.GetLogger()
 	// Check if Logger is nil
 	if logger == nil {
 		fmt.Println("Error: Logger is nil")
@@ -85,7 +79,7 @@ func runCrawlCmd(
 	}
 
 	logger.Info("Starting crawling")
-	// Now you can use options in your crawl operation
+
 	err = manager.Crawl()
 	if err != nil {
 		logger.Error("Error starting crawling", err)
