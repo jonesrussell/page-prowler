@@ -1,45 +1,53 @@
 package cmd
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
-	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-var ClearlinksCmd = &cobra.Command{
-	Use:   "clearlinks",
-	Short: "Clear the Redis set for a given siteid",
-	RunE:  ClearlinksMain,
+// NewClearlinksCmd creates a new clearlinks command
+func NewClearlinksCmd(manager crawler.CrawlManagerInterface) *cobra.Command {
+	clearlinksCmd := &cobra.Command{
+		Use:   "clearlinks",
+		Short: "Clear the Redis set for a given siteid",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return ClearlinksMain(manager)
+		},
+	}
+
+	return clearlinksCmd
 }
 
-func ClearlinksMain(cmd *cobra.Command, _ []string) error {
-	if Siteid == "" {
+func ClearlinksMain(manager crawler.CrawlManagerInterface) error {
+	siteid := viper.GetString("siteid")
+	if siteid == "" {
 		return ErrSiteidRequired
 	}
 
-	manager, ok := cmd.Context().Value(common.CrawlManagerKey).(*crawler.CrawlManager)
-	if !ok || manager == nil {
-		return ErrCrawlManagerNotInitialized
+	// Check if manager is nil
+	if manager == nil {
+		fmt.Println("Error: manager is nil")
+		return errors.New("manager is nil")
 	}
 
-	redisClient := manager.Client
+	dbManager := manager.GetDBManager()
 
-	err := redisClient.Del(cmd.Context(), Siteid)
+	err := dbManager.ClearRedisSet(context.Background(), siteid)
 	if err != nil {
 		return fmt.Errorf("failed to clear Redis set: %v", err)
 	}
 
-	if Debug {
-		manager.LoggerField.Debug("Debugging enabled. Clearing Redis set...")
+	debug := viper.GetBool("debug")
+	if debug {
+		manager.GetLogger().Debug("Debugging enabled. Clearing Redis set...")
 	}
 
-	manager.Logger().Info("Redis set cleared successfully")
+	manager.GetLogger().Info("Redis set cleared successfully")
 
 	return nil
-}
-
-func init() {
-	resultsCmd.AddCommand(ClearlinksCmd)
 }

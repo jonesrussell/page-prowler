@@ -5,48 +5,45 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/jonesrussell/page-prowler/internal/common"
 	"github.com/jonesrussell/page-prowler/internal/consumer"
 	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-var GetLinksCmd = &cobra.Command{
-	Use:   "getlinks",
-	Short: "Get the list of links for a given siteid",
-	RunE: func(cmd *cobra.Command, _ []string) error {
-		if Siteid == "" {
-			return ErrSiteidRequired
-		}
+// NewGetLinksCmd creates a new getlinks command
+func NewGetLinksCmd(manager crawler.CrawlManagerInterface) *cobra.Command {
+	getLinksCmd := &cobra.Command{
+		Use:   "getlinks",
+		Short: "Get the list of links for a given siteid",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			siteid := viper.GetString("siteid")
+			if siteid == "" {
+				return ErrSiteidRequired
+			}
 
-		manager, ok := cmd.Context().Value(common.CrawlManagerKey).(*crawler.CrawlManager)
-		if !ok || manager == nil {
-			return fmt.Errorf("CrawlManager is not initialized")
-		}
+			output, err := printLinks(cmd.Context(), manager, siteid)
+			if err != nil {
+				log.Printf("Failed to print links: %v\n", err)
+				return err
+			}
 
-		output, err := printLinks(cmd.Context(), manager, Siteid)
-		if err != nil {
-			log.Printf("Failed to print links: %v\n", err)
-			return err
-		}
+			jsonOutput, err := consumer.MarshalOutput(output)
+			if err != nil {
+				return err
+			}
 
-		jsonOutput, err := consumer.MarshalOutput(output)
-		if err != nil {
-			return err
-		}
+			err = printJSON(jsonOutput)
+			if err != nil {
+				log.Printf("Failed to print JSON output: %v\n", err)
+				return err
+			}
 
-		err = printJSON(jsonOutput)
-		if err != nil {
-			log.Printf("Failed to print JSON output: %v\n", err)
-			return err
-		}
+			return nil
+		},
+	}
 
-		return nil
-	},
-}
-
-func init() {
-	resultsCmd.AddCommand(GetLinksCmd)
+	return getLinksCmd
 }
 
 func printJSON(jsonOutput []byte) error {
@@ -57,7 +54,7 @@ func printJSON(jsonOutput []byte) error {
 	return nil
 }
 
-func printLinks(ctx context.Context, manager *crawler.CrawlManager, siteid string) (consumer.Output, error) {
+func printLinks(ctx context.Context, manager crawler.CrawlManagerInterface, siteid string) (consumer.Output, error) {
 	links, err := consumer.RetrieveAndUnmarshalLinks(ctx, manager, siteid)
 	if err != nil {
 		return consumer.Output{}, err

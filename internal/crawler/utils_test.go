@@ -1,108 +1,60 @@
-package crawler_test
+package crawler
 
 import (
-	"sync"
+	"context"
 	"testing"
 
-	"github.com/jonesrussell/page-prowler/internal/crawler"
-	"github.com/jonesrussell/page-prowler/internal/logger"
-	"github.com/jonesrussell/page-prowler/internal/prowlredis"
-	"github.com/jonesrussell/page-prowler/mocks"
+	"github.com/jonesrussell/loggo"
+	"github.com/jonesrussell/page-prowler/dbmanager"
+	"github.com/jonesrussell/page-prowler/internal/termmatcher"
+	"github.com/jonesrussell/page-prowler/models"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestUtils_GetHostFromURL(t *testing.T) {
-	type args struct {
-		inputURL  string
-		appLogger logger.Logger
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			name: "Valid URL",
-			args: args{
-				inputURL:  "https://www.example.com",
-				appLogger: mocks.NewMockLogger(),
-			},
-			want:    "www.example.com",
-			wantErr: false,
-		},
-		{
-			name: "Invalid URL",
-			args: args{
-				inputURL:  "not a valid url",
-				appLogger: mocks.NewMockLogger(),
-			},
-			want:    "",
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := crawler.GetHostFromURL(tt.args.inputURL, tt.args.appLogger)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetHostFromURL() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("GetHostFromURL() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+func TestHandleMatchingTerms(t *testing.T) {
+	// Create a mock logger
+	logger := loggo.NewMockLogger()
 
-func TestCrawlManager_ProcessMatchingLinkAndUpdateStats(t *testing.T) {
-	type fields struct {
-		LoggerField  logger.Logger
-		Client       prowlredis.ClientInterface
-		Collector    *crawler.CollectorWrapper
-		CrawlingMu   *sync.Mutex
-		StatsManager *crawler.StatsManager
+	// Create a mock DBManager
+	dbManager := dbmanager.NewMockDBManager()
+
+	// Create an actual TermMatcher
+	termMatcher := termmatcher.NewTermMatcher(logger)
+
+	cm := NewCrawlManager(logger, dbManager, nil, nil, nil)
+	cm.TermMatcher = termMatcher
+	cm.initializeStatsManager()
+
+	// Define the input parameters
+	options := &CrawlOptions{}
+	currentURL := "https://www.example.com/the-cat-has-been-abducted"
+	pageData := models.PageData{URL: currentURL}
+	matchingTerms := []string{"abduct"}
+
+	// Call the function
+	err := cm.handleMatchingTerms(options, currentURL, pageData, matchingTerms)
+
+	// Print the actual PageData
+	t.Logf("Actual PageData: %+v\n", pageData)
+
+	// Assert that there was no error
+	assert.NoError(t, err)
+
+	// Define the expected PageData
+	expectedPageData := models.PageData{
+		URL:             currentURL,
+		MatchingTerms:   matchingTerms,
+		SimilarityScore: 1, // Update this to the expected similarity score
 	}
 
-	type args struct {
-		options       *crawler.CrawlOptions
-		href          string
-		pageData      crawler.PageData
-		matchingTerms []string
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-	}{
-		{
-			name: "Test Case 1",
-			fields: fields{
-				LoggerField:  mocks.NewMockLogger(),
-				Client:       mocks.NewMockClient(),
-				Collector:    &crawler.CollectorWrapper{},
-				CrawlingMu:   &sync.Mutex{},
-				StatsManager: crawler.NewStatsManager(),
-			},
-			args: args{
-				href:          "https://example.com",
-				pageData:      crawler.PageData{},
-				matchingTerms: []string{"example"},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cs := &crawler.CrawlManager{
-				LoggerField: tt.fields.LoggerField,
-				Client:      tt.fields.Client,
+	// Assert that the result was saved to Redis
+	ctx := context.Background()
+	key := options.CrawlSiteID
+	savedResults, err := dbManager.GetResultsFromRedis(ctx, key)
 
-				CollectorInstance: tt.fields.Collector,
-				CrawlingMu:        tt.fields.CrawlingMu,
-				StatsManager:      tt.fields.StatsManager,
-			}
+	// Print the actual results saved to Redis
+	t.Logf("Actual results saved to Redis: %+v\n", savedResults)
 
-			cs.ProcessMatchingLink(tt.args.href, tt.args.pageData, tt.args.matchingTerms)
-			cs.UpdateStats(tt.args.options, tt.args.matchingTerms)
-		})
-	}
+	assert.NoError(t, err)
+	assert.Contains(t, savedResults, expectedPageData) // Use the expected PageData
 }

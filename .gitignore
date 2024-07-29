@@ -30,3 +30,5 @@ page-prowler
 :Zone.Identifier
 *.sarif
 go-database/
+loggo.log
+debug.log

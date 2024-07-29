@@ -1,211 +1,152 @@
 package crawler
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 
 	"github.com/gocolly/colly"
-	"github.com/jonesrussell/page-prowler/internal/logger"
-	"github.com/jonesrussell/page-prowler/internal/prowlredis"
-	"github.com/jonesrussell/page-prowler/internal/stats"
+	"github.com/gocolly/colly/queue"
+	"github.com/gocolly/redisstorage"
+	"github.com/jonesrussell/loggo"
+	"github.com/jonesrussell/page-prowler/dbmanager"
+	"github.com/jonesrussell/page-prowler/internal/termmatcher"
+	"github.com/jonesrussell/page-prowler/utils"
 )
 
-// CrawlManager is the main struct that manages the crawling operations.
-// It includes fields for logging, MongoDB operations, and the Colly collector.
+type CrawlManagerInterface interface {
+	Crawl() error
+	GetDBManager() dbmanager.DatabaseManagerInterface
+	GetLogger() loggo.LoggerInterface
+	SetOptions(options *CrawlOptions) error
+	UpdateStats(options *CrawlOptions, matchingTerms []string)
+}
+
 type CrawlManager struct {
-	Client            prowlredis.ClientInterface
 	CollectorInstance *CollectorWrapper
 	CrawlingMu        *sync.Mutex
-	LoggerField       logger.Logger
+	DBManager         dbmanager.DatabaseManagerInterface
+	Logger            loggo.LoggerInterface
 	Options           *CrawlOptions
-	StatsManager      *StatsManager
 	Results           *Results
+	StatsManager      *StatsManager
+	Storage           *redisstorage.Storage
+	TermMatcher       *termmatcher.TermMatcher
 }
 
-func (cm *CrawlManager) GetStatsManager() *StatsManager {
-	return cm.StatsManager
-}
+var _ CrawlManagerInterface = &CrawlManager{}
 
-func (cm *CrawlManager) GetCollector() *CollectorWrapper {
-	return cm.CollectorInstance
-}
-
-// NewCrawlManager creates a new instance of CrawlManager with the provided logger,
-// Redis client, and MongoDB wrapper. It initializes the CrawlingMu mutex.
 func NewCrawlManager(
-	loggerField logger.Logger,
-	client prowlredis.ClientInterface,
+	logger loggo.LoggerInterface,
+	dbManager dbmanager.DatabaseManagerInterface,
+	collectorInstance *CollectorWrapper,
 	options *CrawlOptions,
+	storage *redisstorage.Storage,
 ) *CrawlManager {
 	return &CrawlManager{
-		LoggerField:       loggerField,
-		Client:            client,
-		CollectorInstance: NewCollectorWrapper(colly.NewCollector()), // Initialize the CollectorInstance field
+		Logger:            logger,
+		DBManager:         dbManager,
+		CollectorInstance: collectorInstance,
 		CrawlingMu:        &sync.Mutex{},
-		Options:           options, // Store the provided CrawlOptions
+		Options:           options,
 		Results:           NewResults(),
+		Storage:           storage,
+		TermMatcher:       termmatcher.NewTermMatcher(logger),
 	}
 }
 
-// StatsManager is a struct that manages crawling statistics.
-// It includes fields for link statistics and a mutex for thread safety.
-type StatsManager struct {
-	LinkStats   *stats.Stats
-	LinkStatsMu sync.RWMutex
-}
+func (cm *CrawlManager) Crawl() error {
+	cm.Logger.Info("[Crawl] Starting Crawl function")
 
-// NewStatsManager creates a new StatsManager with initialized fields.
-func NewStatsManager() *StatsManager {
-	return &StatsManager{
-		LinkStats:   &stats.Stats{},
-		LinkStatsMu: sync.RWMutex{},
-	}
-}
+	options := cm.GetOptions()
 
-func (cm *CrawlManager) Crawl(_ context.Context) error {
-	startURL := cm.GetOptions().StartURL
-
-	cm.LoggerField.Debug(fmt.Sprintf("[Crawl] Starting crawl for URL: %s", startURL))
+	startURL := options.StartURL
 
 	cm.initializeStatsManager()
 
-	host, err := cm.extractHostFromURL(startURL)
+	host, err := utils.GetHostFromURL(startURL)
 	if err != nil {
 		return err
 	}
 
-	if err := cm.ConfigureCollector([]string{host}, cm.GetOptions().MaxDepth); err != nil {
+	if err := cm.configureCollector([]string{host}, options.MaxDepth); err != nil {
 		return err
 	}
 
-	if err := cm.SetupCrawlingLogic(); err != nil {
-		return err
-	}
-
-	if err := cm.visitWithColly(startURL); err != nil {
-		return cm.HandleVisitError(startURL, err)
-	}
-
-	cm.CollectorInstance.Wait()
-
-	cm.Logger().Info("[Crawl] Crawling completed.")
-
-	return nil
-}
-
-// HandleVisitError handles the error occurred during the visit of a URL.
-// It logs the error and returns it.
-// Parameters:
-// - url: The URL that encountered an error during the visit.
-// - err: The error that occurred during the visit.
-// Returns:
-// - error: The error that was logged and returned.
-func (cm *CrawlManager) HandleVisitError(url string, err error) error {
-	cm.LoggerField.Error(fmt.Sprintf("Error visiting URL: url: %s, error: %v", url, err))
-	return err
-}
-
-// ConfigureCollector sets up the Colly collector with the specified allowed domains and maximum depth.
-// It also configures the collector to log debug information, respect robots.txt, and register an OnScraped callback.
-// Parameters:
-// - allowedDomains: A slice of strings representing the allowed domains for crawling.
-// - maxDepth: The maximum depth to crawl.
-// Returns:
-// - error: An error if the collector configuration fails.
-func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int) error {
-	cm.CollectorInstance = &CollectorWrapper{
-		colly.NewCollector(
-			colly.Async(false),
-			colly.MaxDepth(maxDepth),
-			colly.Debugger(cm.LoggerField),
-		),
-	}
-
-	cm.LoggerField.Debug(fmt.Sprintf("Allowed Domains: %v", allowedDomains))
-	cm.CollectorInstance.SetAllowedDomains(allowedDomains)
-
-	if err := cm.CollectorInstance.Limit(); err != nil {
-		cm.LoggerField.Error(fmt.Sprintf("Failed to set limit rule: %v", err))
-		return err
-	}
-
-	// Respect robots.txt
-	cm.CollectorInstance.SetAllowURLRevisit(false)
-	cm.CollectorInstance.SetIgnoreRobotsTxt(false)
-
-	// Register OnScraped callback
-	//cm.CollectorInstance.OnScraped(func(r *colly.Response) {
-	//	cm.LoggerField.Debug(fmt.Sprintf("[OnScraped] Page scraped: %s", r.Request.URL.String()))
-	//	cm.StatsManager.LinkStatsMu.Lock()
-	//	defer cm.StatsManager.LinkStatsMu.Unlock()
-	//	cm.StatsManager.LinkStats.IncrementTotalPages()
-	//})
-
-	return nil
-}
-
-func (cm *CrawlManager) visitWithColly(url string) error {
-	// Visit the URL with the Colly collector
-	err := cm.CollectorInstance.Visit(url)
+	// Create a new request queue with the Redis storage backend
+	q, err := queue.New(2, cm.Storage)
 	if err != nil {
+		return fmt.Errorf("failed to create queue: %v", err)
+	}
+
+	// Add the start URL to the queue
+	err = q.AddURL(startURL)
+	if err != nil {
+		return fmt.Errorf("failed to add URL to queue: %v", err)
+	}
+
+	// Consume requests
+	err = q.Run(cm.CollectorInstance.GetCollector())
+	if err != nil {
+		return fmt.Errorf("failed to run queue: %v", err)
+	}
+
+	// close redis client
+	defer cm.Storage.Client.Close()
+
+	cm.Logger.Info("[Crawl] Crawling completed.")
+
+	return nil
+}
+
+func (cm *CrawlManager) configureCollector(allowedDomains []string, maxDepth int) error {
+	cm.Logger.Debug("[configureCollector]", "maxDepth", maxDepth)
+
+	// Get the underlying colly.Collector from the CollectorWrapper
+	collector := cm.CollectorInstance.GetCollector()
+
+	collector.AllowedDomains = allowedDomains
+	collector.AllowURLRevisit = false
+	collector.Async = false
+	collector.IgnoreRobotsTxt = false
+	collector.MaxDepth = maxDepth
+
+	limitRule := &colly.LimitRule{
+		DomainGlob:  "*",
+		Parallelism: DefaultParallelism,
+		Delay:       DefaultDelay,
+	}
+
+	if err := collector.Limit(limitRule); err != nil {
 		return err
 	}
 
-	// Wait for the collector to finish its tasks
-	cm.CollectorInstance.Wait()
+	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
+		href, err := cm.getHref(e)
+		if err != nil {
+			return
+		}
+		if href == "" {
+			return
+		}
+
+		err = cm.processLink(e, href)
+		if err != nil {
+			return
+		}
+
+		err = cm.CollectorInstance.Visit(href)
+		if err != nil {
+			return
+		}
+	})
+
+	collector.OnError(func(r *colly.Response, err error) {
+		fmt.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
+	})
 
 	return nil
 }
 
-// AppendResult appends a PageData to the Results.
-func (cm *CrawlManager) AppendResult(pageData PageData) {
-	if cm.Results == nil || cm.Results.Pages == nil {
-		fmt.Println("Warning: Results or Pages is nil")
-		return
-	}
-	cm.Results.Pages = append(cm.Results.Pages, pageData)
-}
-
-// GetResults retrieves the Results managed by this CrawlManager.
-func (cm *CrawlManager) GetResults() *Results {
-	return cm.Results
-}
-
-func (cm *CrawlManager) SaveResultsToRedis(ctx context.Context, results []PageData, key string) error {
-	cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Number of results before processing: %d", len(results)))
-
-	for _, result := range results {
-		cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Processing result %v", result))
-
-		data, err := json.Marshal(result)
-		if err != nil {
-			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during marshalling to JSON: %v", err))
-			return err
-		}
-		str := string(data)
-		err = cm.Client.SAdd(ctx, key, str)
-		if err != nil {
-			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during saving to Redis: %v", err))
-			return err
-		}
-		cm.LoggerField.Debug("SaveResultsToRedis: Added elements to the set")
-
-		// Debugging: Verify that the result was saved correctly
-		isMember, err := cm.Client.SIsMember(ctx, key, str)
-		if err != nil {
-			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Error occurred during checking membership in Redis set: %v", err))
-			return err
-		}
-		if !isMember {
-			cm.LoggerField.Error(fmt.Sprintf("SaveResultsToRedis: Result was not saved correctly in Redis set: %v", str))
-		} else {
-			cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Result was saved correctly in Redis set, key: %s, result: %s", key, str))
-		}
-	}
-
-	cm.LoggerField.Debug(fmt.Sprintf("SaveResultsToRedis: Number of results after processing: %d", len(results)))
-
-	return nil
+func (cm *CrawlManager) GetDBManager() dbmanager.DatabaseManagerInterface {
+	return cm.DBManager
 }
