@@ -1,10 +1,11 @@
-// dbmanager/dbmanager.go
 package dbmanager
 
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
+	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/jonesrussell/page-prowler/models"
 )
@@ -18,25 +19,31 @@ type DatabaseManagerInterface interface {
 
 type RedisManager struct {
 	client prowlredis.ClientInterface
+	logger loggo.LoggerInterface
 }
 
-func NewRedisManager(client prowlredis.ClientInterface) *RedisManager {
+func NewRedisManager(client prowlredis.ClientInterface, logger loggo.LoggerInterface) *RedisManager {
 	return &RedisManager{
 		client: client,
+		logger: logger,
 	}
 }
 
 func (rm *RedisManager) SaveResultsToRedis(ctx context.Context, results []models.PageData, key string) error {
+	// Log the key and the results at the top
+	rm.logger.Debug("Redis", "key", key)
+	rm.logger.Debug("Redis", "results", results)
+
 	for _, result := range results {
 		data, err := json.Marshal(result)
 		if err != nil {
-			return err
+			return fmt.Errorf("error marshaling PageData: %w", err)
 		}
 		str := string(data)
 
 		err = rm.client.SAdd(ctx, key, str)
 		if err != nil {
-			return err
+			return fmt.Errorf("error adding data to Redis: %w", err)
 		}
 	}
 

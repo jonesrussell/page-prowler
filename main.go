@@ -90,7 +90,7 @@ func main() {
 		return
 	}
 
-	dbManager := dbmanager.NewRedisManager(redisClient) // Create a new DatabaseManager instance
+	dbManager := dbmanager.NewRedisManager(redisClient, logger) // Create a new DatabaseManager instance
 
 	// Initialize the manager with loggerInterface directly, no need for type assertion
 	manager, err := InitializeManager(dbManager, logger) // Pass dbManager to InitializeManager
