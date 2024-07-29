@@ -12,20 +12,13 @@ import (
 
 // CollectorInterface defines the interface for the crawling logic.
 type CollectorInterface interface {
-	Visit(url string) error
-	OnRequest(requestFunc func(*colly.Request))
-	OnHTML(selector string, htmlFunc func(*colly.HTMLElement))
-	OnError(func(r *colly.Response, err error))
-	OnScraped(callback func(*colly.Response))
-	Limit(limitRule colly.LimitRule) error
-	SetAllowedDomains([]string)
 	AllowURLRevisit() bool
-	SetAllowURLRevisit(allow bool)
+	GetCollector() *colly.Collector
 	IgnoreRobotsTxt() bool
+	SetAllowedDomains([]string)
+	SetAllowURLRevisit(allow bool)
 	SetIgnoreRobotsTxt(bool)
-
-	// GetUnderlyingCollector returns the underlying *colly.Collector instance.
-	GetUnderlyingCollector() *colly.Collector
+	Visit(url string) error
 }
 
 // CollectorWrapper is a wrapper around to colly.Collector that implements the CollectorInterface.
@@ -35,8 +28,6 @@ type CollectorWrapper struct {
 
 // Modify NewCollectorWrapper to apply middleware
 func NewCollectorWrapper(collector *colly.Collector) *CollectorWrapper {
-	log.Println("Creating a new CollectorWrapper")
-
 	// Set a timeout
 	collector.WithTransport(&http.Transport{
 		DialContext: (&net.Dialer{
@@ -55,17 +46,16 @@ func NewCollectorWrapper(collector *colly.Collector) *CollectorWrapper {
 			log.Printf("Skipping non-HTML URL: %s", r.Request.URL)
 			return
 		}
-		// Continue processing the response...
 	})
 
 	wrapper := &CollectorWrapper{collector: collector}
-	addUserAgentHeader(wrapper.GetUnderlyingCollector())
+	addUserAgentHeader(wrapper.GetCollector())
 
 	return wrapper
 }
 
-// GetUnderlyingCollector implements the CollectorInterface method.
-func (cw *CollectorWrapper) GetUnderlyingCollector() *colly.Collector {
+// GetCollector implements the CollectorInterface method.
+func (cw *CollectorWrapper) GetCollector() *colly.Collector {
 	log.Println("Getting the underlying collector")
 	return cw.collector
 }
@@ -86,11 +76,6 @@ func addUserAgentHeader(c *colly.Collector) {
 		r.Headers.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
 		log.Printf("Visiting: %s", r.URL.String())
 	})
-}
-
-func (cw *CollectorWrapper) OnError(callback func(r *colly.Response, err error)) {
-	log.Println("Setting error callback")
-	cw.collector.OnError(callback)
 }
 
 // SetAllowedDomains Implement other methods as needed
