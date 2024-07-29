@@ -25,7 +25,7 @@ func (cm *CrawlManager) createPageData(href string) models.PageData {
 func (cm *CrawlManager) handleMatchingTerms(options *CrawlOptions, currentURL string, pageData models.PageData, matchingTerms []string) error {
 	cm.Logger.Debug("handleMatchingTerms called")
 
-	pageData.UpdatePageData(currentURL, matchingTerms) // Update the PageData
+	pageData.UpdatePageData(matchingTerms) // Update the PageData
 
 	err := cm.ProcessMatchingLink(currentURL, pageData, matchingTerms)
 	if err != nil {
@@ -66,7 +66,7 @@ func (cm *CrawlManager) ProcessMatchingLink(href string, pageData models.PageDat
 		return errors.New("Missing URL for matching link")
 	}
 
-	pageData.UpdatePageData(href, matchingTerms)
+	pageData.UpdatePageData(matchingTerms)
 	cm.Results.Pages = append(cm.Results.Pages, pageData)
 	return nil
 }

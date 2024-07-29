@@ -9,8 +9,6 @@ import (
 // PageData represents the data of a crawled page.
 type PageData struct {
 	URL           string   `json:"url,omitempty"`
-	ParentURL     string   `json:"parent_url,omitempty"`
-	SearchTerms   []string `json:"search_terms,omitempty"`
 	MatchingTerms []string `json:"matching_terms,omitempty"`
 	Error         string   `json:"error,omitempty"`
 }
@@ -47,8 +45,7 @@ func (p *PageData) UnmarshalBinary(data []byte) error {
 }
 
 // UpdatePageData updates the PageData with the provided href and matching terms.
-// It sets the ParentURL and MatchingTerms fields of the PageData.
-func (p *PageData) UpdatePageData(href string, matchingTerms []string) {
+// It sets the MatchingTerms fields of the PageData.
+func (p *PageData) UpdatePageData(matchingTerms []string) {
 	p.MatchingTerms = matchingTerms
-	p.ParentURL = href
 }
