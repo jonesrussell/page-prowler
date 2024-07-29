@@ -15,24 +15,24 @@ import (
 
 type CrawlManagerInterface interface {
 	Crawl() error
+	GetDBManager() dbmanager.DatabaseManagerInterface
 	Logger() loggo.LoggerInterface
 	ProcessMatchingLink(currentURL string, pageData models.PageData, matchingTerms []string) error
-	UpdateStats(options *CrawlOptions, matchingTerms []string)
-	SetOptions(options *CrawlOptions) error
 	SaveResultsToRedis(ctx context.Context, results []models.PageData, key string) error
-	GetDBManager() dbmanager.DatabaseManagerInterface
+	SetOptions(options *CrawlOptions) error
+	UpdateStats(options *CrawlOptions, matchingTerms []string)
 }
 
 var _ CrawlManagerInterface = &CrawlManager{}
 
 type CrawlManager struct {
-	LoggerField       loggo.LoggerInterface
-	DBManager         dbmanager.DatabaseManagerInterface
 	CollectorInstance *CollectorWrapper
 	CrawlingMu        *sync.Mutex
+	DBManager         dbmanager.DatabaseManagerInterface
+	LoggerField       loggo.LoggerInterface
 	Options           *CrawlOptions
-	StatsManager      *StatsManager
 	Results           *Results
+	StatsManager      *StatsManager
 	TermMatcher       *termmatcher.TermMatcher
 }
 
@@ -71,7 +71,7 @@ func (cm *CrawlManager) Crawl() error {
 		return err
 	}
 
-	if err := cm.visitWithColly(startURL); err != nil {
+	if err := cm.CollectorInstance.Visit(startURL); err != nil {
 		return err
 	}
 
@@ -115,7 +115,7 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 			return
 		}
 
-		err = cm.visitWithColly(href)
+		err = cm.CollectorInstance.Visit(href)
 		if err != nil {
 			return
 		}
@@ -126,15 +126,6 @@ func (cm *CrawlManager) ConfigureCollector(allowedDomains []string, maxDepth int
 	})
 
 	cm.CollectorInstance = &CollectorWrapper{collector}
-
-	return nil
-}
-
-func (cm *CrawlManager) visitWithColly(url string) error {
-	err := cm.CollectorInstance.Visit(url)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
