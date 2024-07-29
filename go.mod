@@ -4,8 +4,6 @@ go 1.21
 
 toolchain go1.21.3
 
-replace github.com/jonesrussell/loggo => ../loggo
-
 require (
 	github.com/PuerkitoBio/goquery v1.9.2 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
@@ -30,7 +28,7 @@ require (
 	github.com/caneroj1/stemmer v0.0.0-20170128035808-c9f2ce1504d5
 	github.com/gocolly/redisstorage v0.0.0-20190812112800-1745c5e6d0ba
 	github.com/hibiken/asynq v0.24.1
-	github.com/jonesrussell/loggo v0.1.1
+	github.com/jonesrussell/loggo v0.1.2
 	github.com/redis/go-redis/v9 v9.6.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
