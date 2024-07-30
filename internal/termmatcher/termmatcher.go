@@ -104,6 +104,16 @@ func (tm *TermMatcher) CompareTerms(searchTerm string, content string) float64 {
 }
 
 func (tm *TermMatcher) compareAndAppendTerm(searchTerm string, content string) bool {
+	// Check for exact match
+	words := strings.Fields(content)
+	for _, word := range words {
+		if word == searchTerm {
+			tm.logger.Debug(fmt.Sprintf("Exact matching term found: %v", searchTerm))
+			return true
+		}
+	}
+
+	// If no exact match, use SWG for comparison
 	similarity := tm.CompareTerms(searchTerm, content)
 	if similarity >= 0.9 { // Increase the threshold to 0.9
 		tm.logger.Debug(fmt.Sprintf("Matching term found: %v", searchTerm))
@@ -122,6 +132,7 @@ func (tm *TermMatcher) findMatchingTerms(content string, searchTerms []string) [
 
 	for _, searchTerm := range searchTerms {
 		searchTerm = tm.convertToLowercase(searchTerm)
+		searchTerm = strings.TrimSpace(stopwords.CleanString(searchTerm, "en", true)) // Remove stopwords
 		searchTermStemmed := tm.stemContent(searchTerm)
 
 		words := strings.Fields(searchTermStemmed)
