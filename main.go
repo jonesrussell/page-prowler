@@ -14,8 +14,8 @@ import (
 	"github.com/gocolly/colly/debug"
 	"github.com/gocolly/redisstorage"
 	"github.com/jonesrussell/page-prowler/cmd"
+	"github.com/jonesrussell/page-prowler/crawler"
 	"github.com/jonesrussell/page-prowler/dbmanager"
-	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
 	"github.com/spf13/viper"
 )

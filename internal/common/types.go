@@ -1,6 +1,6 @@
 package common
 
-import "github.com/jonesrussell/page-prowler/internal/crawler"
+import "github.com/jonesrussell/page-prowler/crawler"
 
 type CrawlManagerKeyType = crawler.CrawlManagerInterface
 

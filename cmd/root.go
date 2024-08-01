@@ -5,7 +5,7 @@ import (
 
 	"github.com/jonesrussell/loggo"
 
-	"github.com/jonesrussell/page-prowler/internal/crawler"
+	"github.com/jonesrussell/page-prowler/crawler"
 	"github.com/spf13/cobra"
 )
 
