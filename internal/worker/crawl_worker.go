@@ -8,7 +8,7 @@ import (
 
 	"github.com/hibiken/asynq"
 	"github.com/jonesrussell/loggo"
-	"github.com/jonesrussell/page-prowler/internal/crawler"
+	"github.com/jonesrussell/page-prowler/crawler"
 	"github.com/jonesrussell/page-prowler/internal/tasks"
 )
 

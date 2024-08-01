@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/jonesrussell/page-prowler/internal/crawler"
+	"github.com/jonesrussell/page-prowler/crawler"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/jonesrussell/page-prowler/crawler"
 	"github.com/jonesrussell/page-prowler/internal/consumer"
-	"github.com/jonesrussell/page-prowler/internal/crawler"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/jonesrussell/page-prowler/internal/crawler"
+	"github.com/jonesrussell/page-prowler/crawler"
 	"github.com/spf13/cobra"
 )
 
