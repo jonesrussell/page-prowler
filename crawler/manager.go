@@ -129,9 +129,13 @@ func (cm *CrawlManager) configureCollector(allowedDomains []string, maxDepth int
 			return
 		}
 
-		err = cm.processLink(e, href)
-		if err != nil {
-			return
+		pageData := cm.createPageData(href)
+		matchingTerms := cm.TermMatcher.GetMatchingTerms(href, e.Text, cm.Options.SearchTerms)
+		if len(matchingTerms) > 0 {
+			err := cm.handleMatchingTerms(cm.Options, e.Request.URL.String(), pageData, matchingTerms)
+			if err != nil {
+				return
+			}
 		}
 
 		err = cm.CollectorInstance.Visit(href)
