@@ -50,20 +50,6 @@ func (cm *CrawlManager) handleMatchingTerms(options *CrawlOptions, currentURL st
 	return nil
 }
 
-func (cm *CrawlManager) processLink(e *colly.HTMLElement, href string) error {
-	cm.StatsManager.LinkStats.IncrementTotalLinks()
-	pageData := cm.createPageData(href)
-	matchingTerms := cm.TermMatcher.GetMatchingTerms(href, e.Text, cm.Options.SearchTerms)
-	if len(matchingTerms) > 0 {
-		err := cm.handleMatchingTerms(cm.Options, e.Request.URL.String(), pageData, matchingTerms)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (cm *CrawlManager) UpdateStats(_ *CrawlOptions, matchingTerms []string) {
 	if len(matchingTerms) > 0 {
 		cm.StatsManager.LinkStats.IncrementMatchedLinks()
