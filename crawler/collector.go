@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -19,14 +20,14 @@ type CollectorInterface interface {
 
 // CollectorWrapper is a wrapper around to colly.Collector that implements the CollectorInterface.
 type CollectorWrapper struct {
-	collector *colly.Collector
-	Logger    loggo.LoggerInterface // Add a Logger field
+	collector            *colly.Collector
+	Logger               loggo.LoggerInterface
+	DisallowedURLFilters []*regexp.Regexp
 }
 
 var _ CollectorInterface = &CollectorWrapper{}
 
-// Modify NewCollectorWrapper to apply middleware
-func NewCollectorWrapper(collector *colly.Collector, logger loggo.LoggerInterface) *CollectorWrapper { // Add logger as a parameter
+func NewCollectorWrapper(collector *colly.Collector, logger loggo.LoggerInterface, disallowedURLFilters []*regexp.Regexp) *CollectorWrapper { // Add disallowedURLFilters as a parameter
 	// Set a timeout
 	collector.WithTransport(&http.Transport{
 		DialContext: (&net.Dialer{
@@ -37,18 +38,19 @@ func NewCollectorWrapper(collector *colly.Collector, logger loggo.LoggerInterfac
 	// Add OnResponse callback
 	collector.OnResponse(func(r *colly.Response) {
 		contentType := r.Headers.Get("Content-Type")
-		logger.Debug(fmt.Sprintf("Content-Type is %s", contentType)) // Use logger instead of log
+		logger.Debug(fmt.Sprintf("Content-Type is %s", contentType))
 		if !strings.Contains(contentType, "text/html") {
-			logger.Debug(fmt.Sprintf("Skipping non-HTML URL: %s", r.Request.URL)) // Use logger instead of log
+			logger.Debug(fmt.Sprintf("Skipping non-HTML URL: %s", r.Request.URL))
 			return
 		}
 	})
 
 	wrapper := &CollectorWrapper{
-		collector: collector,
-		Logger:    logger, // Initialize the Logger field
+		collector:            collector,
+		Logger:               logger,
+		DisallowedURLFilters: disallowedURLFilters,
 	}
-	addUserAgentHeader(wrapper.GetCollector(), logger) // Pass logger to addUserAgentHeader
+	addUserAgentHeader(wrapper.GetCollector(), logger)
 
 	return wrapper
 }
@@ -61,6 +63,14 @@ func (cw *CollectorWrapper) GetCollector() *colly.Collector {
 
 // Enhanced Visit method with logging and timing
 func (cw *CollectorWrapper) Visit(URL string) error {
+	// Check if the URL matches any of the disallowed URL filters
+	for _, re := range cw.DisallowedURLFilters {
+		if re.MatchString(URL) {
+			cw.Logger.Debug(fmt.Sprintf("Skipping disallowed URL: %s", URL))
+			return nil // Skip this URL
+		}
+	}
+
 	start := time.Now()
 	cw.Logger.Debug(fmt.Sprintf("Starting to visit: %s", URL)) // Use cw.Logger instead of log
 	err := cw.collector.Visit(URL)

@@ -6,6 +6,7 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"regexp"
 
 	"github.com/jonesrussell/loggo"
 
@@ -36,7 +37,30 @@ func InitializeManager(
 	// Create a new Colly collector
 	collector := colly.NewCollector(colly.Debugger(debugger))
 
-	collectorWrapper := crawler.NewCollectorWrapper(collector, appLogger)
+	// Define your disallowed URLs
+	disallowedURLFilters := []*regexp.Regexp{
+		// www.cp24.com
+		regexp.MustCompile(`/cp24-supports`),
+		regexp.MustCompile(`/contact-us`),
+		regexp.MustCompile(`/newsletters`),
+		regexp.MustCompile(`/news-tips`),
+		regexp.MustCompile(`/wellnesswednesdays`),
+		regexp.MustCompile(`/askalawyer`),
+		regexp.MustCompile(`/app`),
+		regexp.MustCompile(`/faq`),
+		regexp.MustCompile(`/commuter-centre`),
+		regexp.MustCompile(`/contests`),
+		regexp.MustCompile(`/lifestyle`),
+		regexp.MustCompile(`/live`),
+		regexp.MustCompile(`/photo-galleries`),
+		regexp.MustCompile(`/polopoly_fs`),
+		regexp.MustCompile(`/sports`),
+		regexp.MustCompile(`/talk-shows`),
+		regexp.MustCompile(`/video`),
+		regexp.MustCompile(`/weather`),
+	}
+
+	collectorWrapper := crawler.NewCollectorWrapper(collector, appLogger, disallowedURLFilters)
 
 	// Create the Redis storage
 	storage := &redisstorage.Storage{
