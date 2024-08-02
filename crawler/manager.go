@@ -110,7 +110,7 @@ func (cm *CrawlManager) configureCollector(allowedDomains []string, maxDepth int
 	collector.AllowURLRevisit = false
 	collector.Async = false
 	collector.IgnoreRobotsTxt = false
-	collector.MaxDepth = maxDepth
+	// collector.MaxDepth = maxDepth
 
 	limitRule := &colly.LimitRule{
 		DomainGlob:  "*",

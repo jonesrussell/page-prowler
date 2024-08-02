@@ -35,7 +35,7 @@ func InitializeManager(
 	}
 
 	// Create a new Colly collector
-	collector := colly.NewCollector(colly.Debugger(debugger))
+	collector := colly.NewCollector(colly.Debugger(debugger), colly.MaxDepth(1))
 
 	// Define your disallowed URLs
 	disallowedURLFilters := []*regexp.Regexp{
