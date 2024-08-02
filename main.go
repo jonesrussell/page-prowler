@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -25,16 +24,6 @@ func InitializeManager(
 	appLogger loggo.LoggerInterface,
 	cfg *prowlredis.Options,
 ) (*crawler.CrawlManager, error) {
-	if dbManager == nil {
-		return nil, errors.New("dbManager cannot be nil")
-	}
-	if appLogger == nil {
-		return nil, errors.New("appLogger cannot be nil")
-	}
-
-	// Create an instance of CrawlOptions
-	options := &crawler.CrawlOptions{}
-
 	file, err := os.OpenFile("debug.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatal(err)
@@ -47,8 +36,7 @@ func InitializeManager(
 	// Create a new Colly collector
 	collector := colly.NewCollector(colly.Debugger(debugger))
 
-	// Pass the options instance to NewCrawlManager
-	collectorWrapper := crawler.NewCollectorWrapper(collector)
+	collectorWrapper := crawler.NewCollectorWrapper(collector, appLogger)
 
 	// Create the Redis storage
 	storage := &redisstorage.Storage{
@@ -73,7 +61,7 @@ func InitializeManager(
 		appLogger,
 		dbManager,
 		collectorWrapper,
-		options,
+		&crawler.CrawlOptions{},
 		storage,
 	), nil
 }
@@ -100,7 +88,7 @@ func main() {
 	redisAuth := viper.GetString("REDIS_AUTH")
 
 	if redisHost == "" || redisPort == "" {
-		fmt.Println("REDIS_HOST or REDIS_PORT is not set but is required") // Simplified error handling for brevity
+		fmt.Println("REDIS_HOST or REDIS_PORT is not set but is required")
 		return
 	}
 
