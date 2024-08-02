@@ -105,6 +105,8 @@ func (cm *CrawlManager) configureCollector(allowedDomains []string, maxDepth int
 	collector := cm.CollectorInstance.GetCollector()
 
 	collector.AllowedDomains = allowedDomains
+	cm.Logger.Info("Allowed domains: ", "whitelist", allowedDomains)
+
 	collector.AllowURLRevisit = false
 	collector.Async = false
 	collector.IgnoreRobotsTxt = false
@@ -129,9 +131,9 @@ func (cm *CrawlManager) configureCollector(allowedDomains []string, maxDepth int
 			return
 		}
 
-		pageData := cm.createPageData(href)
 		matchingTerms := cm.TermMatcher.GetMatchingTerms(href, e.Text, cm.Options.SearchTerms)
 		if len(matchingTerms) > 0 {
+			pageData := cm.createPageData(href)
 			err := cm.handleMatchingTerms(cm.Options, e.Request.URL.String(), pageData, matchingTerms)
 			if err != nil {
 				return
