@@ -141,14 +141,6 @@ func (cm *CrawlManager) configureCollector(allowedDomains []string, maxDepth int
 			}
 		}
 
-		// Check if the link matches any of the disallowed URL filters
-		for _, re := range collector.DisallowedURLFilters {
-			if re.MatchString(href) {
-				cm.Logger.Debug(fmt.Sprintf("Skipping disallowed URL: %s", href)) // Add debug log
-				return                                                            // Skip this link
-			}
-		}
-
 		err = e.Request.Visit(href)
 		if err != nil {
 			return
