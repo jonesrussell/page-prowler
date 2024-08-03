@@ -15,7 +15,7 @@ type MockDBManager struct {
 func NewMockDBManager() *MockDBManager {
 	return &MockDBManager{}
 }
-func (m *MockDBManager) SaveResultsToRedis(_ context.Context, results []models.PageData, _ string) error {
+func (m *MockDBManager) SaveResults(_ context.Context, results []models.PageData, _ string) error {
 	m.SavedResults = append(m.SavedResults, results...)
 	return nil
 }

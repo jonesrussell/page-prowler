@@ -11,7 +11,7 @@ import (
 )
 
 type DatabaseManagerInterface interface {
-	SaveResultsToRedis(ctx context.Context, results []models.PageData, key string) error
+	SaveResults(ctx context.Context, results []models.PageData, key string) error
 	ClearRedisSet(ctx context.Context, key string) error
 	GetLinksFromRedis(ctx context.Context, key string) ([]string, error)
 	RedisOptions() prowlredis.Options
@@ -29,7 +29,7 @@ func NewRedisManager(client prowlredis.ClientInterface, logger loggo.LoggerInter
 	}
 }
 
-func (rm *RedisManager) SaveResultsToRedis(ctx context.Context, results []models.PageData, key string) error {
+func (rm *RedisManager) SaveResults(ctx context.Context, results []models.PageData, key string) error {
 	// Log the key and the results at the top
 	rm.logger.Debug("Redis", "key", key)
 	rm.logger.Debug("Redis", "results", results)

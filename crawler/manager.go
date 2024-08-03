@@ -68,6 +68,7 @@ func (cm *CrawlManager) Crawl() error {
 		return err
 	}
 
+	cm.Logger.Debug("options", "MaxDepth", options.MaxDepth)
 	if err := cm.configureCollector([]string{host}, options.MaxDepth); err != nil {
 		return err
 	}
@@ -140,7 +141,15 @@ func (cm *CrawlManager) configureCollector(allowedDomains []string, maxDepth int
 			}
 		}
 
-		err = cm.CollectorInstance.Visit(href)
+		// Check if the link matches any of the disallowed URL filters
+		for _, re := range collector.DisallowedURLFilters {
+			if re.MatchString(href) {
+				cm.Logger.Debug(fmt.Sprintf("Skipping disallowed URL: %s", href)) // Add debug log
+				return                                                            // Skip this link
+			}
+		}
+
+		err = e.Request.Visit(href)
 		if err != nil {
 			return
 		}
