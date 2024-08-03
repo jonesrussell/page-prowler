@@ -34,13 +34,11 @@ func InitializeManager(
 		Output: file,
 	}
 
-	// Create a new Colly collector
-	collector := colly.NewCollector(colly.Debugger(debugger), colly.MaxDepth(1))
-
 	// Define your disallowed URLs
 	disallowedURLFilters := []*regexp.Regexp{
 		// www.cp24.com
 		regexp.MustCompile(`/cp24-supports`),
+		regexp.MustCompile(`/cp24-breakfast`),
 		regexp.MustCompile(`/contact-us`),
 		regexp.MustCompile(`/newsletters`),
 		regexp.MustCompile(`/news-tips`),
@@ -58,7 +56,16 @@ func InitializeManager(
 		regexp.MustCompile(`/talk-shows`),
 		regexp.MustCompile(`/video`),
 		regexp.MustCompile(`/weather`),
+		regexp.MustCompile(`\?cache=`),
+		regexp.MustCompile(`\?clipId=`),
+		regexp.MustCompile(`\?contactForm=`),
+		regexp.MustCompile(`/entertainment-news`),
+		regexp.MustCompile(`/report-errors`),
+		regexp.MustCompile(`/more`),
 	}
+
+	// Create a new Colly collector
+	collector := colly.NewCollector(colly.Debugger(debugger), colly.MaxDepth(1))
 
 	collectorWrapper := crawler.NewCollectorWrapper(collector, appLogger, disallowedURLFilters)
 

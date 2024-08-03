@@ -40,7 +40,7 @@ func (cm *CrawlManager) handleMatchingTerms(options *CrawlOptions, currentURL st
 	ctx := context.Background() // Or use a context from your application
 	key := options.CrawlSiteID
 
-	err := cm.DBManager.SaveResultsToRedis(ctx, []models.PageData{pageData}, key)
+	err := cm.DBManager.SaveResults(ctx, []models.PageData{pageData}, key)
 
 	if err != nil {
 		cm.Logger.Error("Error saving result to Redis: ", err)
