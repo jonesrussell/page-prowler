@@ -34,40 +34,20 @@ func InitializeManager(
 		Output: file,
 	}
 
-	// Define your disallowed URLs
-	disallowedURLFilters := []*regexp.Regexp{
+	// Define your allowed URLs
+	URLFilters := []*regexp.Regexp{
 		// www.cp24.com
-		regexp.MustCompile(`/cp24-supports`),
-		regexp.MustCompile(`/cp24-breakfast`),
-		regexp.MustCompile(`/contact-us`),
-		regexp.MustCompile(`/newsletters`),
-		regexp.MustCompile(`/news-tips`),
-		regexp.MustCompile(`/wellnesswednesdays`),
-		regexp.MustCompile(`/askalawyer`),
-		regexp.MustCompile(`/app`),
-		regexp.MustCompile(`/faq`),
-		regexp.MustCompile(`/commuter-centre`),
-		regexp.MustCompile(`/contests`),
-		regexp.MustCompile(`/lifestyle`),
-		regexp.MustCompile(`/live`),
-		regexp.MustCompile(`/photo-galleries`),
-		regexp.MustCompile(`/polopoly_fs`),
-		regexp.MustCompile(`/sports`),
-		regexp.MustCompile(`/talk-shows`),
-		regexp.MustCompile(`/video`),
-		regexp.MustCompile(`/weather`),
-		regexp.MustCompile(`\?cache=`),
-		regexp.MustCompile(`\?clipId=`),
-		regexp.MustCompile(`\?contactForm=`),
-		regexp.MustCompile(`/entertainment-news`),
-		regexp.MustCompile(`/report-errors`),
-		regexp.MustCompile(`/more`),
+		regexp.MustCompile(`/news`),
 	}
 
 	// Create a new Colly collector
-	collector := colly.NewCollector(colly.Debugger(debugger), colly.MaxDepth(1))
+	collector := colly.NewCollector(
+		colly.Debugger(debugger),
+		colly.MaxDepth(1),
+		colly.URLFilters(URLFilters...),
+	)
 
-	collectorWrapper := crawler.NewCollectorWrapper(collector, appLogger, disallowedURLFilters)
+	collectorWrapper := crawler.NewCollectorWrapper(collector, appLogger, URLFilters)
 
 	// Create the Redis storage
 	storage := &redisstorage.Storage{
