@@ -19,6 +19,11 @@ func NewCrawlCmd(manager crawler.CrawlManagerInterface) *cobra.Command {
 		},
 	}
 
+	crawlCmd.Flags().StringP("siteid", "s", "", "Site ID for crawling")
+	if err := viper.BindPFlag("siteid", crawlCmd.Flags().Lookup("siteid")); err != nil {
+		fmt.Println("Error binding flag", err)
+	}
+
 	crawlCmd.Flags().StringP("url", "u", "", "URL to crawl")
 	if err := viper.BindPFlag("url", crawlCmd.Flags().Lookup("url")); err != nil {
 		fmt.Println("Error binding flag", err)
