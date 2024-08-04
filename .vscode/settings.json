@@ -5,5 +5,17 @@
     },
     "codeQL.createQuery.qlPackLocation": "/workspaces/page-prowler",
     "sarif-viewer.connectToGithubCodeScanning": "on",
-    "editor.defaultFormatter": "golang.go"
+    "editor.defaultFormatter": "golang.go",
+    "redisXplorer.config": {
+      "profiles": [
+        {
+          "name": "p",
+          "host": "redis",
+          "accessKey": "",
+          "filter": "*",
+          "port": "6379"
+        }
+      ],
+      "scanLimit": 200
+    }
 }
