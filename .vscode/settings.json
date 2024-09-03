@@ -17,5 +17,6 @@
         }
       ],
       "scanLimit": 200
-    }
+    },
+    "cursor.chat.alwaysSearchWeb": false
 }

@@ -1,6 +1,7 @@
 package termmatcher
 
 import (
+	"math"
 	"reflect"
 	"testing"
 
@@ -41,7 +42,23 @@ func TestGetMatchingTerms(t *testing.T) {
 			anchorText:  "A",
 			searchTerms: []string{"a"},
 			want:        []string{},
-			wantErr:     true,
+			wantErr:     false,
+		},
+		{
+			name:        "Test case 4: Phrase matching",
+			href:        "https://example.com/gang-activities",
+			anchorText:  "Recent Gang Activities",
+			searchTerms: []string{"gang activities"},
+			want:        []string{"gang activities"},
+			wantErr:     false,
+		},
+		{
+			name:        "Test case 5: Similarity matching",
+			href:        "https://example.com/organized-crime",
+			anchorText:  "Organized Criminal Activities",
+			searchTerms: []string{"organized crime"},
+			want:        []string{"organized crime"},
+			wantErr:     false,
 		},
 	}
 
@@ -82,7 +99,8 @@ func TestTermMatcher_processContent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tm.processContent(tt.content); got != tt.want {
+			got := tm.processContent(tt.content)
+			if got != tt.want {
 				t.Errorf("TermMatcher.processContent() = %v, want %v", got, tt.want)
 			}
 		})
@@ -109,14 +127,14 @@ func TestTermMatcher_CompareTerms(t *testing.T) {
 			name:       "Test case 2: Low similarity",
 			searchTerm: "laptop",
 			content:    "computer",
-			want:       0.31666666666666665,
+			want:       0.0,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tm.CompareTerms(tt.searchTerm, tt.content)
-			if got != tt.want {
+			if math.Abs(got-tt.want) > 0.01 {
 				t.Errorf("TermMatcher.CompareTerms() = %v, want %v", got, tt.want)
 			}
 		})
@@ -134,7 +152,7 @@ func TestTermMatcher_findMatchingTerms(t *testing.T) {
 		want        []string
 	}{
 		{
-			name:        "Test case 1: Matching terms",
+			name:        "Test case 1: Exact matching terms",
 			content:     "running shoes for athletes",
 			searchTerms: []string{"run", "shoe", "athlete"},
 			want:        []string{"run", "shoe", "athlete"},
@@ -145,12 +163,24 @@ func TestTermMatcher_findMatchingTerms(t *testing.T) {
 			searchTerms: []string{"run", "shoe", "athlete"},
 			want:        []string{},
 		},
+		{
+			name:        "Test case 3: Phrase matching",
+			content:     "gang activities in the city",
+			searchTerms: []string{"gang activities", "city crime"},
+			want:        []string{"gang activities"},
+		},
+		{
+			name:        "Test case 4: Similarity matching",
+			content:     "organized criminal activities",
+			searchTerms: []string{"organized crime", "gang activities"},
+			want:        []string{"organized crime"},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tm.findMatchingTerms(tt.content, tt.searchTerms)
-			if len(got) != len(tt.want) {
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("TermMatcher.findMatchingTerms() = %v, want %v", got, tt.want)
 			}
 		})

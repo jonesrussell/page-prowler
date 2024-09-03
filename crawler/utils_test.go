@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/gocolly/redisstorage"
 	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/dbmanager"
 	"github.com/jonesrussell/page-prowler/internal/termmatcher"
@@ -18,10 +19,13 @@ func TestHandleMatchingTerms(t *testing.T) {
 	// Create a mock DBManager
 	dbManager := dbmanager.NewMockDBManager()
 	// Create an actual TermMatcher
-	termMatcher := termmatcher.NewTermMatcher(logger, 0.8) // Added default similarity threshold
+	termMatcher := termmatcher.NewTermMatcher(logger, 0.8)
 
-	cm := NewCrawlManager(logger, dbManager, nil, nil, nil)
-	cm.TermMatcher = termMatcher
+	collectorWrapper := &CollectorWrapper{}
+	crawlOptions := &CrawlOptions{}
+	redisStorage := &redisstorage.Storage{}
+
+	cm := NewCrawlManager(logger, dbManager, collectorWrapper, crawlOptions, redisStorage, termMatcher)
 	cm.initializeStatsManager()
 
 	// Define the input parameters

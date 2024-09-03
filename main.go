@@ -17,6 +17,7 @@ import (
 	"github.com/jonesrussell/page-prowler/crawler"
 	"github.com/jonesrussell/page-prowler/dbmanager"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
+	"github.com/jonesrussell/page-prowler/internal/termmatcher"
 	"github.com/spf13/viper"
 )
 
@@ -74,6 +75,7 @@ func InitializeManager(
 		collectorWrapper,
 		&crawler.CrawlOptions{},
 		storage,
+		termmatcher.NewTermMatcher(appLogger, 0.8),
 	), nil
 }
 

@@ -41,6 +41,7 @@ func NewCrawlManager(
 	collectorInstance *CollectorWrapper,
 	options *CrawlOptions,
 	storage *redisstorage.Storage,
+	termMatcher *termmatcher.TermMatcher,
 ) *CrawlManager {
 	return &CrawlManager{
 		Logger:            logger,
@@ -50,7 +51,7 @@ func NewCrawlManager(
 		Options:           options,
 		Results:           NewResults(),
 		Storage:           storage,
-		TermMatcher:       termmatcher.NewTermMatcher(logger, 0.8), // Added default threshold of 0.8
+		TermMatcher:       termMatcher,
 		StatsManager:      NewStatsManager(),
 	}
 }
@@ -59,53 +60,46 @@ func (cm *CrawlManager) Crawl() error {
 	cm.Logger.Info("[Crawl] Starting Crawl function")
 
 	options := cm.GetOptions()
-
 	startURL := options.StartURL
 
 	cm.initializeStatsManager()
 
 	host, err := utils.GetHostFromURL(startURL)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get host from URL: %w", err)
 	}
 
-	cm.Logger.Debug("options", "MaxDepth", options.MaxDepth)
 	if err := cm.configureCollector([]string{host}, options.MaxDepth); err != nil {
-		return err
+		return fmt.Errorf("failed to configure collector: %w", err)
 	}
 
-	// Create a new request queue with the Redis storage backend
-	q, err := queue.New(2, cm.Storage)
+	q, err := cm.createQueue()
 	if err != nil {
-		return fmt.Errorf("failed to create queue: %v", err)
+		return fmt.Errorf("failed to create queue: %w", err)
 	}
 
-	// Add the start URL to the queue
-	err = q.AddURL(startURL)
-	if err != nil {
-		return fmt.Errorf("failed to add URL to queue: %v", err)
+	if err := q.AddURL(startURL); err != nil {
+		return fmt.Errorf("failed to add URL to queue: %w", err)
 	}
 
-	// Consume requests
-	err = q.Run(cm.CollectorInstance.GetCollector())
-	if err != nil {
-		return fmt.Errorf("failed to run queue: %v", err)
+	if err := q.Run(cm.CollectorInstance.GetCollector()); err != nil {
+		return fmt.Errorf("failed to run queue: %w", err)
 	}
 
-	// close redis client
 	defer cm.Storage.Client.Close()
 
 	cm.Logger.Info("[Crawl] Crawling completed.")
-
 	return nil
+}
+
+func (cm *CrawlManager) createQueue() (*queue.Queue, error) {
+	return queue.New(2, cm.Storage)
 }
 
 func (cm *CrawlManager) configureCollector(allowedDomains []string, maxDepth int) error {
 	cm.Logger.Debug("[configureCollector]", "maxDepth", maxDepth)
 
-	// Get the underlying colly.Collector from the CollectorWrapper
 	collector := cm.CollectorInstance.GetCollector()
-
 	collector.AllowedDomains = allowedDomains
 	cm.Logger.Info("Allowed domains: ", "whitelist", allowedDomains)
 
@@ -121,42 +115,45 @@ func (cm *CrawlManager) configureCollector(allowedDomains []string, maxDepth int
 	}
 
 	if err := collector.Limit(limitRule); err != nil {
-		return err
+		return fmt.Errorf("failed to set limit rule: %w", err)
 	}
 
-	collector.OnHTML("a[href]", func(e *colly.HTMLElement) {
-		href, err := cm.getHref(e)
-		if err != nil {
-			return
-		}
-		if href == "" {
-			return
-		}
-
-		matchingTerms, err := cm.TermMatcher.GetMatchingTerms(href, e.Text, cm.Options.SearchTerms)
-		if err != nil {
-			cm.Logger.Error("Failed to get matching terms", err)
-			return
-		}
-		if len(matchingTerms) > 0 {
-			pageData := cm.createPageData(href)
-			err = cm.handleMatchingTerms(cm.Options, e.Request.URL.String(), pageData, matchingTerms)
-			if err != nil {
-				return
-			}
-		}
-
-		err = e.Request.Visit(href)
-		if err != nil {
-			return
-		}
-	})
-
-	collector.OnError(func(r *colly.Response, err error) {
-		fmt.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
-	})
+	collector.OnHTML("a[href]", cm.handleLink)
+	collector.OnError(cm.handleError)
 
 	return nil
+}
+
+func (cm *CrawlManager) handleLink(e *colly.HTMLElement) {
+	href, err := cm.getHref(e)
+	if err != nil || href == "" {
+		return
+	}
+
+	matchingTerms, err := cm.TermMatcher.GetMatchingTerms(href, e.Text, cm.Options.SearchTerms)
+	if err != nil {
+		cm.Logger.Error("Failed to get matching terms", err)
+		return
+	}
+
+	if len(matchingTerms) > 0 {
+		pageData := cm.createPageData(href)
+		if err := cm.handleMatchingTerms(cm.Options, e.Request.URL.String(), pageData, matchingTerms); err != nil {
+			cm.Logger.Error("Failed to handle matching terms", err)
+		}
+	}
+
+	if err := e.Request.Visit(href); err != nil {
+		cm.Logger.Error("Failed to visit URL", err)
+	}
+}
+func (cm *CrawlManager) handleError(r *colly.Response, err error) {
+	cm.Logger.Error("Request failed",
+		err,
+		"url", r.Request.URL.String(),
+		"statusCode", r.StatusCode,
+		"body", string(r.Body),
+	)
 }
 
 func (cm *CrawlManager) GetDBManager() dbmanager.DatabaseManagerInterface {

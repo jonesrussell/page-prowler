@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/adrg/strutil"
 	"github.com/adrg/strutil/metrics"
 	"github.com/bbalet/stopwords"
 	"github.com/caneroj1/stemmer"
@@ -12,7 +11,7 @@ import (
 	"github.com/jonesrussell/page-prowler/utils"
 )
 
-const minTitleLength = 5 // Set the minimum character limit as needed
+const minTitleLength = 3
 
 type TermMatcher struct {
 	logger              loggo.LoggerInterface
@@ -38,60 +37,57 @@ func NewTermMatcher(logger loggo.LoggerInterface, threshold float64) *TermMatche
 	}
 }
 
-func (tm *TermMatcher) GetMatchingTerms(href string, anchorText string, searchTerms []string) ([]string, error) {
+func (tm *TermMatcher) GetMatchingTerms(href, anchorText string, searchTerms []string) ([]string, error) {
 	content := utils.ExtractLastSegmentFromURL(href)
 	processedContent := tm.processContent(content)
-	tm.logger.Debug(fmt.Sprintf("Processed content from URL: %v", processedContent))
+	processedAnchor := tm.processContent(anchorText)
+	combinedContent := tm.combineContents(processedContent, processedAnchor)
 
-	anchorContent := tm.processContent(anchorText)
-	tm.logger.Debug(fmt.Sprintf("Processed anchor text: %v", anchorContent))
-
-	combinedContent := tm.combineContents(processedContent, anchorContent)
 	tm.logger.Debug(fmt.Sprintf("Combined content: %v", combinedContent))
 
 	if len(combinedContent) < minTitleLength {
-		tm.logger.Warn(fmt.Sprintf("Combined content is less than minimum title length: %d", minTitleLength))
-		return []string{}, fmt.Errorf("combined content too short: %d characters", len(combinedContent))
+		return []string{}, nil
 	}
 
+	allSearchTerms := tm.flattenSearchTerms(searchTerms)
+	matchingTerms := tm.findMatchingTerms(combinedContent, allSearchTerms)
+
+	return tm.removeDuplicates(matchingTerms), nil
+}
+
+func (tm *TermMatcher) flattenSearchTerms(searchTerms []string) []string {
 	var allSearchTerms []string
 	for _, terms := range searchTerms {
 		allSearchTerms = append(allSearchTerms, strings.Split(terms, ",")...)
 	}
-
-	matchingTerms := tm.findMatchingTerms(combinedContent, allSearchTerms)
-
-	seen := make(map[string]bool)
-	var result []string
-	for _, v := range matchingTerms {
-		if !seen[v] {
-			seen[v] = true
-			result = append(result, v)
-		}
-	}
-
-	if len(result) == 0 {
-		tm.logger.Debug("No matching terms found")
-		return []string{}, nil
-	}
-
-	tm.logger.Debug(fmt.Sprintf("Found matching terms: %v", matchingTerms))
-	tm.logger.Debug(fmt.Sprintf("Matching terms result: %v", result))
-	return result, nil
+	return allSearchTerms
 }
 
 func (tm *TermMatcher) processContent(content string) string {
 	if processed, ok := tm.processedCache[content]; ok {
 		return processed
 	}
-	content = strings.ReplaceAll(content, "-", " ")                         // Remove hyphens
-	content = strings.TrimSpace(stopwords.CleanString(content, "en", true)) // Remove stopwords
 
-	// Process and stem
-	content = strings.ToLower(content)
+	content = strings.ReplaceAll(content, "-", " ")
+	content = stopwords.CleanString(content, "en", true)
 	words := strings.Fields(content)
+
+	// Debug log before stemming
+	tm.logger.Debug(fmt.Sprintf("Before stemming: %v", words))
+
 	words = stemmer.StemMultiple(words)
-	return strings.ToLower(strings.Join(words, " "))
+
+	// Convert words to lowercase after stemming
+	for i, word := range words {
+		words[i] = strings.ToLower(word)
+	}
+
+	// Debug log after stemming
+	tm.logger.Debug(fmt.Sprintf("After stemming: %v", words))
+
+	processed := strings.Join(words, " ")
+	tm.processedCache[content] = processed
+	return processed
 }
 
 func (tm *TermMatcher) combineContents(content1 string, content2 string) string {
@@ -103,7 +99,12 @@ func (tm *TermMatcher) combineContents(content1 string, content2 string) string 
 
 func (tm *TermMatcher) CompareTerms(searchTerm string, content string) float64 {
 	searchTerm = strings.ToLower(searchTerm)
-	similarity := strutil.Similarity(searchTerm, content, tm.swg)
+	content = strings.ToLower(content)
+	similarity := tm.swg.Compare(searchTerm, content)
+
+	if similarity < tm.similarityThreshold {
+		similarity = 0
+	}
 
 	tm.logger.Debug(fmt.Sprintf("Compared terms: searchTerm=%s, content=%s, similarity=%.2f", searchTerm, content, similarity))
 
@@ -112,40 +113,36 @@ func (tm *TermMatcher) CompareTerms(searchTerm string, content string) float64 {
 
 func (tm *TermMatcher) findMatchingTerms(content string, searchTerms []string) []string {
 	var matchingTerms []string
-
-	contentWords := strings.Fields(tm.stemContent(tm.convertToLowercase(content)))
-	contentSet := make(map[string]struct{}, len(contentWords))
-	for _, word := range contentWords {
-		contentSet[word] = struct{}{}
-	}
+	processedContent := tm.stemContent(strings.ToLower(content))
 
 	for _, searchTerm := range searchTerms {
-		processedTerm := tm.stemContent(tm.convertToLowercase(searchTerm))
-		words := strings.Fields(processedTerm)
-		for _, word := range words {
-			if _, exists := contentSet[word]; exists {
-				matchingTerms = append(matchingTerms, searchTerm)
-				break
-			}
+		processedTerm := tm.stemContent(strings.ToLower(searchTerm))
+		if strings.Contains(processedContent, processedTerm) {
+			matchingTerms = append(matchingTerms, searchTerm)
+		} else if tm.CompareTerms(searchTerm, content) >= tm.similarityThreshold {
+			matchingTerms = append(matchingTerms, searchTerm)
+			tm.logger.Debug(fmt.Sprintf("Matched term '%s' with similarity", searchTerm))
 		}
 	}
 
-	// Use similarity comparison only for terms not found by exact match
-	// ... implement this part ...
-
-	return matchingTerms
-}
-
-func (tm *TermMatcher) convertToLowercase(content string) string {
-	return strings.ToLower(content)
+	// Ensure only unique and expected terms are returned
+	return tm.removeDuplicates(matchingTerms)
 }
 
 func (tm *TermMatcher) stemContent(content string) string {
 	words := strings.Fields(content)
 	stemmedWords := stemmer.StemMultiple(words)
-	lowercaseStemmedWords := make([]string, len(stemmedWords))
-	for i, word := range stemmedWords {
-		lowercaseStemmedWords[i] = strings.ToLower(word)
+	return strings.Join(stemmedWords, " ")
+}
+
+func (tm *TermMatcher) removeDuplicates(terms []string) []string {
+	seen := make(map[string]struct{})
+	unique := []string{}
+	for _, term := range terms {
+		if _, ok := seen[term]; !ok {
+			seen[term] = struct{}{}
+			unique = append(unique, term)
+		}
 	}
-	return strings.Join(lowercaseStemmedWords, " ")
+	return unique
 }

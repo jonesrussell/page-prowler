@@ -36,7 +36,7 @@ This command will run fmt, lint, test, and build targets defined in the Makefile
 To search for matchlinks from the command line, use the following command:
 
 ```bash
-./page-prowler matchlinks --url="https://www.example.com" --searchterms="keyword1,keyword2" --siteid=siteID --maxdepth=1 --debug
+./page-prowler crawl --url="https://www.example.com" --searchterms="keyword1,keyword2" --siteid=siteID --maxdepth=1 --debug
 ```
 
 Replace `"https://www.example.com"` with the URL you want to crawl, `"keyword1,keyword2"` with the search terms you want to look for, `siteID` with your site ID, and `1` with the maximum depth of the crawl.
