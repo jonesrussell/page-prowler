@@ -2,12 +2,12 @@ package termmatcher
 
 import (
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/adrg/strutil/metrics"
 	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/utils"
+	"github.com/xrash/smetrics"
 )
 
 const minTitleLength = 3
@@ -43,14 +43,21 @@ func (tm *TermMatcher) GetMatchingTerms(href, anchorText string, searchTerms []s
 	combinedContent := tm.combineContents(processedContent, processedAnchor)
 
 	tm.logger.Debug(fmt.Sprintf("Combined content: %v", combinedContent))
+	tm.logger.Debug(fmt.Sprintf("Search terms: %v", searchTerms))
 
 	// Check if the combined content is too short
 	if len(strings.Fields(combinedContent)) < minTitleLength {
+		tm.logger.Debug("Combined content too short")
 		return []string{}, nil
 	}
 
 	allSearchTerms := tm.flattenSearchTerms(searchTerms)
-	return tm.findMatchingTerms(combinedContent, allSearchTerms), nil
+	tm.logger.Debug(fmt.Sprintf("Flattened search terms: %v", allSearchTerms))
+
+	matchingTerms := tm.findMatchingTerms(combinedContent, allSearchTerms)
+	tm.logger.Debug(fmt.Sprintf("Matching terms: %v", matchingTerms))
+
+	return matchingTerms, nil
 }
 
 func (tm *TermMatcher) flattenSearchTerms(searchTerms []string) []string {
@@ -68,50 +75,67 @@ func (tm *TermMatcher) combineContents(content1 string, content2 string) string 
 	return content1 + " " + content2
 }
 
-func (tm *TermMatcher) CompareTerms(term1, term2 string) float64 {
-	term1 = strings.ToLower(term1)
-	term2 = strings.ToLower(term2)
-
-	similarity := tm.swg.Compare(term1, term2)
-
-	// Normalize the similarity score
-	maxLen := float64(max(len(term1), len(term2)))
-	if maxLen > 0 {
-		similarity /= maxLen
-	}
-
-	// Adjust similarity to be more lenient
-	similarity = math.Pow(similarity, 0.5)
-
-	if similarity < tm.similarityThreshold {
-		similarity = 0
-	}
-
-	tm.logger.Debug(fmt.Sprintf("Compared terms: term1=%s, term2=%s, similarity=%.2f", term1, term2, similarity))
-
-	return similarity
-}
-
 func (tm *TermMatcher) findMatchingTerms(content string, searchTerms []string) []string {
 	var matchingTerms []string
 	processedContent := tm.contentProcessor.Stem(strings.ToLower(content))
+	words := strings.Fields(processedContent)
+
+	tm.logger.Debug(fmt.Sprintf("Processed content: %s", processedContent))
+	tm.logger.Debug(fmt.Sprintf("Words: %v", words))
 
 	for _, searchTerm := range searchTerms {
 		processedTerm := tm.contentProcessor.Stem(strings.ToLower(searchTerm))
+		tm.logger.Debug(fmt.Sprintf("Processing search term: %s (stemmed: %s)", searchTerm, processedTerm))
+
 		if strings.Contains(processedContent, processedTerm) {
+			tm.logger.Debug(fmt.Sprintf("Exact match found for: %s", searchTerm))
 			matchingTerms = append(matchingTerms, searchTerm)
 		} else {
-			words := strings.Fields(processedContent)
-			for _, word := range words {
-				if similarity := tm.CompareTerms(processedTerm, word); similarity >= tm.similarityThreshold {
-					matchingTerms = append(matchingTerms, searchTerm)
-					break
-				}
+			if tm.isMultiTerm(processedTerm) {
+				matchingTerms = append(matchingTerms, tm.compareMultiTerm(processedTerm, words)...)
+			} else {
+				matchingTerms = append(matchingTerms, tm.compareSingleTerm(processedTerm, words)...)
 			}
 		}
 	}
 
 	return tm.removeDuplicates(matchingTerms)
+}
+
+func (tm *TermMatcher) isMultiTerm(term string) bool {
+	return len(strings.Fields(term)) > 1
+}
+
+func (tm *TermMatcher) compareSingleTerm(term string, words []string) []string {
+	var matchingTerms []string
+	for _, word := range words {
+		similarity := tm.CompareTerms(term, word)
+		tm.logger.Debug(fmt.Sprintf("Comparing single term '%s' with '%s', similarity: %.2f", term, word, similarity))
+		if similarity >= tm.similarityThreshold {
+			tm.logger.Debug(fmt.Sprintf("Similarity match found for: %s", term))
+			matchingTerms = append(matchingTerms, term)
+			break
+		}
+	}
+	return matchingTerms
+}
+
+func (tm *TermMatcher) compareMultiTerm(term string, words []string) []string {
+	matchingTerms := []string{} // Initialize as an empty slice
+	termWords := strings.Fields(term)
+	termLength := len(termWords)
+
+	for i := 0; i <= len(words)-termLength; i++ {
+		phrase := strings.Join(words[i:i+termLength], " ")
+		similarity := tm.CompareTerms(term, phrase)
+		tm.logger.Debug(fmt.Sprintf("Comparing multi-term '%s' with '%s', similarity: %.2f", term, phrase, similarity))
+		if similarity >= tm.similarityThreshold {
+			tm.logger.Debug(fmt.Sprintf("Similarity match found for: %s", term))
+			matchingTerms = append(matchingTerms, term)
+			break
+		}
+	}
+	return matchingTerms
 }
 
 func (tm *TermMatcher) removeDuplicates(terms []string) []string {
@@ -126,9 +150,8 @@ func (tm *TermMatcher) removeDuplicates(terms []string) []string {
 	return unique
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
+func (tm *TermMatcher) CompareTerms(term1, term2 string) float64 {
+	similarity := smetrics.JaroWinkler(strings.ToLower(term1), strings.ToLower(term2), 0.7, 4)
+	tm.logger.Debug(fmt.Sprintf("Compared terms: term1=%s, term2=%s, similarity=%.2f", term1, term2, similarity))
+	return similarity
 }

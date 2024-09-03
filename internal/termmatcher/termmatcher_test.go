@@ -20,9 +20,9 @@ func (m *MockContentProcessor) Stem(content string) string {
 }
 
 func TestGetMatchingTerms(t *testing.T) {
-	logger := loggo.NewMockLogger()
+	mockLogger := loggo.NewMockLogger()
 	processor := &MockContentProcessor{}
-	tm := NewTermMatcher(logger, 0.8, processor)
+	tm := NewTermMatcher(mockLogger, 0.5, processor) // Increase the threshold to 0.5
 
 	tests := []struct {
 		name        string
@@ -76,6 +76,7 @@ func TestGetMatchingTerms(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			mockLogger.DebugMessages = nil // Clear debug messages before each test
 			got, err := tm.GetMatchingTerms(tt.href, tt.anchorText, tt.searchTerms)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetMatchingTerms() error = %v, wantErr %v", err, tt.wantErr)
@@ -83,6 +84,10 @@ func TestGetMatchingTerms(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetMatchingTerms() = %v, want %v", got, tt.want)
+				t.Logf("Debug logs:")
+				for _, log := range mockLogger.DebugMessages {
+					t.Logf(log)
+				}
 			}
 		})
 	}
@@ -280,7 +285,6 @@ func TestTermMatcher_combineContents(t *testing.T) {
 	}
 }
 
-// Add a new test for the removeDuplicates function
 func TestTermMatcher_removeDuplicates(t *testing.T) {
 	logger := loggo.NewMockLogger()
 	processor := &MockContentProcessor{}
@@ -317,6 +321,84 @@ func TestTermMatcher_removeDuplicates(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tm.removeDuplicates(tt.terms)
 			assert.ElementsMatch(t, tt.want, got)
+		})
+	}
+}
+
+func TestTermMatcher_compareSingleTerm(t *testing.T) {
+	logger := loggo.NewMockLogger()
+	processor := &MockContentProcessor{}
+	tm := NewTermMatcher(logger, 0.6, processor)
+
+	tests := []struct {
+		name  string
+		term  string
+		words []string
+		want  []string
+	}{
+		{
+			name:  "Matching term",
+			term:  "run",
+			words: []string{"running", "shoes", "for", "athletes"},
+			want:  []string{"run"},
+		},
+		{
+			name:  "No matching term",
+			term:  "book",
+			words: []string{"running", "shoes", "for", "athletes"},
+			want:  []string{},
+		},
+		{
+			name:  "Multiple similar words",
+			term:  "run",
+			words: []string{"running", "runner", "ran", "jog"},
+			want:  []string{"run"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tm.compareSingleTerm(tt.term, tt.words)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestTermMatcher_compareMultiTerm(t *testing.T) {
+	logger := loggo.NewMockLogger()
+	processor := &MockContentProcessor{}
+	tm := NewTermMatcher(logger, 0.6, processor)
+
+	tests := []struct {
+		name  string
+		term  string
+		words []string
+		want  []string
+	}{
+		{
+			name:  "Exact match",
+			term:  "running shoes",
+			words: []string{"best", "running", "shoes", "for", "athletes"},
+			want:  []string{"running shoes"},
+		},
+		{
+			name:  "No match",
+			term:  "tennis racket",
+			words: []string{"best", "running", "shoes", "for", "athletes"},
+			want:  []string{},
+		},
+		{
+			name:  "Partial match",
+			term:  "running gear",
+			words: []string{"best", "running", "shoes", "and", "gear"},
+			want:  []string{"running gear"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tm.compareMultiTerm(tt.term, tt.words)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
