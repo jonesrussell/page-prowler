@@ -1,0 +1,10 @@
+{
+    "rules": [
+        {
+            "name": "no-warning-suppression",
+            "description": "Do not suppress warnings using linter directives",
+            "pattern": "//\\s*nolint",
+            "severity": "error"
+        }
+    ]
+}
