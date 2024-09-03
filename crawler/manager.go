@@ -50,7 +50,8 @@ func NewCrawlManager(
 		Options:           options,
 		Results:           NewResults(),
 		Storage:           storage,
-		TermMatcher:       termmatcher.NewTermMatcher(logger),
+		TermMatcher:       termmatcher.NewTermMatcher(logger, 0.8), // Added default threshold of 0.8
+		StatsManager:      NewStatsManager(),
 	}
 }
 
@@ -132,10 +133,14 @@ func (cm *CrawlManager) configureCollector(allowedDomains []string, maxDepth int
 			return
 		}
 
-		matchingTerms := cm.TermMatcher.GetMatchingTerms(href, e.Text, cm.Options.SearchTerms)
+		matchingTerms, err := cm.TermMatcher.GetMatchingTerms(href, e.Text, cm.Options.SearchTerms)
+		if err != nil {
+			cm.Logger.Error("Failed to get matching terms", err)
+			return
+		}
 		if len(matchingTerms) > 0 {
 			pageData := cm.createPageData(href)
-			err := cm.handleMatchingTerms(cm.Options, e.Request.URL.String(), pageData, matchingTerms)
+			err = cm.handleMatchingTerms(cm.Options, e.Request.URL.String(), pageData, matchingTerms)
 			if err != nil {
 				return
 			}

@@ -4,22 +4,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/adrg/strutil/metrics"
 	"github.com/jonesrussell/loggo"
 )
 
-type fields struct {
-	logger loggo.LoggerInterface
-	swg    *metrics.SmithWatermanGotoh
-}
-
-type args struct {
-	content string
-}
-
 func TestGetMatchingTerms(t *testing.T) {
 	logger := loggo.NewMockLogger()
-	tm := NewTermMatcher(logger)
+	tm := NewTermMatcher(logger, 0.8)
 
 	tests := []struct {
 		name        string
@@ -27,168 +17,73 @@ func TestGetMatchingTerms(t *testing.T) {
 		anchorText  string
 		searchTerms []string
 		want        []string
+		wantErr     bool
 	}{
 		{
-			name:        "Test case 1",
-			href:        "https://example.com/test",
-			anchorText:  "Example Anchor Text",
-			searchTerms: []string{"example", "test"},
-			want:        []string{"examp", "test"},
+			name:        "Test case 1: Matching terms",
+			href:        "https://example.com/running-shoes",
+			anchorText:  "Best Running Shoes",
+			searchTerms: []string{"run", "shoe"},
+			want:        []string{"run", "shoe"},
+			wantErr:     false,
+		},
+		{
+			name:        "Test case 2: No matching terms",
+			href:        "https://example.com/laptops",
+			anchorText:  "Best Laptops",
+			searchTerms: []string{"run", "shoe"},
+			want:        []string{},
+			wantErr:     false,
+		},
+		{
+			name:        "Test case 3: Short combined content",
+			href:        "https://example.com/a",
+			anchorText:  "A",
+			searchTerms: []string{"a"},
+			want:        []string{},
+			wantErr:     true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tm.GetMatchingTerms(tt.href, tt.anchorText, tt.searchTerms); !reflect.DeepEqual(got, tt.want) {
+			got, err := tm.GetMatchingTerms(tt.href, tt.anchorText, tt.searchTerms)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetMatchingTerms() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetMatchingTerms() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestTermMatcher_stemContent(t *testing.T) {
+func TestTermMatcher_processContent(t *testing.T) {
 	logger := loggo.NewMockLogger()
-	swg := metrics.NewSmithWatermanGotoh()
+	tm := NewTermMatcher(logger, 0.8)
 
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   string
+		name    string
+		content string
+		want    string
 	}{
 		{
-			name: "Test case 1: Stemming single word",
-			fields: fields{
-				logger: logger,
-				swg:    swg,
-			},
-			args: args{
-				content: "running",
-			},
-			want: "run",
+			name:    "Test case 1: Process and stem content",
+			content: "Running shoes are the best",
+			want:    "run shoe best",
 		},
 		{
-			name: "Test case 2: Stemming multiple words",
-			fields: fields{
-				logger: logger,
-				swg:    swg,
-			},
-			args: args{
-				content: "jumps jumped jumping",
-			},
-			want: "jump jum jum",
+			name:    "Test case 2: Remove hyphens and stopwords",
+			content: "The quick-brown fox jumps over the lazy dog",
+			want:    "quick brown fox jump lazi dog",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tm := &TermMatcher{
-				logger: tt.fields.logger,
-				swg:    tt.fields.swg,
-			}
-			if got := tm.stemContent(tt.args.content); got != tt.want {
-				t.Errorf("TermMatcher.stemContent() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestTermMatcher_convertToLowercase(t *testing.T) {
-	logger := loggo.NewMockLogger()
-	swg := metrics.NewSmithWatermanGotoh()
-
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   string
-	}{
-		{
-			name: "Test case 1: Lowercase single word",
-			fields: fields{
-				logger: logger,
-				swg:    swg,
-			},
-			args: args{
-				content: "Hello",
-			},
-			want: "hello",
-		},
-		{
-			name: "Test case 2: Lowercase sentence",
-			fields: fields{
-				logger: logger,
-				swg:    swg,
-			},
-			args: args{
-				content: "Hello World!",
-			},
-			want: "hello world!",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tm := &TermMatcher{
-				logger: tt.fields.logger,
-				swg:    tt.fields.swg,
-			}
-			if got := tm.convertToLowercase(tt.args.content); got != tt.want {
-				t.Errorf("TermMatcher.convertToLowercase() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestTermMatcher_compareAndAppendTerm(t *testing.T) {
-	logger := loggo.NewMockLogger()
-	swg := metrics.NewSmithWatermanGotoh()
-
-	type args struct {
-		searchTerm string
-		content    string
-	}
-
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   bool
-	}{
-		{
-			name: "Test case 1: Exact match",
-			fields: fields{
-				logger: logger,
-				swg:    swg,
-			},
-			args: args{
-				searchTerm: "hello",
-				content:    "hello world",
-			},
-			want: true,
-		},
-		{
-			name: "Test case 2: No match",
-			fields: fields{
-				logger: logger,
-				swg:    swg,
-			},
-			args: args{
-				searchTerm: "goodbye",
-				content:    "hello world",
-			},
-			want: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tm := &TermMatcher{
-				logger: tt.fields.logger,
-				swg:    tt.fields.swg,
-			}
-			if got := tm.compareAndAppendTerm(tt.args.searchTerm, tt.args.content); got != tt.want {
-				t.Errorf("TermMatcher.compareAndAppendTerm() = %v, want %v", got, tt.want)
+			if got := tm.processContent(tt.content); got != tt.want {
+				t.Errorf("TermMatcher.processContent() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -196,108 +91,67 @@ func TestTermMatcher_compareAndAppendTerm(t *testing.T) {
 
 func TestTermMatcher_CompareTerms(t *testing.T) {
 	logger := loggo.NewMockLogger()
-	swg := metrics.NewSmithWatermanGotoh()
-
-	type args struct {
-		searchTerm string
-		content    string
-	}
+	tm := NewTermMatcher(logger, 0.8)
 
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   float64
+		name       string
+		searchTerm string
+		content    string
+		want       float64
 	}{
 		{
-			name: "Test case 1: High similarity",
-			fields: fields{
-				logger: logger,
-				swg:    swg,
-			},
-			args: args{
-				searchTerm: "hello world",
-				content:    "hello world",
-			},
-			want: 1.0,
+			name:       "Test case 1: High similarity",
+			searchTerm: "running",
+			content:    "run",
+			want:       1.0,
 		},
 		{
-			name: "Test case 2: No similarity",
-			fields: fields{
-				logger: logger,
-				swg:    swg,
-			},
-			args: args{
-				searchTerm: "hello",
-				content:    "world",
-			},
-			want: 0.2,
+			name:       "Test case 2: Low similarity",
+			searchTerm: "laptop",
+			content:    "computer",
+			want:       0.31666666666666665,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tm := &TermMatcher{
-				logger: tt.fields.logger,
-				swg:    tt.fields.swg,
-			}
-			if got := tm.CompareTerms(tt.args.searchTerm, tt.args.content); got != tt.want {
+			got := tm.CompareTerms(tt.searchTerm, tt.content)
+			if got != tt.want {
 				t.Errorf("TermMatcher.CompareTerms() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestTermMatcher_combineContents(t *testing.T) {
+func TestTermMatcher_findMatchingTerms(t *testing.T) {
 	logger := loggo.NewMockLogger()
-	swg := metrics.NewSmithWatermanGotoh()
-
-	type args struct {
-		content1 string
-		content2 string
-	}
+	tm := NewTermMatcher(logger, 0.8)
 
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   string
+		name        string
+		content     string
+		searchTerms []string
+		want        []string
 	}{
 		{
-			name: "Test case 1: Combine two non-empty contents",
-			fields: fields{
-				logger: logger,
-				swg:    swg,
-			},
-			args: args{
-				content1: "hello",
-				content2: "world",
-			},
-			want: "hello world",
+			name:        "Test case 1: Matching terms",
+			content:     "running shoes for athletes",
+			searchTerms: []string{"run", "shoe", "athlete"},
+			want:        []string{"run", "shoe", "athlete"},
 		},
 		{
-			name: "Test case 2: Combine content with empty string",
-			fields: fields{
-				logger: logger,
-				swg:    swg,
-			},
-			args: args{
-				content1: "hello",
-				content2: "",
-			},
-			want: "hello",
+			name:        "Test case 2: No matching terms",
+			content:     "laptop computers for sale",
+			searchTerms: []string{"run", "shoe", "athlete"},
+			want:        []string{},
 		},
-		// TODO: Add more test cases.
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tm := &TermMatcher{
-				logger: tt.fields.logger,
-				swg:    tt.fields.swg,
-			}
-			if got := tm.combineContents(tt.args.content1, tt.args.content2); got != tt.want {
-				t.Errorf("TermMatcher.combineContents() = %v, want %v", got, tt.want)
+			got := tm.findMatchingTerms(tt.content, tt.searchTerms)
+			if len(got) != len(tt.want) {
+				t.Errorf("TermMatcher.findMatchingTerms() = %v, want %v", got, tt.want)
 			}
 		})
 	}

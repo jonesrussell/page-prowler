@@ -17,9 +17,8 @@ func TestHandleMatchingTerms(t *testing.T) {
 
 	// Create a mock DBManager
 	dbManager := dbmanager.NewMockDBManager()
-
 	// Create an actual TermMatcher
-	termMatcher := termmatcher.NewTermMatcher(logger)
+	termMatcher := termmatcher.NewTermMatcher(logger, 0.8) // Added default similarity threshold
 
 	cm := NewCrawlManager(logger, dbManager, nil, nil, nil)
 	cm.TermMatcher = termMatcher
