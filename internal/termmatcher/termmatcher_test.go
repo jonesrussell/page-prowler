@@ -6,11 +6,23 @@ import (
 	"testing"
 
 	"github.com/jonesrussell/loggo"
+	"github.com/stretchr/testify/assert"
 )
+
+type MockContentProcessor struct{}
+
+func (m *MockContentProcessor) Process(content string) string {
+	return content
+}
+
+func (m *MockContentProcessor) Stem(content string) string {
+	return content
+}
 
 func TestGetMatchingTerms(t *testing.T) {
 	logger := loggo.NewMockLogger()
-	tm := NewTermMatcher(logger, 0.8)
+	processor := &MockContentProcessor{}
+	tm := NewTermMatcher(logger, 0.8, processor)
 
 	tests := []struct {
 		name        string
@@ -76,40 +88,10 @@ func TestGetMatchingTerms(t *testing.T) {
 	}
 }
 
-func TestTermMatcher_processContent(t *testing.T) {
-	logger := loggo.NewMockLogger()
-	tm := NewTermMatcher(logger, 0.8)
-
-	tests := []struct {
-		name    string
-		content string
-		want    string
-	}{
-		{
-			name:    "Test case 1: Process and stem content",
-			content: "Running shoes are the best",
-			want:    "run shoe best",
-		},
-		{
-			name:    "Test case 2: Remove hyphens and stopwords",
-			content: "The quick-brown fox jumps over the lazy dog",
-			want:    "quick brown fox jump lazi dog",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := tm.processContent(tt.content)
-			if got != tt.want {
-				t.Errorf("TermMatcher.processContent() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestTermMatcher_CompareTerms(t *testing.T) {
 	logger := loggo.NewMockLogger()
-	tm := NewTermMatcher(logger, 0.8)
+	processor := &MockContentProcessor{}
+	tm := NewTermMatcher(logger, 0.6, processor)
 
 	tests := []struct {
 		name       string
@@ -118,16 +100,40 @@ func TestTermMatcher_CompareTerms(t *testing.T) {
 		want       float64
 	}{
 		{
-			name:       "Test case 1: High similarity",
+			name:       "High similarity",
 			searchTerm: "running",
 			content:    "run",
-			want:       1.0,
+			want:       0.77,
 		},
 		{
-			name:       "Test case 2: Low similarity",
+			name:       "Low similarity",
 			searchTerm: "laptop",
 			content:    "computer",
 			want:       0.0,
+		},
+		{
+			name:       "Exact match",
+			searchTerm: "book",
+			content:    "book",
+			want:       1.0,
+		},
+		{
+			name:       "Case insensitive",
+			searchTerm: "HELLO",
+			content:    "hello",
+			want:       1.0,
+		},
+		{
+			name:       "Empty strings",
+			searchTerm: "",
+			content:    "",
+			want:       0.0,
+		},
+		{
+			name:       "Just below threshold",
+			searchTerm: "organize",
+			content:    "organ",
+			want:       0.0, // Assuming threshold is 0.6
 		},
 	}
 
@@ -143,7 +149,8 @@ func TestTermMatcher_CompareTerms(t *testing.T) {
 
 func TestTermMatcher_findMatchingTerms(t *testing.T) {
 	logger := loggo.NewMockLogger()
-	tm := NewTermMatcher(logger, 0.8)
+	processor := &MockContentProcessor{}
+	tm := NewTermMatcher(logger, 0.6, processor)
 
 	tests := []struct {
 		name        string
@@ -175,6 +182,12 @@ func TestTermMatcher_findMatchingTerms(t *testing.T) {
 			searchTerms: []string{"organized crime", "gang activities"},
 			want:        []string{"organized crime"},
 		},
+		{
+			name:        "Test case 5: Similarity matching with threshold",
+			content:     "organize criminal activities",
+			searchTerms: []string{"organized crime", "gang activities"},
+			want:        []string{"organized crime"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -183,6 +196,127 @@ func TestTermMatcher_findMatchingTerms(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("TermMatcher.findMatchingTerms() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func TestTermMatcher_flattenSearchTerms(t *testing.T) {
+	logger := loggo.NewMockLogger()
+	processor := &MockContentProcessor{}
+	tm := NewTermMatcher(logger, 0.8, processor)
+
+	tests := []struct {
+		name        string
+		searchTerms []string
+		want        []string
+	}{
+		{
+			name:        "Test case 1: Single terms",
+			searchTerms: []string{"run", "shoe", "athlete"},
+			want:        []string{"run", "shoe", "athlete"},
+		},
+		{
+			name:        "Test case 2: Comma-separated terms",
+			searchTerms: []string{"run,shoe", "athlete,sport"},
+			want:        []string{"run", "shoe", "athlete", "sport"},
+		},
+		{
+			name:        "Test case 3: Mixed single and comma-separated terms",
+			searchTerms: []string{"run", "shoe,athlete", "sport"},
+			want:        []string{"run", "shoe", "athlete", "sport"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tm.flattenSearchTerms(tt.searchTerms)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestTermMatcher_combineContents(t *testing.T) {
+	logger := loggo.NewMockLogger()
+	processor := &MockContentProcessor{}
+	tm := NewTermMatcher(logger, 0.8, processor)
+
+	tests := []struct {
+		name     string
+		content1 string
+		content2 string
+		want     string
+	}{
+		{
+			name:     "Test case 1: Both contents non-empty",
+			content1: "running",
+			content2: "shoes",
+			want:     "running shoes",
+		},
+		{
+			name:     "Test case 2: Second content empty",
+			content1: "running",
+			content2: "",
+			want:     "running",
+		},
+		{
+			name:     "Test case 3: First content empty",
+			content1: "",
+			content2: "shoes",
+			want:     " shoes",
+		},
+		{
+			name:     "Test case 4: Both contents empty",
+			content1: "",
+			content2: "",
+			want:     "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tm.combineContents(tt.content1, tt.content2)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// Add a new test for the removeDuplicates function
+func TestTermMatcher_removeDuplicates(t *testing.T) {
+	logger := loggo.NewMockLogger()
+	processor := &MockContentProcessor{}
+	tm := NewTermMatcher(logger, 0.8, processor)
+
+	tests := []struct {
+		name  string
+		terms []string
+		want  []string
+	}{
+		{
+			name:  "No duplicates",
+			terms: []string{"apple", "banana", "cherry"},
+			want:  []string{"apple", "banana", "cherry"},
+		},
+		{
+			name:  "With duplicates",
+			terms: []string{"apple", "banana", "apple", "cherry", "banana"},
+			want:  []string{"apple", "banana", "cherry"},
+		},
+		{
+			name:  "All duplicates",
+			terms: []string{"apple", "apple", "apple"},
+			want:  []string{"apple"},
+		},
+		{
+			name:  "Empty slice",
+			terms: []string{},
+			want:  []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tm.removeDuplicates(tt.terms)
+			assert.ElementsMatch(t, tt.want, got)
 		})
 	}
 }

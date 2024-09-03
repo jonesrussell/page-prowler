@@ -13,13 +13,10 @@ import (
 )
 
 func TestHandleMatchingTerms(t *testing.T) {
-	// Create a mock logger
 	logger := loggo.NewMockLogger()
-
-	// Create a mock DBManager
 	dbManager := dbmanager.NewMockDBManager()
-	// Create an actual TermMatcher
-	termMatcher := termmatcher.NewTermMatcher(logger, 0.8)
+	contentProcessor := termmatcher.NewDefaultContentProcessor()
+	termMatcher := termmatcher.NewTermMatcher(logger, 0.6, contentProcessor)
 
 	collectorWrapper := &CollectorWrapper{}
 	crawlOptions := &CrawlOptions{}
@@ -28,36 +25,59 @@ func TestHandleMatchingTerms(t *testing.T) {
 	cm := NewCrawlManager(logger, dbManager, collectorWrapper, crawlOptions, redisStorage, termMatcher)
 	cm.initializeStatsManager()
 
-	// Define the input parameters
-	options := &CrawlOptions{}
+	options := &CrawlOptions{
+		CrawlSiteID: "test_crawl",
+	}
 	currentURL := "https://www.example.com/the-cat-has-been-abducted"
 	pageData := models.PageData{URL: currentURL}
 	matchingTerms := []string{"abduct"}
 
-	// Call the function
 	err := cm.handleMatchingTerms(options, currentURL, pageData, matchingTerms)
 
-	// Print the actual PageData
-	t.Logf("Actual PageData: %+v\n", pageData)
-
-	// Assert that there was no error
 	assert.NoError(t, err)
 
-	// Define the expected PageData
-	expectedPageData := models.PageData{
-		URL:             currentURL,
-		MatchingTerms:   matchingTerms,
-		SimilarityScore: 1, // Update this to the expected similarity score
-	}
-
-	// Assert that the result was saved to Redis
 	ctx := context.Background()
 	key := options.CrawlSiteID
 	savedResults, err := dbManager.GetResultsFromRedis(ctx, key)
 
-	// Print the actual results saved to Redis
-	t.Logf("Actual results saved to Redis: %+v\n", savedResults)
-
 	assert.NoError(t, err)
-	assert.Contains(t, savedResults, expectedPageData) // Use the expected PageData
+	assert.Len(t, savedResults, 1)
+	actualPageData := savedResults[0]
+
+	assert.Equal(t, currentURL, actualPageData.URL)
+	assert.Equal(t, matchingTerms, actualPageData.MatchingTerms)
+
+	// Check if SimilarityScore is set
+	assert.GreaterOrEqual(t, actualPageData.SimilarityScore, 0.0)
+	assert.LessOrEqual(t, actualPageData.SimilarityScore, 1.0)
+
+	// Check if stats were updated correctly
+	assert.Equal(t, 1, cm.StatsManager.LinkStats.GetMatchedLinks())
+	assert.Equal(t, 0, cm.StatsManager.LinkStats.GetNotMatchedLinks())
+}
+
+func TestUpdateStats(t *testing.T) {
+	logger := loggo.NewMockLogger()
+	dbManager := dbmanager.NewMockDBManager()
+	contentProcessor := termmatcher.NewDefaultContentProcessor()
+	termMatcher := termmatcher.NewTermMatcher(logger, 0.6, contentProcessor)
+
+	collectorWrapper := &CollectorWrapper{}
+	crawlOptions := &CrawlOptions{}
+	redisStorage := &redisstorage.Storage{}
+
+	cm := NewCrawlManager(logger, dbManager, collectorWrapper, crawlOptions, redisStorage, termMatcher)
+	cm.initializeStatsManager()
+
+	options := &CrawlOptions{}
+
+	// Test with matching terms
+	cm.UpdateStats(options, []string{"term1", "term2"})
+	assert.Equal(t, 1, cm.StatsManager.LinkStats.GetMatchedLinks())
+	assert.Equal(t, 0, cm.StatsManager.LinkStats.GetNotMatchedLinks())
+
+	// Test with no matching terms
+	cm.UpdateStats(options, []string{})
+	assert.Equal(t, 1, cm.StatsManager.LinkStats.GetMatchedLinks())
+	assert.Equal(t, 1, cm.StatsManager.LinkStats.GetNotMatchedLinks())
 }

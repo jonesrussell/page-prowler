@@ -1,8 +1,8 @@
 module github.com/jonesrussell/page-prowler
 
-go 1.21
+go 1.21.0
 
-toolchain go1.21.3
+toolchain go1.21.13
 
 require (
 	github.com/PuerkitoBio/goquery v1.9.2 // indirect
@@ -17,18 +17,18 @@ require (
 	github.com/kennygrant/sanitize v1.2.4 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/temoto/robotstxt v1.1.2 // indirect
-	golang.org/x/net v0.27.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/net v0.28.0 // indirect
+	golang.org/x/text v0.17.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 )
 
 require (
 	github.com/adrg/strutil v0.3.1
 	github.com/bbalet/stopwords v1.0.0
-	github.com/caneroj1/stemmer v0.0.0-20170128035808-c9f2ce1504d5
 	github.com/gocolly/redisstorage v0.0.0-20190812112800-1745c5e6d0ba
 	github.com/hibiken/asynq v0.24.1
 	github.com/jonesrussell/loggo v0.1.2
+	github.com/kljensen/snowball v0.10.0
 	github.com/redis/go-redis/v9 v9.6.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
@@ -38,7 +38,7 @@ require (
 require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
-	golang.org/x/time v0.5.0 // indirect
+	golang.org/x/time v0.6.0 // indirect
 )
 
 require (
@@ -53,22 +53,22 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.34.0 // indirect
-	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
+	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/sagikazarmark/locafero v0.6.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
-	github.com/samber/lo v1.46.0 // indirect
-	github.com/samber/slog-multi v1.2.0 // indirect
+	github.com/samber/lo v1.47.0 // indirect
+	github.com/samber/slog-multi v1.2.1 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
-	github.com/spf13/cast v1.6.0 // indirect
+	github.com/spf13/cast v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
-	golang.org/x/sys v0.22.0 // indirect
+	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
+	golang.org/x/sys v0.24.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

@@ -69,13 +69,16 @@ func InitializeManager(
 		log.Fatal(err)
 	}
 
+	contentProcessor := termmatcher.NewDefaultContentProcessor()
+	termMatcher := termmatcher.NewTermMatcher(appLogger, 0.8, contentProcessor)
+
 	return crawler.NewCrawlManager(
 		appLogger,
 		dbManager,
 		collectorWrapper,
 		&crawler.CrawlOptions{},
 		storage,
-		termmatcher.NewTermMatcher(appLogger, 0.8),
+		termMatcher,
 	), nil
 }
 
