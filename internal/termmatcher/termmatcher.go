@@ -107,7 +107,7 @@ func (tm *TermMatcher) isMultiTerm(term string) bool {
 }
 
 func (tm *TermMatcher) compareSingleTerm(term string, words []string) []string {
-	var matchingTerms []string
+	matchingTerms := []string{} // Initialize as an empty slice
 	for _, word := range words {
 		similarity := tm.CompareTerms(term, word)
 		tm.logger.Debug(fmt.Sprintf("Comparing single term '%s' with '%s', similarity: %.2f", term, word, similarity))
