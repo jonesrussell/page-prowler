@@ -155,7 +155,7 @@ func TestTermMatcher_CompareTerms(t *testing.T) {
 func TestTermMatcher_findMatchingTerms(t *testing.T) {
 	logger := loggo.NewMockLogger()
 	processor := &MockContentProcessor{}
-	tm := NewTermMatcher(logger, 0.6, processor)
+	tm := NewTermMatcher(logger, 0.8, processor) // Increase threshold to 0.8
 
 	tests := []struct {
 		name        string

@@ -80,26 +80,44 @@ func (tm *TermMatcher) findMatchingTerms(content string, searchTerms []string) [
 	processedContent := tm.contentProcessor.Stem(strings.ToLower(content))
 	words := strings.Fields(processedContent)
 
-	tm.logger.Debug(fmt.Sprintf("Processed content: %s", processedContent))
+	tm.logger.Debug(fmt.Sprintf("Processed content: %v", processedContent))
 	tm.logger.Debug(fmt.Sprintf("Words: %v", words))
 
 	for _, searchTerm := range searchTerms {
 		processedTerm := tm.contentProcessor.Stem(strings.ToLower(searchTerm))
-		tm.logger.Debug(fmt.Sprintf("Processing search term: %s (stemmed: %s)", searchTerm, processedTerm))
+		tm.logger.Debug(fmt.Sprintf("Processing search term: %v", searchTerm))
+		tm.logger.Debug(fmt.Sprintf("Processed search term: %v", processedTerm))
 
-		if strings.Contains(processedContent, processedTerm) {
-			tm.logger.Debug(fmt.Sprintf("Exact match found for: %s", searchTerm))
+		if containsWholeWord(words, processedTerm) {
+			tm.logger.Debug(fmt.Sprintf("Whole word match found for: %v", searchTerm))
 			matchingTerms = append(matchingTerms, searchTerm)
+		} else if tm.isMultiTerm(processedTerm) {
+			if tm.compareMultiTerm(processedTerm, words) != nil {
+				tm.logger.Debug(fmt.Sprintf("Multi-term match found for: %v", searchTerm))
+				matchingTerms = append(matchingTerms, searchTerm)
+			}
 		} else {
-			if tm.isMultiTerm(processedTerm) {
-				matchingTerms = append(matchingTerms, tm.compareMultiTerm(processedTerm, words)...)
-			} else {
-				matchingTerms = append(matchingTerms, tm.compareSingleTerm(processedTerm, words)...)
+			if tm.compareSingleTerm(processedTerm, words) != nil {
+				tm.logger.Debug(fmt.Sprintf("Single-term match found for: %v", searchTerm))
+				matchingTerms = append(matchingTerms, searchTerm)
 			}
 		}
 	}
 
-	return tm.removeDuplicates(matchingTerms)
+	tm.logger.Debug(fmt.Sprintf("Matching terms before removing duplicates: %v", matchingTerms))
+	uniqueTerms := tm.removeDuplicates(matchingTerms)
+	tm.logger.Debug(fmt.Sprintf("Unique matching terms: %v", uniqueTerms))
+
+	return uniqueTerms
+}
+
+func containsWholeWord(words []string, term string) bool {
+	for _, word := range words {
+		if word == term {
+			return true
+		}
+	}
+	return false
 }
 
 func (tm *TermMatcher) isMultiTerm(term string) bool {
