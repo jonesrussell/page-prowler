@@ -304,38 +304,7 @@
             </div>
         </div>
     </div>
-    <!-- BEGIN BANNERS -->
-    <header class="banner clearfix">
-        <div class="skip-links hidden">
-            <ul>
-                <li><a href="#responsive_main" title="skip to content">Skip to Main Content</a></li>
-            </ul>
-        </div><!-- END .skip-links -->
-        <div class="content-wrapper">
-            <div class='unmutePlayer'>
-                <article class="breakingNews">
-                    <div class="content-wrapper BNID_76870081727186125">
-                        <div class="breakingnewsTag">
-                            <h2 class="TagText BNID_76870081727186125"> WATCH LIVE</h2><span
-                                class="tagArrow">&nbsp;</span>
-                            <h2 class="BNID_76870081727186125 mobi">
-                                <a class="unmutePlayer" href="https://www.cp24.com/video?clipId=68595">CP24 BREAKING
-                                    NEWS IN TORONTO AND BEYOND</a>
-                            </h2>
-                            <span class="clearfix"></span>
-                        </div>
-                    </div><!-- END .content-wrapper -->
-                </article>
-            </div>
-            <div class="boxAd secondClass ">
-                <div class="advert">
-                    <div id="div-gpt-ad-728_90-1">
-                    </div>
-                    <p class="ad-below">Advertisement</p>
-                </div>
-            </div>
-        </div>
-    </header><!-- END .banner -->
+    {{ template "header.html"}}
     <!-- END BANNERS -->
     <div class="content">
         <div class="video-header">
@@ -368,10 +337,9 @@
                                 <div style="display: inline-table; width:620px; " class="element teaser   ">
                                     <div class="teaser-image-wrapper teaser-image-top ">
                                         <div class="teaserImage ">
-                                            <a href="{{ .TopStory.Link }}"><img
-                                                    src="{{ .TopStory.Image }}"
-                                                    alt="{{ .TopStory.Title }}"
-                                                    width='620' title='{{ .TopStory.Title }}' height='349' /></a>
+                                            <a href="{{ .TopStory.Link }}"><img src="{{ .TopStory.Image }}"
+                                                    alt="{{ .TopStory.Title }}" width='620'
+                                                    title='{{ .TopStory.Title }}' height='349' /></a>
                                         </div>
                                         <div class="bn-headline ">
                                             <h2 class="teaserTitle">
@@ -3281,152 +3249,7 @@ HO' width='300' title='Ariella Kimmel and Mandi Johnson' height='169' /></a>
                     </div>
                 </div><!-- END .sidebar -->
             </div><!-- END div.content-secondary -->
-            <footer class="content-footer">
-                <div class='footernav'>
-                    <nav>
-                        <div>
-                            <a href="https://www.cp24.com/" title="CP24 Home">Home</a>
-                        </div>
-                        <div>
-                            <a href="https://jobs.bce.ca/bell/go/Media/3537600/" title="Careers">Careers</a>
-                        </div>
-                        <div>
-                            <a href="https://www.bell.ca/Security_and_privacy/Commitment_to_privacy"
-                                title="Privacy Policy">Privacy Policy</a>
-                        </div>
-                        <div>
-                            <a href="https://www.bellmedia.ca/bell-media-website-terms-conditions/"
-                                title="Terms and Conditions">Terms and Conditions</a>
-                        </div>
-                        <div>
-                            <a href="https://www.cp24.com/more/contact-us" title="Contact Us">Contact Us</a>
-                        </div>
-                        <div>
-                            <a href="https://www.cp24.com/more/about-us" title="About Us">About Us</a>
-                        </div>
-                        <div>
-                            <a href="https://www.bellmedia.ca/sales/political-ads-registry/" class="newWindow"
-                                target="_blank">Political Ads Registry</a>
-                        </div>
-                        <div>
-                            <a href="https://www.cp24.com/more/advertise-on-cp24" title="Advertise on CP24">Advertise on
-                                CP24</a>
-                        </div>
-                        <div><a href="javascript:void(0);" tabindex="0" id="accessibilityLink" title="Accessibility"
-                                onclick="displayAccessibilityDialog(event);"
-                                onkeydown="displayAccessibilityDialog(event);">Accessibility</a></div>
-                        <div id="activeModal" class="c-dialog-modal-wrapper bce hideDialog">
-                            <div id="c-dialog-modal" class="c-dialog-modal" tabindex="0" role="alertdialog"
-                                aria-label="BCE alert dialog">
-                                <h1 id="dialogLabel" class="title" tabindex="-1" aria-hidden="true">
-                                    BCE
-                                </h1>
-                                <div id="dialog_desc">
-                                    <div>
-                                        <div class="image">
-                                            <img src="https://www.cp24.com/polopoly_fs/1.6360493.1681837989!/image/image.png_gen/derivatives/landscape_620/image.png"
-                                                aria-label="BCE logo" role="img" tabindex="-1">
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="text">
-                                            <span>
-                                                <p>You are now being redirected to <a
-                                                        href="https://www.BCE.ca">BCE.ca</a> website (Bell Canada
-                                                    Enterprises) where you can view our Accessibility plan, progress
-                                                    report, and submit your feedback using our Accessibility web form.
-                                                </p>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <button class="close-button" tabindex="0" role="button"
-                                            onclick="cancelDialogEvent(event);" onkeydown="cancelDialogEvent(event);"
-                                            aria-label="close dialog"></button>
-                                        <div class="buttonGroup group">
-                                            <div>
-                                                <a id="gonow-link" tabindex="0" href="javascript:void(0);"
-                                                    class="button-std style-blue-primary"
-                                                    onclick="goNowDialogEvent(event);"
-                                                    onkeydown="goNowDialogEvent(event);">Go Now</a>
-                                            </div>
-                                            <div>
-                                                <button id="cancel-link" tabindex="0" href="javascript:void(0);"
-                                                    class="button-std style-blue-secondary"
-                                                    onclick="cancelDialogEvent(event);"
-                                                    onkeydown="cancelDialogEvent(event);">Cancel</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </nav>
-                </div>
-                <div class='footernav'>
-                    <nav>
-                        <div>
-                            <a href="https://www.cp24.com/news" title="Toronto News">Toronto News</a>
-                        </div>
-                        <div>
-                            <a href="http://www.cp24.com/world" title="World News ">World News</a>
-                        </div>
-                        <div>
-                            <a href="https://www.cp24.com/weather"
-                                title="Weather, Toronto, GTA, cottage country">Weather</a>
-                        </div>
-                        <div>
-                            <a href="https://www.cp24.com/sports" title="Sports news">Sports News</a>
-                        </div>
-                        <div>
-                            <a href="http://www.cp24.com/entertainment-news" title="Entertainment News">Entertainment
-                                News</a>
-                        </div>
-                    </nav>
-                </div>
-                <div class="footer-logos">
-                    <a class="footer-logo-link" href="https://www.ctv.ca"><img
-                            src="https://www.ctvnews.ca/polopoly_fs/1.4264165!/httpImage/image.png" height="36"
-                            width="88" alt="CTV.ca" /></a>
-                    <a class="footer-logo-link" href="https://www.ctv.ca"><img
-                            src="https://www.ctvnews.ca/polopoly_fs/1.4264174!/httpImage/image.png" height="36"
-                            width="88" alt="CTV Two" /></a>
-                    <a class="footer-logo-link" href="https://www.ctvnews.ca"><img
-                            src="//www.ctvnews.ca/polopoly_fs/7.726389!/httpImage/image.png" height="29" width="60"
-                            alt="CTVNews" /></a>
-                    <a class="footer-logo-link" href="https://www.ctvnews.ca/ctv-news-channel">
-                        <img src="https://www.ctvnews.ca/polopoly_fs/7.726390!/httpImage/image.png" height="35"
-                            width="56" alt="CTV News Channel" />
-                    </a>
-                    <a class="footer-logo-link" href="https://www.bnnbloomberg.ca">
-                        <img src="https://www.ctvnews.ca/polopoly_fs/7.711875!/httpImage/image.png" height="35"
-                            width="90" alt="BNN Bloomberg" />
-                    </a>
-                    <a class="footer-logo-link" href="https://www.cp24.com"><img
-                            src="https://static.ctvnews.ca/bellmedia/common/img/logos/footer-logo_cp24.jpg" height="30"
-                            width="53" alt="CP24" /></a>
-                </div>
-                <br />
-                <p class="terms">Use of this Website assumes acceptance of <a
-                        href="http://www.bellmedia.ca/bell-media-website-terms-conditions/"
-                        title="Terms &amp; Conditions">Terms &amp; Conditions</a> and <a
-                        href="https://support.bell.ca/Billing-and-Accounts/Security_and_privacy/How_does_Bell_respect_my_privacy"
-                        title="Privacy Policy">Privacy Policy</a></p>
-                <p class="copyright">&#169; 2024 <a href="http://www.bellmedia.ca/"><img class="copyright"
-                            src="https://static.ctvnews.ca/bellmedia/common/img/logos/bellmedia_logo.gif"
-                            alt="Bell Media" /></a> All rights reserved.</p>
-                <p class="credits"></p>
-                <div class='thirty-by-one'>
-                    <div class="">
-                        <div id="div-gpt-ad-30_1-4">
-                        </div>
-                    </div>
-                </div>
-                <a name="pagetop"></a>
-                <div id='div-gpt-ad-outofpage-1-oop' style='height: 0; width: 0'>
-                </div>
-                <p><a class="back-top hidden" href="#top" title="skip to top of page">Back to top</a></p>
-            </footer><!-- END #content-footer -->
+            {{ template "footer.html" . }}
         </div><!-- END div.content-wrapper -->
     </div><!-- END .content -->
 </body>
