@@ -55,6 +55,10 @@ func generateSite(siteName string, newsService news.Service) error {
 		return fmt.Errorf("failed to get latest updates: %v", err)
 	}
 
+	// Debug: Print information about latestUpdates
+	fmt.Printf("Type of latestUpdates: %T\n", latestUpdates)
+	fmt.Printf("Number of latest updates: %d\n", len(latestUpdates))
+
 	// Create the output directory with the site name
 	outputDir := fmt.Sprintf("static/generated/%s", siteName)
 	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
@@ -89,7 +93,7 @@ func generateSite(siteName string, newsService news.Service) error {
 	}
 
 	if err := tmpl.Execute(file, page); err != nil {
-		return fmt.Errorf("failed to execute template: %v", err)
+		return fmt.Errorf("failed to execute template: %w", err)
 	}
 
 	fmt.Printf("Static site generated: %s/index.html\n", outputDir)

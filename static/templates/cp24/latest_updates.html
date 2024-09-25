@@ -2,7 +2,7 @@
     <div class="column col1">
         <div class="element list none">
             <ul class="linklist vertical">
-                {{ range .LatestUpdates | slice 0 5 }}
+                {{ range (slice . 0 5) }}
                 <li class='newUpdate listItem_7_735453_1592604062_290423964' updated='1727269802330' created='1727261280197'>
                     <a href="{{ .Link }}" title="{{ .Title }}">{{ .Title }}</a>
                 </li>
@@ -16,7 +16,7 @@
     <div class="column col2">
         <div class="element list none">
             <ul class="linklist vertical">
-                {{ range .LatestUpdates | slice 5 10 }}
+                {{ range (slice . 5 10) }}
                 <li class='newUpdate listItem_7_735453_1592604062_290423972' updated='1727257610629' created='1727257610640'>
                     <a href="{{ .Link }}" title="{{ .Title }}">{{ .Title }}</a>
                 </li>
