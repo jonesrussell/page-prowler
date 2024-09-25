@@ -12,7 +12,10 @@ import (
 	"github.com/jonesrussell/page-prowler/utils"
 )
 
-const minTitleLength = 5 // Set the minimum character limit as needed
+const (
+	minTitleLength      = 5
+	similarityThreshold = 0.9
+)
 
 type TermMatcher struct {
 	logger loggo.LoggerInterface
@@ -115,7 +118,7 @@ func (tm *TermMatcher) compareAndAppendTerm(searchTerm string, content string) b
 
 	// If no exact match, use SWG for comparison
 	similarity := tm.CompareTerms(searchTerm, content)
-	if similarity >= 0.9 { // Increase the threshold to 0.9
+	if similarity >= similarityThreshold { // Use constant for threshold
 		tm.logger.Debug(fmt.Sprintf("Matching term found: %v", searchTerm))
 		return true
 	}
