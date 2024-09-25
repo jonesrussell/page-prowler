@@ -1,0 +1,25 @@
+<div class="element list videoPromoList">
+    <h3>FEATURED</h3>
+    <ul class="linklist">
+        <li class="dc grid">
+            {{ range . }}
+            <div style="display: inline-table; width:187px;" class="element teaser threecolumngridteaser grid_foo">
+                <div class="teaser-image-wrapper teaser-image-top">
+                    <div class="teaserImage">
+                        <a href="{{ .Link }}"><img src='{{ .Image }}' alt='{{ .Title }}' width='193' height='109' /></a>
+                    </div>
+                    <div class="bn-headline">
+                        <h2 class="teaserTitle">
+                            <a href="{{ .Link }}">{{ .Title }}</a>
+                        </h2>
+                    </div>
+                </div>
+            </div>
+            {{ end }}
+            <div class="clearfix"></div>
+        </li>
+    </ul>
+    <div class="bottom-links">
+    </div>
+    <div class="clearfix"></div>
+</div>

@@ -55,9 +55,29 @@ func generateSite(siteName string, newsService news.Service) error {
 		return fmt.Errorf("failed to get latest updates: %v", err)
 	}
 
-	// Debug: Print information about latestUpdates
-	fmt.Printf("Type of latestUpdates: %T\n", latestUpdates)
-	fmt.Printf("Number of latest updates: %d\n", len(latestUpdates))
+	featured, err := newsService.GetFeatured(siteName)
+	if err != nil {
+		return fmt.Errorf("failed to get featured articles: %w", err)
+	}
+
+	inPhotos, err := newsService.GetInPhotos(siteName)
+	if err != nil {
+		return fmt.Errorf("failed to get in photos: %w", err)
+	}
+
+	data := struct {
+		TopStory      news.Article
+		BreakingNews  []news.Article
+		LatestUpdates []news.Article
+		Featured      []news.Article
+		InPhotos      []news.Article // Add this field
+	}{
+		TopStory:      topStory,
+		BreakingNews:  breakingNews,
+		LatestUpdates: latestUpdates,
+		Featured:      featured,
+		InPhotos:      inPhotos, // Add this field
+	}
 
 	// Create the output directory with the site name
 	outputDir := fmt.Sprintf("static/generated/%s", siteName)
@@ -80,19 +100,14 @@ func generateSite(siteName string, newsService news.Service) error {
 		"static/templates/cp24/top_story.html",
 		"static/templates/cp24/top_story_bn.html",
 		"static/templates/cp24/latest_updates.html",
+		"static/templates/cp24/featured.html",
+		"static/templates/cp24/in_photos.html",
 	)
 	if err != nil {
 		return fmt.Errorf("failed to parse template: %v", err)
 	}
 
-	page := NewsPage{
-		Title:         fmt.Sprintf("%s News", siteName),
-		TopStory:      topStory,
-		BreakingNews:  breakingNews,
-		LatestUpdates: latestUpdates,
-	}
-
-	if err := tmpl.Execute(file, page); err != nil {
+	if err := tmpl.Execute(file, data); err != nil {
 		return fmt.Errorf("failed to execute template: %w", err)
 	}
 

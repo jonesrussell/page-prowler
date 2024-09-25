@@ -15,6 +15,8 @@ type Service interface {
 	GetTopStory(siteName string) (Article, error)
 	GetBreakingNews(siteName string) ([]Article, error)
 	GetLatestUpdates(siteName string) ([]Article, error)
+	GetFeatured(siteName string) ([]Article, error)
+	GetInPhotos(siteName string) ([]Article, error) // Add this new method
 }
 
 // MockService is a simple implementation of Service
@@ -137,6 +139,60 @@ func (s *MockService) GetLatestUpdates(siteName string) ([]Article, error) {
 	default:
 		return nil, fmt.Errorf("unknown site: %s", siteName)
 	}
+}
+
+func (s *MockService) GetFeatured(siteName string) ([]Article, error) {
+	if siteName != "cp24" {
+		return nil, fmt.Errorf("unknown site: %s", siteName)
+	}
+
+	return []Article{
+		{
+			Title:       "'I'm here for the Porsche': Video shows brazen car theft in Mississauga",
+			Link:        "https://www.cp24.com/news/i-m-here-for-the-porsche-video-shows-brazen-car-theft-in-mississauga-1.7042881",
+			Image:       "https://www.cp24.com/polopoly_fs/1.7042887.1726680149!/httpImage/image.jpg_gen/derivatives/landscape_800/image.jpg",
+			Description: "Police are searching for a suspect who allegedly stole a luxury SUV in Mississauga that was listed for sale on Auto Trader.",
+		},
+		{
+			Title:       "Samfiru Tumarkin takes the stress out of legal fees with no upfront costs",
+			Link:        "https://www.cp24.com/news/samfiru-tumarkin-takes-the-stress-out-of-legal-fees-with-no-upfront-costs-1.7050093",
+			Image:       "https://www.cp24.com/polopoly_fs/1.7050133.1727198597!/httpImage/image.jpg_gen/derivatives/landscape_800/image.jpg",
+			Description: "SPONSORED: Samfiru Tumarkin offers legal services with no upfront costs.",
+		},
+		{
+			Title:       "Video shows suspects running down street after allegedly setting St. Catharines restaurant on fire",
+			Link:        "https://www.cp24.com/news/video-shows-suspects-running-down-street-after-allegedly-setting-st-catharines-restaurant-on-fire-1.7040843",
+			Image:       "https://www.cp24.com/polopoly_fs/1.7040849.1726573859!/httpImage/image.jpg_gen/derivatives/landscape_800/image.jpg",
+			Description: "Two suspects are wanted in connection with an arson investigation in St. Catharines.",
+		},
+	}, nil
+}
+
+func (s *MockService) GetInPhotos(siteName string) ([]Article, error) {
+	if siteName != "cp24" {
+		return nil, fmt.Errorf("unknown site: %s", siteName)
+	}
+
+	return []Article{
+		{
+			Title:       "Stars descend on Toronto for TIFF 2024",
+			Link:        "https://www.cp24.com/photo-galleries/stars-descend-on-toronto-for-tiff-2024-1.7027599",
+			Image:       "https://www.cp24.com/polopoly_fs/1.7038892.1726435536!/httpImage/image.jpg_gen/derivatives/landscape_800/image.jpg",
+			Description: "Celebrities are appearing on the streets of Toronto as TIFF gets underway.",
+		},
+		{
+			Title:       "Fan Expo Canada 2024",
+			Link:        "https://www.cp24.com/fan-expo-canada-2024-1.7012679",
+			Image:       "https://www.cp24.com/polopoly_fs/1.7015460.1724759164!/httpImage/image.jpg_gen/derivatives/landscape_800/image.jpg",
+			Description: "Fans, creators and celebrities come together at the massive annual event in Toronto.",
+		},
+		{
+			Title:       "High-profile cases that gripped Toronto",
+			Link:        "https://www.cp24.com/high-profile-cases-that-gripped-toronto-1.6969783",
+			Image:       "https://www.cp24.com/polopoly_fs/1.6969831.1721357494!/httpImage/image.jpg_gen/derivatives/landscape_800/image.jpg",
+			Description: "A look at some of the high-profile cases in the Greater Toronto Area that gripped the city in recent years.",
+		},
+	}, nil
 }
 
 // NewMockService creates a new instance of MockService
