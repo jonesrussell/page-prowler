@@ -9,14 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewsPage represents the data for the news page template
-type NewsPage struct {
-	Title         string
-	TopStory      news.Article
-	BreakingNews  []news.Article
-	LatestUpdates []news.Article
-}
-
 func NewGenSiteCmd(newsService news.Service) *cobra.Command {
 	var siteName string
 
