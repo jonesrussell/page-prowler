@@ -62,13 +62,13 @@ func generateSite(siteName string, newsService news.Service) error {
 		BreakingNews  []news.Article
 		LatestUpdates []news.Article
 		Featured      []news.Article
-		InPhotos      []news.Article // Add this field
+		InPhotos      []news.Article
 	}{
 		TopStory:      topStory,
 		BreakingNews:  breakingNews,
 		LatestUpdates: latestUpdates,
 		Featured:      featured,
-		InPhotos:      inPhotos, // Add this field
+		InPhotos:      inPhotos,
 	}
 
 	// Create the output directory with the site name
