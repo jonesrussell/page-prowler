@@ -2,7 +2,7 @@
     <div class="column col1">
         <div class="element list topstorybn">
             <ul class="linklist">
-                {{ range . }} <!-- Iterate over the first half of articles -->
+                {{ range (slice . 0 2) }} <!-- Iterate over the first 2 articles -->
                 <li class="dc">
                     <div style="display: inline-table; width:303px;" class="element teaser">
                         <div class="teaser-image-wrapper teaser-image-top">
@@ -28,7 +28,7 @@
     <div class="column col2">
         <div class="element list topstorybn">
             <ul class="linklist">
-                {{ range . }} <!-- Iterate over the second half of articles -->
+                {{ range (slice . 2 4) }} <!-- Iterate over the remaining 2 articles -->
                 <li class="dc">
                     <div style="display: inline-table; width:303px;" class="element teaser">
                         <div class="teaser-image-wrapper teaser-image-top">

@@ -45,8 +45,9 @@ tasks:
   clean:
     cmds:
       - rm -rf ./bin
-      - rm /tmp/gotest.log
-    desc: Clean up generated files
+      - rm -f /tmp/gotest.log
+      - go clean -cache -testcache -modcache -fuzzcache
+    desc: Clean up generated files and Go caches
 
   default:
     desc: Run default tasks

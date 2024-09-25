@@ -5,90 +5,58 @@ import (
 	"os"
 	"text/template"
 
+	"github.com/jonesrussell/page-prowler/news"
 	"github.com/spf13/cobra"
 )
 
-// NewsPage represents the structure of the news page
+// NewsPage represents the data for the news page template
 type NewsPage struct {
-	Title    string
-	TopStory Article // Added TopStory field
-	Articles []Article
+	Title         string
+	TopStory      news.Article
+	BreakingNews  []news.Article
+	LatestUpdates []news.Article
 }
 
-// Article represents a news article
-type Article struct {
-	Title       string
-	Link        string
-	Image       string
-	Description string // Ensure this field exists if you're using it
-}
-
-// NewGenSiteCmd creates a new gensite command
-func NewGenSiteCmd() *cobra.Command {
+func NewGenSiteCmd(newsService news.Service) *cobra.Command {
 	var siteName string
 
 	cmd := &cobra.Command{
 		Use:   "gensite",
 		Short: "Generate a static news site",
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			if siteName == "" {
+				return fmt.Errorf("required flag \"site\" not set")
+			}
+			return nil
+		},
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return generateSite(siteName)
+			return generateSite(siteName, newsService)
 		},
 	}
 
-	cmd.Flags().StringVarP(&siteName, "site", "s", "", "Name of the site to generate")
-	if err := cmd.MarkFlagRequired("site"); err != nil {
-		fmt.Println("Error marking flag as required:", err)
-		return nil
-	}
+	cmd.Flags().StringVarP(&siteName, "site", "s", "", "Name of the news site (required)")
 
 	return cmd
 }
 
-// generateSite generates a static HTML file for the specified site
-func generateSite(siteName string) error {
-	// Define articles based on the site
-	var topStory Article // Declare topStory variable
-	var articles []Article
-	switch siteName {
-	case "cp24":
-		topStory = Article{
-			Title:       "Ontario Premier Doug Ford says he wants to build a tunnel under Hwy. 401",
-			Link:        "https://www.cp24.com/news/ontario-premier-doug-ford-says-he-wants-to-build-a-tunnel-under-hwy-401-1.7051216",
-			Image:       "https://www.cp24.com/polopoly_fs/1.7051238.1727270667!/httpImage/image.jpg_gen/derivatives/landscape_620/image.jpg",
-			Description: "Premier Doug Ford says he wants to build a tunnel under Highway 401 that would stretch from Brampton to Scarborough.",
-		} // Set top story
-		articles = []Article{
-			{
-				Title:       "Tearful complainant alleges Jacob Hoggard raped, choked her after Hedley concert",
-				Link:        "https://www.cp24.com/news/tearful-complainant-alleges-jacob-hoggard-raped-choked-her-after-hedley-concert-1.7051025",
-				Image:       "https://www.cp24.com/polopoly_fs/1.7050029.1727194241!/image/image.jpeg_gen/derivatives/landscape_300/image.jpeg",
-				Description: "Opening arguments are expected to get underway today in the sexual assault trial of Canadian musician Jacob Hoggard.",
-			},
-			{
-				Title:       "Toronto teachers' union accuses Ford of diverting attention away from Grassy Narrows",
-				Link:        "https://www.cp24.com/news/toronto-teachers-union-accuses-ford-of-diverting-attention-away-from-grassy-narrows-as-province-begins-investigating-controversial-field-trip-1.7051645",
-				Image:       "https://www.cp24.com/polopoly_fs/1.7051296.1727272549!/httpImage/image.jpg_gen/derivatives/landscape_300/image.jpg",
-				Description: "Fallout over controversial field trip in Toronto.",
-			},
-			{
-				Title:       "Thieves stole more than $2.2 million of merchandise from moving tractor trailers",
-				Link:        "https://www.cp24.com/news/thieves-stole-more-than-2-2-million-of-merchandise-from-moving-tractor-trailers-police-1.7051521",
-				Image:       "https://www.cp24.com/polopoly_fs/1.5752494.1648298841!/httpImage/image.jpg_gen/derivatives/landscape_300/image.jpg",
-				Description: "A Peel Regional Police cruiser is seen in this undated image.",
-			},
-			{
-				Title:       "'This a bright red warning light': Toronto's housing crisis to get worse",
-				Link:        "https://www.cp24.com/news/this-a-bright-red-warning-light-toronto-s-housing-crisis-to-get-worse-as-development-applications-drop-off-bild-says-1.7051629",
-				Image:       "https://www.cp24.com/polopoly_fs/1.7033313.1726047954!/httpImage/image.jpg_gen/derivatives/landscape_300/image.jpg",
-				Description: "A new condo construction site is reflected in the window on an ongoing condo construction site in downtown Toronto.",
-			},
-		}
-	default:
-		return fmt.Errorf("unknown site: %s", siteName)
+func generateSite(siteName string, newsService news.Service) error {
+	topStory, err := newsService.GetTopStory(siteName)
+	if err != nil {
+		return fmt.Errorf("failed to get top story: %v", err)
+	}
+
+	breakingNews, err := newsService.GetBreakingNews(siteName)
+	if err != nil {
+		return fmt.Errorf("failed to get breaking news: %v", err)
+	}
+
+	latestUpdates, err := newsService.GetLatestUpdates(siteName)
+	if err != nil {
+		return fmt.Errorf("failed to get latest updates: %v", err)
 	}
 
 	// Create the output directory with the site name
-	outputDir := fmt.Sprintf("static/generated/%s", siteName) // Update to include site name
+	outputDir := fmt.Sprintf("static/generated/%s", siteName)
 	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create directory: %v", err)
 	}
@@ -102,21 +70,22 @@ func generateSite(siteName string) error {
 
 	// Execute the template and write to the file
 	tmpl, err := template.ParseFiles(
-		"static/templates/cp24.html",              // Main template
-		"static/templates/cp24/header.html",       // Header template
-		"static/templates/cp24/footer.html",       // Footer template
-		"static/templates/cp24/top_story.html",    // Top story template
-		"static/templates/cp24/articles.html",     // Articles template
-		"static/templates/cp24/top_story_bn.html", // Top story banner template
+		"static/templates/cp24.html",
+		"static/templates/cp24/header.html",
+		"static/templates/cp24/footer.html",
+		"static/templates/cp24/top_story.html",
+		"static/templates/cp24/top_story_bn.html",
+		"static/templates/cp24/latest_updates.html",
 	)
 	if err != nil {
 		return fmt.Errorf("failed to parse template: %v", err)
 	}
 
 	page := NewsPage{
-		Title:    fmt.Sprintf("%s News", siteName),
-		TopStory: topStory, // Include top story in the page
-		Articles: articles, // Include articles in the page
+		Title:         fmt.Sprintf("%s News", siteName),
+		TopStory:      topStory,
+		BreakingNews:  breakingNews,
+		LatestUpdates: latestUpdates,
 	}
 
 	if err := tmpl.Execute(file, page); err != nil {

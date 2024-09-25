@@ -17,6 +17,7 @@ import (
 	"github.com/jonesrussell/page-prowler/crawler"
 	"github.com/jonesrussell/page-prowler/dbmanager"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
+	"github.com/jonesrussell/page-prowler/news"
 	"github.com/spf13/viper"
 )
 
@@ -119,14 +120,18 @@ func main() {
 
 	dbManager := dbmanager.NewRedisManager(redisClient, logger) // Create a new DatabaseManager instance
 
+	// Create the news service
+	newsService := news.NewMockService()
+
 	// Initialize the manager with loggerInterface directly, no need for type assertion
 	manager, err := InitializeManager(dbManager, logger, cfg) // Pass dbManager to InitializeManager
 	if err != nil {
 		fmt.Println("Error initializing manager:", err)
 		return
 	}
-	// Create a new root command with the manager
-	rootCmd := cmd.NewRootCmd(manager)
+
+	// Create a new root command with the manager and news service
+	rootCmd := cmd.NewRootCmd(manager, newsService)
 
 	// Execute the root command
 	err = rootCmd.Execute()

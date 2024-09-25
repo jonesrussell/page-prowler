@@ -327,94 +327,9 @@
             <div class="content-primary" id="responsive_main">
                 <div>
                     {{ template "top_story.html" .TopStory }}
-                    {{ template "top_story_bn.html" }}
+                    {{ template "top_story_bn.html" .BreakingNews }}
                     <div class="clearfix"></div>
-                    <div class="columnsplitter container twoColumns listHorizontal">
-                        <div class="column col1  ">
-                            <div class="element list none   ">
-                                <ul class="linklist vertical">
-                                    <li class='newUpdate listItem_7_735453_1592604062_290423964' updated='1727269802330'
-                                        created='1727261280197'>
-                                        <a href="https://www.cp24.com/news/woman-struck-critically-injured-by-vehicle-in-mississauga-1.7051064"
-                                            title="Woman struck, critically injured by vehicle in Mississauga ">Woman
-                                            struck, critically injured by vehicle in Mississauga </a>
-                                    </li>
-                                    <li class='newUpdate listItem_7_735453_1592604062_290423964' updated='1727286427738'
-                                        created='1727286427746'>
-                                        <a href="https://www.cp24.com/news/bloc-gives-liberals-oct-29-deadline-to-meet-demands-or-face-potential-early-election-1.7051646"
-                                            title="Bloc gives Liberals Oct. 29 deadline to meet demands or face potential early election">Bloc
-                                            gives Liberals Oct. 29 deadline to meet demands or face potential early
-                                            election</a>
-                                    </li>
-                                    <li class='newUpdate listItem_7_735453_1592604062_290423964' updated='1727263479200'
-                                        created='1727263440213'>
-                                        <a href="https://www.cp24.com/news/rainfall-warning-ends-for-toronto-but-wet-weather-expected-to-continue-1.7051086"
-                                            title="Rainfall warning ends for Toronto but wet weather expected to continue">Rainfall
-                                            warning ends for Toronto but wet weather expected to continue</a>
-                                    </li>
-                                    <li class='newUpdate listItem_7_735453_1592604062_290423964' updated='1727274555752'
-                                        created='1727274555765'>
-                                        <a href="https://www.cp24.com/news/hamilton-police-searching-for-additional-suspects-in-grindr-ambush-robberies-1.7051328"
-                                            title="Hamilton police searching for additional suspects in Grindr ambush robberies">Hamilton
-                                            police searching for additional suspects in Grindr ambush robberies</a>
-                                    </li>
-                                    <li class='newUpdate listItem_7_735453_1592604062_290423964' updated='1727273351842'
-                                        created='1727273351852'>
-                                        <a href="https://www.cp24.com/news/statistics-canada-says-population-grew-0-6-per-cent-in-q2-to-41-288-599-1.7051251"
-                                            title="Statistics Canada says population grew 0.6 per cent in Q2 to 41,288,599">Statistics
-                                            Canada says population grew 0.6 per cent in Q2 to 41,288,599</a>
-                                    </li>
-
-                                </ul>
-                                <div class="bottom-links">
-                                </div>
-                                <div class="clearfix"></div>
-                            </div>
-                        </div>
-                        <div class="column col2   ">
-                            <div class="element list none   ">
-                                <ul class="linklist vertical">
-                                    <li class='newUpdate listItem_7_735453_1592604062_290423972' updated='1727257610629'
-                                        created='1727257610640'>
-                                        <a href="https://www.cp24.com/news/trudeau-returns-to-ottawa-as-mps-get-set-to-vote-on-non-confidence-motion-1.7051026"
-                                            title="Trudeau returns to Ottawa as MPs get set to vote on non-confidence motion">Trudeau
-                                            returns to Ottawa as MPs get set to vote on non-confidence motion</a>
-                                    </li>
-                                    <li class='newUpdate listItem_7_735453_1592604062_290423972' updated='1727258282243'
-                                        created='1727258282254'>
-                                        <a href="https://www.cp24.com/news/drought-in-brazil-vietnam-highlight-climate-change-s-impact-on-coffee-experts-1.7051028"
-                                            title="Drought in Brazil, Vietnam highlight climate change's impact on coffee: experts">Drought
-                                            in Brazil, Vietnam highlight climate change's impact on coffee: experts</a>
-                                    </li>
-                                    <li class='newUpdate listItem_7_735453_1592604062_290423972' updated='1727228766788'
-                                        created='1727223540514'>
-                                        <a href="https://www.cp24.com/news/those-responsible-should-be-held-accountable-ontario-education-minister-investigating-tdsb-field-trip-to-rally-1.7050776"
-                                            title="'Those responsible should be held accountable': Ontario education minister investigating TDSB field trip to rally">'Those
-                                            responsible should be held accountable': Ontario education minister
-                                            investigating TDSB field trip to rally</a>
-                                    </li>
-                                    <li class='newUpdate listItem_7_735453_1592604062_290423972' updated='1727215822676'
-                                        created='1727215800684'>
-                                        <a href="https://www.cp24.com/news/toronto-jazz-musician-fatally-struck-in-collision-remembered-as-talented-beautiful-person-1.7050503"
-                                            title="Toronto jazz musician fatally struck in collision remembered as 'talented,' 'beautiful' person">Toronto
-                                            jazz musician fatally struck in collision remembered as 'talented,'
-                                            'beautiful' person</a>
-                                    </li>
-                                    <li class='newUpdate listItem_7_735453_1592604062_290423972' updated='1727227512176'
-                                        created='1727227512188'>
-                                        <a href="https://www.cp24.com/news/two-vehicle-collision-in-caledon-leaves-1-person-dead-1.7050893"
-                                            title="Two-vehicle collision in Caledon leaves 1 person dead">Two-vehicle
-                                            collision in Caledon leaves 1 person dead</a>
-                                    </li>
-
-                                </ul>
-                                <div class="bottom-links">
-                                </div>
-                                <div class="clearfix"></div>
-                            </div>
-                        </div>
-                        <div class="clearfix"></div>
-                    </div>
+                    {{ template "latest_updates.html" .LatestUpdates }}
                     <div class="clearfix"></div>
                     <div class="element list none   ">
                         <div class="bottom-links">

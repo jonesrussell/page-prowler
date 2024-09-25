@@ -3,6 +3,8 @@ package cmd
 import (
 	"errors"
 
+	"github.com/jonesrussell/page-prowler/news"
+
 	"github.com/jonesrussell/loggo"
 
 	"github.com/jonesrussell/page-prowler/crawler"
@@ -14,14 +16,15 @@ var ErrSiteidRequired = errors.New("siteid is required")
 
 var debug bool
 
-// NewRootCmd now returns *cobra.Command
-func NewRootCmd(manager *crawler.CrawlManager) *cobra.Command {
+// NewRootCmd now returns *cobra.Command and accepts newsService
+func NewRootCmd(manager *crawler.CrawlManager, newsService news.Service) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "page-prowler",
 		Short: "A tool for finding matchlinks from websites",
 		Long: `Page Prowler is a tool that finds matchlinks from websites where the URL matches provided terms. It provides functionalities for:
 
 1. Crawling specific websites and extracting matchlinks that match the provided terms ('matchlinks' command)
+2. Generating static news sites ('gensite' command)
 
 	In addition to the command line interface, Page Prowler also provides an HTTP API for interacting with the tool.`,
 		SilenceErrors: false,
@@ -37,7 +40,9 @@ func NewRootCmd(manager *crawler.CrawlManager) *cobra.Command {
 	workerCmd := NewWorkerCmd(manager)
 	getLinksCmd := NewGetLinksCmd(manager)
 	clearlinksCmd := NewClearlinksCmd(manager)
-	genSiteCmd := NewGenSiteCmd() // Register the new gensite command
+	genSiteCmd := NewGenSiteCmd(newsService) // Pass newsService to NewGenSiteCmd
+
+	serveCmd := NewServeCmd(newsService)
 
 	// Add the commands to the root command
 	rootCmd.AddCommand(crawlCmd)
@@ -47,6 +52,7 @@ func NewRootCmd(manager *crawler.CrawlManager) *cobra.Command {
 	rootCmd.AddCommand(getLinksCmd)
 	rootCmd.AddCommand(clearlinksCmd)
 	rootCmd.AddCommand(genSiteCmd)
+	rootCmd.AddCommand(serveCmd)
 
 	return rootCmd
 }
