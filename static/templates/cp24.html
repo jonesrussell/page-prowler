@@ -368,20 +368,20 @@
                                 <div style="display: inline-table; width:620px; " class="element teaser   ">
                                     <div class="teaser-image-wrapper teaser-image-top ">
                                         <div class="teaserImage ">
-                                            <a href="https://www.cp24.com/news/ontario-premier-doug-ford-says-he-wants-to-build-a-tunnel-under-hwy-401-1.7051216"><img
-                                                    src="https://www.cp24.com/polopoly_fs/1.7051238.1727270667!/httpImage/image.jpg_gen/derivatives/landscape_620/image.jpg"
-                                                    alt="Ontario Premier Doug Ford says he wants to build a tunnel under Hwy. 401"
-                                                    width='620' title='Ontario Premier Doug Ford says he wants to build a tunnel under Hwy. 401' height='349' /></a>
+                                            <a href="{{ .TopStory.Link }}"><img
+                                                    src="{{ .TopStory.Image }}"
+                                                    alt="{{ .TopStory.Title }}"
+                                                    width='620' title='{{ .TopStory.Title }}' height='349' /></a>
                                         </div>
                                         <div class="bn-headline ">
                                             <h2 class="teaserTitle">
-                                                <a href="https://www.cp24.com/news/ontario-premier-doug-ford-says-he-wants-to-build-a-tunnel-under-hwy-401-1.7051216">Ontario Premier Doug Ford says he wants to build a tunnel under Hwy. 401</a>
+                                                <a href="{{ .TopStory.Link }}">{{ .TopStory.Title }}</a>
                                             </h2>
                                         </div>
                                     </div>
                                     <div class="lead-top teaserLead">
                                         <p>
-                                            Premier Doug Ford says he wants to build a tunnel under Highway 401 that would stretch from Brampton to Scarborough. <!-- Dynamic description -->
+                                            {{ .TopStory.Description }} <!-- Dynamic description -->
                                         </p>
                                     </div>
                                 </div>

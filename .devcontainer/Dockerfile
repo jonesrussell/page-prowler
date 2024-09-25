@@ -1,5 +1,5 @@
 # Start from the Go image
-FROM mcr.microsoft.com/devcontainers/go:1-1.21-bookworm
+FROM mcr.microsoft.com/devcontainers/go:1-1.22-bookworm
 
 # Change the ownership of the Go directories
 RUN chown -R vscode:vscode /go

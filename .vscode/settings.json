@@ -17,5 +17,8 @@
         }
       ],
       "scanLimit": 200
+    },
+    "[html]": {
+      "editor.defaultFormatter": "vscode.html-language-features"
     }
 }

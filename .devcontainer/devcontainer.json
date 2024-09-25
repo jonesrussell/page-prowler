@@ -19,7 +19,8 @@
 				"GitHub.vscode-pull-request-github",
 				"nhoizey.gremlins",
 				"task.vscode-task",
-				"premparihar.gotestexplorer"
+				"premparihar.gotestexplorer",
+				"ms-azuretools.vscode-docker"
 			]
 		}
 	},
