@@ -65,7 +65,7 @@ func generateSite(siteName string) error {
 				Description: "Opening arguments are expected to get underway today in the sexual assault trial of Canadian musician Jacob Hoggard.",
 			},
 			{
-				Title:       "Toronto teachers’ union accuses Ford of diverting attention away from Grassy Narrows",
+				Title:       "Toronto teachers' union accuses Ford of diverting attention away from Grassy Narrows",
 				Link:        "https://www.cp24.com/news/toronto-teachers-union-accuses-ford-of-diverting-attention-away-from-grassy-narrows-as-province-begins-investigating-controversial-field-trip-1.7051645",
 				Image:       "https://www.cp24.com/polopoly_fs/1.7051296.1727272549!/httpImage/image.jpg_gen/derivatives/landscape_300/image.jpg",
 				Description: "Fallout over controversial field trip in Toronto.",
@@ -87,8 +87,8 @@ func generateSite(siteName string) error {
 		return fmt.Errorf("unknown site: %s", siteName)
 	}
 
-	// Create the output directory if it doesn't exist
-	outputDir := fmt.Sprintf("static/%s", siteName)
+	// Create the output directory with the site name
+	outputDir := fmt.Sprintf("static/generated/%s", siteName) // Update to include site name
 	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create directory: %v", err)
 	}
@@ -101,7 +101,14 @@ func generateSite(siteName string) error {
 	defer file.Close()
 
 	// Execute the template and write to the file
-	tmpl, err := template.ParseFiles("static/templates/cp24.html", "static/templates/top_story_bn.html")
+	tmpl, err := template.ParseFiles(
+		"static/templates/cp24.html",              // Main template
+		"static/templates/cp24/header.html",       // Header template
+		"static/templates/cp24/footer.html",       // Footer template
+		"static/templates/cp24/top_story.html",    // Top story template
+		"static/templates/cp24/articles.html",     // Articles template
+		"static/templates/cp24/top_story_bn.html", // Top story banner template
+	)
 	if err != nil {
 		return fmt.Errorf("failed to parse template: %v", err)
 	}
