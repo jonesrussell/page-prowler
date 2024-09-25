@@ -1,0 +1,55 @@
+<div class="columnsplitter container twoColumns listHorizontal">
+    <div class="column col1">
+        <div class="element list topstorybn">
+            <ul class="linklist">
+                {{ range . }} <!-- Iterate over the first half of articles -->
+                <li class="dc">
+                    <div style="display: inline-table; width:303px;" class="element teaser">
+                        <div class="teaser-image-wrapper teaser-image-top">
+                            <div class="teaserImage">
+                                <a href="{{ .Link }}">
+                                    <img src="{{ .Image }}" alt="{{ .Title }}" width="300" />
+                                </a>
+                            </div>
+                            <div class="bn-headline">
+                                <h2 class="teaserTitle">
+                                    <a href="{{ .Link }}">{{ .Title }}</a>
+                                </h2>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+                {{ end }}
+            </ul>
+            <div class="bottom-links"></div>
+            <div class="clearfix"></div>
+        </div>
+    </div>
+    <div class="column col2">
+        <div class="element list topstorybn">
+            <ul class="linklist">
+                {{ range . }} <!-- Iterate over the second half of articles -->
+                <li class="dc">
+                    <div style="display: inline-table; width:303px;" class="element teaser">
+                        <div class="teaser-image-wrapper teaser-image-top">
+                            <div class="teaserImage">
+                                <a href="{{ .Link }}">
+                                    <img src="{{ .Image }}" alt="{{ .Title }}" width="300" />
+                                </a>
+                            </div>
+                            <div class="bn-headline">
+                                <h2 class="teaserTitle">
+                                    <a href="{{ .Link }}">{{ .Title }}</a>
+                                </h2>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+                {{ end }}
+            </ul>
+            <div class="bottom-links"></div>
+            <div class="clearfix"></div>
+        </div>
+    </div>
+    <div class="clearfix"></div>
+</div>
