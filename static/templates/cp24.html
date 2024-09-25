@@ -304,8 +304,7 @@
             </div>
         </div>
     </div>
-    {{ template "header.html"}}
-    <!-- END BANNERS -->
+    {{ template "header.html" }}
     <div class="content">
         <div class="video-header">
             <div class="content-wrapper">
@@ -327,147 +326,8 @@
             <h1 class="hidden">CP24 – Breaking News, Toronto News Today</h1>
             <div class="content-primary" id="responsive_main">
                 <div>
-                    <div class="element list topstorybn   ">
-                        <h3>
-                            <a href="https://www.cp24.com/news" title="Toronto News">TOP STORY<span
-                                    class="da"></span></a>
-                        </h3>
-                        <ul class="linklist ">
-                            <li class="dc ">
-                                <div style="display: inline-table; width:620px; " class="element teaser   ">
-                                    <div class="teaser-image-wrapper teaser-image-top ">
-                                        <div class="teaserImage ">
-                                            <a href="{{ .TopStory.Link }}"><img src="{{ .TopStory.Image }}"
-                                                    alt="{{ .TopStory.Title }}" width='620'
-                                                    title='{{ .TopStory.Title }}' height='349' /></a>
-                                        </div>
-                                        <div class="bn-headline ">
-                                            <h2 class="teaserTitle">
-                                                <a href="{{ .TopStory.Link }}">{{ .TopStory.Title }}</a>
-                                            </h2>
-                                        </div>
-                                    </div>
-                                    <div class="lead-top teaserLead">
-                                        <p>
-                                            {{ .TopStory.Description }} <!-- Dynamic description -->
-                                        </p>
-                                    </div>
-                                </div>
-                            </li>
-                        </ul>
-                        <div class="bottom-links">
-                        </div>
-                        <div class="clearfix"></div>
-                    </div>
-                    <div class="columnsplitter container twoColumns listHorizontal">
-                        <div class="column col1  ">
-                            <div class="element list topstorybn   ">
-                                <ul class="linklist ">
-                                    <li class="dc ">
-                                        <div style="display: inline-table; width:303px; " class="element teaser   ">
-                                            <div class="teaser-image-wrapper teaser-image-top ">
-                                                <div class="teaserImage ">
-                                                    <a
-                                                        href="https://www.cp24.com/news/tearful-complainant-alleges-jacob-hoggard-raped-choked-her-after-hedley-concert-1.7051025"><img
-                                                            src='https://www.cp24.com/polopoly_fs/1.7050029.1727194241!/image/image.jpeg_gen/derivatives/landscape_300/image.jpeg'
-                                                            alt='Opening arguments are expected to get underway today in the sexual assault trial of Canadian musician Jacob Hoggard. Justice Robin Tremblay, left to right, Assistant Crown Attorney Peter Keen, Crown Attorney Lilly Gates, Hoggard&#39;s lawyers Kally Ho, Megan Savard and Hoggard are shown in a courtroom sketch in Haileybury, Ont., Monday, Sept. 23, 2024. THE CANADIAN PRESS/Alexandra Newbould'
-                                                            width='300' title='Hoggard trail Kirkland Lake sex assault'
-                                                            height='169' /></a>
-                                                </div>
-                                                <div class="bn-headline ">
-                                                    <h2 class="teaserTitle">
-                                                        <a
-                                                            href="https://www.cp24.com/news/tearful-complainant-alleges-jacob-hoggard-raped-choked-her-after-hedley-concert-1.7051025">Tearful
-                                                            complainant alleges Jacob Hoggard raped, choked her after
-                                                            Hedley concert</a>
-                                                    </h2>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </li>
-                                    <li class="dc ">
-                                        <div style="display: inline-table; width:303px; " class="element teaser   ">
-                                            <div class="teaser-image-wrapper teaser-image-top ">
-                                                <div class="teaserImage ">
-                                                    <a
-                                                        href="https://www.cp24.com/news/toronto-teachers-union-accuses-ford-of-diverting-attention-away-from-grassy-narrows-as-province-begins-investigating-controversial-field-trip-1.7051645"><img
-                                                            src='https://www.cp24.com/polopoly_fs/1.7051296.1727272549!/httpImage/image.jpg_gen/derivatives/landscape_300/image.jpg'
-                                                            width='300'
-                                                            alt='Fallout over controversial field trip in Toronto'
-                                                            title='Fallout over controversial field trip in Toronto'
-                                                            height='168' /></a>
-                                                </div>
-                                                <div class="bn-headline ">
-                                                    <h2 class="teaserTitle">
-                                                        <a
-                                                            href="https://www.cp24.com/news/toronto-teachers-union-accuses-ford-of-diverting-attention-away-from-grassy-narrows-as-province-begins-investigating-controversial-field-trip-1.7051645">Toronto
-                                                            teachers’ union accuses Ford of diverting attention away
-                                                            from Grassy Narrows as province begins investigating
-                                                            controversial field trip</a>
-                                                    </h2>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </li>
-                                </ul>
-                                <div class="bottom-links">
-                                </div>
-                                <div class="clearfix"></div>
-                            </div>
-                        </div>
-                        <div class="column col2   ">
-                            <div class="element list topstorybn   ">
-                                <ul class="linklist ">
-                                    <li class="dc ">
-                                        <div style="display: inline-table; width:303px; " class="element teaser   ">
-                                            <div class="teaser-image-wrapper teaser-image-top ">
-                                                <div class="teaserImage ">
-                                                    <a
-                                                        href="https://www.cp24.com/news/thieves-stole-more-than-2-2-million-of-merchandise-from-moving-tractor-trailers-police-1.7051521"><img
-                                                            src='https://www.cp24.com/polopoly_fs/1.5752494.1648298841!/httpImage/image.jpg_gen/derivatives/landscape_300/image.jpg'
-                                                            alt='A Peel Regional Police cruiser is seen in this undated image. (Peel Regional Police)'
-                                                            width='300' title='peel police' height='169' /></a>
-                                                </div>
-                                                <div class="bn-headline ">
-                                                    <h2 class="teaserTitle">
-                                                        <a
-                                                            href="https://www.cp24.com/news/thieves-stole-more-than-2-2-million-of-merchandise-from-moving-tractor-trailers-police-1.7051521">Thieves
-                                                            stole more than $2.2 million of merchandise from moving
-                                                            tractor trailers: police</a>
-                                                    </h2>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </li>
-                                    <li class="dc ">
-                                        <div style="display: inline-table; width:303px; " class="element teaser   ">
-                                            <div class="teaser-image-wrapper teaser-image-top ">
-                                                <div class="teaserImage ">
-                                                    <a
-                                                        href="https://www.cp24.com/news/this-a-bright-red-warning-light-toronto-s-housing-crisis-to-get-worse-as-development-applications-drop-off-bild-says-1.7051629"><img
-                                                            src='https://www.cp24.com/polopoly_fs/1.7033313.1726047954!/httpImage/image.jpg_gen/derivatives/landscape_300/image.jpg'
-                                                            alt='A new condo construction site is reflected in the window on an ongoing condo construction site in downtown Toronto on Thursday, May 25, 2023. THE CANADIAN PRESS/Chris Young'
-                                                            width='300' title='condo' height='169' /></a>
-                                                </div>
-                                                <div class="bn-headline ">
-                                                    <h2 class="teaserTitle">
-                                                        <a
-                                                            href="https://www.cp24.com/news/this-a-bright-red-warning-light-toronto-s-housing-crisis-to-get-worse-as-development-applications-drop-off-bild-says-1.7051629">'This
-                                                            a bright red warning light': Toronto's housing crisis to get
-                                                            worse as development applications drop off, BILD says</a>
-                                                    </h2>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </li>
-                                </ul>
-                                <div class="bottom-links">
-                                </div>
-                                <div class="clearfix"></div>
-                            </div>
-                        </div>
-                        <div class="clearfix"></div>
-                    </div>
+                    {{ template "top_story.html" .TopStory }}
+                    {{ template "top_story_bn.html" }}
                     <div class="clearfix"></div>
                     <div class="columnsplitter container twoColumns listHorizontal">
                         <div class="column col1  ">

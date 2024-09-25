@@ -83,27 +83,6 @@ func generateSite(siteName string) error {
 				Description: "A new condo construction site is reflected in the window on an ongoing condo construction site in downtown Toronto.",
 			},
 		}
-	case "site2":
-		topStory = Article{
-			Title:       "Site 2 Top Story",
-			Link:        "https://example.com/site2/topstory",
-			Image:       "",
-			Description: "This is a dummy description for Site 2 Top Story.",
-		} // Set top story for site2
-		articles = []Article{
-			{
-				Title:       "Site 2 Article 1",
-				Link:        "https://example.com/site2/article1",
-				Image:       "",
-				Description: "This is a dummy description for Site 2 Article 1.",
-			},
-			{
-				Title:       "Site 2 Article 2",
-				Link:        "https://example.com/site2/article2",
-				Image:       "",
-				Description: "This is a dummy description for Site 2 Article 2.",
-			},
-		}
 	default:
 		return fmt.Errorf("unknown site: %s", siteName)
 	}
@@ -122,7 +101,7 @@ func generateSite(siteName string) error {
 	defer file.Close()
 
 	// Execute the template and write to the file
-	tmpl, err := template.ParseFiles("static/templates/cp24.html")
+	tmpl, err := template.ParseFiles("static/templates/cp24.html", "static/templates/top_story_bn.html")
 	if err != nil {
 		return fmt.Errorf("failed to parse template: %v", err)
 	}

@@ -32,3 +32,5 @@ page-prowler
 go-database/
 loggo.log
 debug.log
+
+static/generated/
