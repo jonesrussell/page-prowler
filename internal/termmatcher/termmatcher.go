@@ -9,6 +9,7 @@ import (
 	"github.com/bbalet/stopwords"
 	"github.com/caneroj1/stemmer"
 	"github.com/jonesrussell/loggo"
+	"github.com/jonesrussell/page-prowler/internal/matcher" // Import the matcher interface
 	"github.com/jonesrussell/page-prowler/utils"
 )
 
@@ -18,11 +19,12 @@ const (
 )
 
 type TermMatcher struct {
-	logger loggo.LoggerInterface
-	swg    *metrics.SmithWatermanGotoh
+	logger   loggo.LoggerInterface
+	swg      *metrics.SmithWatermanGotoh
+	matchers []matcher.Matcher // List of matchers
 }
 
-func NewTermMatcher(logger loggo.LoggerInterface) *TermMatcher {
+func NewTermMatcher(logger loggo.LoggerInterface, matchers []matcher.Matcher) *TermMatcher {
 	swg := metrics.NewSmithWatermanGotoh()
 	swg.CaseSensitive = false
 	swg.GapPenalty = -0.1
@@ -32,8 +34,9 @@ func NewTermMatcher(logger loggo.LoggerInterface) *TermMatcher {
 	}
 
 	return &TermMatcher{
-		logger: logger,
-		swg:    swg,
+		logger:   logger,
+		swg:      swg,
+		matchers: matchers, // Initialize with provided matchers
 	}
 }
 
@@ -58,8 +61,23 @@ func (tm *TermMatcher) GetMatchingTerms(href string, anchorText string, searchTe
 		allSearchTerms = append(allSearchTerms, strings.Split(terms, ",")...)
 	}
 
-	matchingTerms := tm.findMatchingTerms(combinedContent, allSearchTerms)
+	// Check each matcher for matches
+	var matchingTerms []string
+	for _, m := range tm.matchers {
+		matched, err := m.Match(combinedContent, "")
+		if err != nil {
+			tm.logger.Error("Error matching term", err)
+			continue // Skip to the next matcher if there's an error
+		}
+		if matched {
+			matchingTerms = append(matchingTerms, allSearchTerms...) // Add search terms if matched
+		}
+	}
 
+	// Use findMatchingTerms to check for additional matches
+	matchingTerms = append(matchingTerms, tm.findMatchingTerms(combinedContent, allSearchTerms)...)
+
+	// Remove duplicates
 	seen := make(map[string]bool)
 	var result []string
 	for _, v := range matchingTerms {
@@ -77,6 +95,39 @@ func (tm *TermMatcher) GetMatchingTerms(href string, anchorText string, searchTe
 	tm.logger.Debug(fmt.Sprintf("Found matching terms: %v", matchingTerms))
 	tm.logger.Debug(fmt.Sprintf("Matching terms result: %v", result))
 	return result
+}
+
+func (tm *TermMatcher) findMatchingTerms(content string, searchTerms []string) []string {
+	var matchingTerms []string
+
+	content = tm.convertToLowercase(content)
+	contentStemmed := tm.stemContent(content)
+
+	tm.logger.Debug(fmt.Sprintf("Stemmed content: %v", contentStemmed))
+
+	for _, searchTerm := range searchTerms {
+		searchTerm = tm.convertToLowercase(searchTerm)
+		searchTermStemmed := searchTerm // Avoid stemming the search term
+
+		words := strings.Fields(searchTermStemmed)
+		for _, word := range words {
+			if tm.compareAndAppendTerm(word, contentStemmed) {
+				matchingTerms = append(matchingTerms, word)
+			}
+		}
+	}
+
+	if len(matchingTerms) == 0 {
+		return []string{}
+	}
+
+	tm.logger.Debug(fmt.Sprintf("Matching terms result: %v", matchingTerms))
+	return matchingTerms
+}
+
+// New CompareTerms method
+func (tm *TermMatcher) CompareTerms(term1, term2 string) float64 {
+	return strutil.Similarity(term1, term2, tm.swg)
 }
 
 func (tm *TermMatcher) processContent(content string) string {
@@ -97,15 +148,6 @@ func (tm *TermMatcher) combineContents(content1 string, content2 string) string 
 	return content1 + " " + content2
 }
 
-func (tm *TermMatcher) CompareTerms(searchTerm string, content string) float64 {
-	searchTerm = strings.ToLower(searchTerm)
-	similarity := strutil.Similarity(searchTerm, content, tm.swg)
-
-	tm.logger.Debug(fmt.Sprintf("Compared terms: searchTerm=%s, content=%s, similarity=%.2f", searchTerm, content, similarity))
-
-	return similarity
-}
-
 func (tm *TermMatcher) compareAndAppendTerm(searchTerm string, content string) bool {
 	// Check for exact match
 	words := strings.Fields(content)
@@ -123,35 +165,6 @@ func (tm *TermMatcher) compareAndAppendTerm(searchTerm string, content string) b
 		return true
 	}
 	return false
-}
-
-func (tm *TermMatcher) findMatchingTerms(content string, searchTerms []string) []string {
-	var matchingTerms []string
-
-	content = tm.convertToLowercase(content)
-	contentStemmed := tm.stemContent(content)
-
-	tm.logger.Debug(fmt.Sprintf("Stemmed content: %v", contentStemmed))
-
-	for _, searchTerm := range searchTerms {
-		searchTerm = tm.convertToLowercase(searchTerm)
-		searchTerm = strings.TrimSpace(stopwords.CleanString(searchTerm, "en", true)) // Remove stopwords
-		searchTermStemmed := tm.stemContent(searchTerm)
-
-		words := strings.Fields(searchTermStemmed)
-		for _, word := range words {
-			if tm.compareAndAppendTerm(word, contentStemmed) {
-				matchingTerms = append(matchingTerms, word)
-			}
-		}
-	}
-
-	if len(matchingTerms) == 0 {
-		return []string{}
-	}
-
-	tm.logger.Debug(fmt.Sprintf("Matching terms result: %v", matchingTerms))
-	return matchingTerms
 }
 
 func (tm *TermMatcher) convertToLowercase(content string) string {
