@@ -2,6 +2,7 @@ package termmatcher
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/adrg/strutil/metrics"
@@ -18,17 +19,21 @@ type args struct {
 	content string
 }
 
-// MockMatcher is a simple implementation of the matcher interface for testing
+// MockMatcher is a mock implementation of the Matcher interface for testing.
 type MockMatcher struct{}
 
-func (m *MockMatcher) Match(content string) bool {
-	// Implement mock logic for testing
-	return content == "test"
+// Match implements the Matcher interface.
+func (mm *MockMatcher) Match(content string, pattern string) (bool, error) { // Ensure two parameters
+	if content == "" || pattern == "" {
+		return false, nil // Return false if either is empty, no error
+	}
+	return strings.Contains(content, pattern), nil // Example logic to check for pattern in content
 }
 
 func TestNewTermMatcher(t *testing.T) {
-	logger := loggo.NewMockLogger()                   // Create a mock logger
-	mockMatchers := []matcher.Matcher{&MockMatcher{}} // Create a slice of matchers
+	logger := loggo.NewMockLogger() // Create a mock logger
+	mockMatcher := &MockMatcher{}
+	mockMatchers := []matcher.Matcher{mockMatcher} // Create a slice of matchers
 
 	// Pass both logger and matchers to NewTermMatcher
 	tm := NewTermMatcher(logger, mockMatchers)
@@ -41,34 +46,36 @@ func TestNewTermMatcher(t *testing.T) {
 
 func TestGetMatchingTerms(t *testing.T) {
 	logger := loggo.NewMockLogger()
-	mockMatchers := []matcher.Matcher{&MockMatcher{}}
-	tm := NewTermMatcher(logger, mockMatchers)
 
 	tests := []struct {
-		name        string
-		href        string
-		anchorText  string
-		searchTerms []string
-		want        []string
+		name         string
+		mockMatchers []matcher.Matcher
+		href         string
+		anchorText   string
+		searchTerms  []string
+		want         []string
 	}{
 		{
-			name:        "Test case 1",
-			href:        "https://example.com/test",
-			anchorText:  "Example Anchor Text",
-			searchTerms: []string{"example", "test"},
-			want:        []string{"test"},
+			name:         "Test case 1",
+			mockMatchers: []matcher.Matcher{&MockMatcher{}}, // Simulate a match
+			href:         "https://example.com/test",
+			anchorText:   "Example Anchor Text",
+			searchTerms:  []string{"example", "test"},
+			want:         []string{"test"},
 		},
 		{
-			name:        "Test case 2: No match",
-			href:        "https://example.com/other",
-			anchorText:  "Not a match",
-			searchTerms: []string{"example"},
-			want:        []string{},
+			name:         "Test case 2: No match",
+			mockMatchers: []matcher.Matcher{&MockMatcher{}}, // Simulate no match
+			href:         "https://example.com/other",
+			anchorText:   "Not a match",
+			searchTerms:  []string{"example"},
+			want:         []string{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			tm := NewTermMatcher(logger, tt.mockMatchers)
 			if got := tm.GetMatchingTerms(tt.href, tt.anchorText, tt.searchTerms); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetMatchingTerms() = %v, want %v", got, tt.want)
 			}

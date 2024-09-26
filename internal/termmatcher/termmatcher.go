@@ -64,7 +64,12 @@ func (tm *TermMatcher) GetMatchingTerms(href string, anchorText string, searchTe
 	// Check each matcher for matches
 	var matchingTerms []string
 	for _, m := range tm.matchers {
-		if m.Match(combinedContent) {
+		matched, err := m.Match(combinedContent, "")
+		if err != nil {
+			tm.logger.Error("Error matching term", err)
+			continue // Skip to the next matcher if there's an error
+		}
+		if matched {
 			matchingTerms = append(matchingTerms, allSearchTerms...) // Add search terms if matched
 		}
 	}
@@ -92,6 +97,34 @@ func (tm *TermMatcher) GetMatchingTerms(href string, anchorText string, searchTe
 	return result
 }
 
+func (tm *TermMatcher) findMatchingTerms(content string, searchTerms []string) []string {
+	var matchingTerms []string
+
+	content = tm.convertToLowercase(content)
+	contentStemmed := tm.stemContent(content)
+
+	tm.logger.Debug(fmt.Sprintf("Stemmed content: %v", contentStemmed))
+
+	for _, searchTerm := range searchTerms {
+		searchTerm = tm.convertToLowercase(searchTerm)
+		searchTermStemmed := searchTerm // Avoid stemming the search term
+
+		words := strings.Fields(searchTermStemmed)
+		for _, word := range words {
+			if tm.compareAndAppendTerm(word, contentStemmed) {
+				matchingTerms = append(matchingTerms, word)
+			}
+		}
+	}
+
+	if len(matchingTerms) == 0 {
+		return []string{}
+	}
+
+	tm.logger.Debug(fmt.Sprintf("Matching terms result: %v", matchingTerms))
+	return matchingTerms
+}
+
 // New CompareTerms method
 func (tm *TermMatcher) CompareTerms(term1, term2 string) float64 {
 	return strutil.Similarity(term1, term2, tm.swg)
@@ -113,35 +146,6 @@ func (tm *TermMatcher) combineContents(content1 string, content2 string) string 
 		return content1
 	}
 	return content1 + " " + content2
-}
-
-func (tm *TermMatcher) findMatchingTerms(content string, searchTerms []string) []string {
-	var matchingTerms []string
-
-	content = tm.convertToLowercase(content)
-	contentStemmed := tm.stemContent(content)
-
-	tm.logger.Debug(fmt.Sprintf("Stemmed content: %v", contentStemmed))
-
-	for _, searchTerm := range searchTerms {
-		searchTerm = tm.convertToLowercase(searchTerm)
-		searchTerm = strings.TrimSpace(stopwords.CleanString(searchTerm, "en", true)) // Remove stopwords
-		searchTermStemmed := tm.stemContent(searchTerm)
-
-		words := strings.Fields(searchTermStemmed)
-		for _, word := range words {
-			if tm.compareAndAppendTerm(word, contentStemmed) {
-				matchingTerms = append(matchingTerms, word)
-			}
-		}
-	}
-
-	if len(matchingTerms) == 0 {
-		return []string{}
-	}
-
-	tm.logger.Debug(fmt.Sprintf("Matching terms result: %v", matchingTerms))
-	return matchingTerms
 }
 
 func (tm *TermMatcher) compareAndAppendTerm(searchTerm string, content string) bool {

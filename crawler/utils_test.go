@@ -2,6 +2,8 @@ package crawler
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/jonesrussell/loggo"
@@ -15,9 +17,12 @@ import (
 // MockMatcher is a simple implementation of the matcher interface for testing
 type MockMatcher struct{}
 
-func (m *MockMatcher) Match(content string) bool {
+func (m *MockMatcher) Match(content string, pattern string) (bool, error) {
 	// Implement mock logic for testing
-	return content == "test"
+	if content == "" || pattern == "" {
+		return false, errors.New("content or pattern cannot be empty")
+	}
+	return strings.Contains(content, pattern), nil // Example logic
 }
 
 func TestNewTermMatcher(t *testing.T) {
@@ -39,11 +44,9 @@ func TestHandleMatchingTerms(t *testing.T) {
 
 	// Create a mock DBManager
 	dbManager := dbmanager.NewMockDBManager()
-	// Create mock matchers for testing
-	mockMatchers := []matcher.Matcher{&MockMatcher{}}
-
-	// Create an actual TermMatcher with logger and mock matchers
-	termMatcher := termmatcher.NewTermMatcher(logger, mockMatchers)
+	// Create an actual TermMatcher with a mock matcher
+	mockMatcher := &MockMatcher{}
+	termMatcher := termmatcher.NewTermMatcher(logger, []matcher.Matcher{mockMatcher})
 
 	cm := NewCrawlManager(logger, dbManager, nil, nil, nil)
 	cm.TermMatcher = termMatcher

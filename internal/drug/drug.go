@@ -3,15 +3,18 @@ package drug
 import (
 	"strings"
 
+	"github.com/adrg/strutil/metrics"
 	"github.com/jonesrussell/page-prowler/internal/matcher"
 )
 
+const SimilarityThreshold = 1
+
 type Matcher struct {
-	*matcher.BaseMatcher // Embed BaseMatcher
+	*matcher.BaseMatcher
 }
 
-func NewMatcher() *Matcher {
-	return &Matcher{BaseMatcher: matcher.NewBaseMatcher()}
+func NewMatcher(swg *metrics.SmithWatermanGotoh) *Matcher {
+	return &Matcher{BaseMatcher: matcher.NewBaseMatcher(swg)}
 }
 
 func (m *Matcher) Match(href string) bool {
@@ -34,28 +37,20 @@ func (m *Matcher) Match(href string) bool {
 		return false
 	}
 
-	// Calculate similarities
-	similarityDrug := m.Similarity("DRUG", title)
-	similaritySmokeJoint := m.Similarity("SMOKE JOINT", title)
-	similarityGrowop := m.Similarity("GROW OP", title)
-	similarityCannabi := m.Similarity("CANNABI", title)
-	similarityImpair := m.Similarity("IMPAIR", title)
-	similarityShoot := m.Similarity("SHOOT", title)
-	similarityFirearm := m.Similarity("FIREARM", title)
-	similarityMurder := m.Similarity("MURDER", title)
-	similarityCocain := m.Similarity("COCAIN", title)
-	similarityPossess := m.Similarity("POSSESS", title)
-	similarityBreakEnter := m.Similarity("BREAK ENTER", title)
+	// Define drug-related terms
+	drugTerms := []string{
+		"drug", "smoke joint", "prescription", "medication", "pharmacy", "medicine",
+		"treatment", "health", "wellness", "pharmaceutical", "dosage", "side effects",
+		"prescription drug", "over the counter", "drug interaction", "drug-abuse",
+		"drug addiction", "drug rehabilitation", "drug policy", "drug regulation",
+	}
 
-	return similarityDrug == 1 ||
-		similaritySmokeJoint == 1 ||
-		similarityGrowop == 1 ||
-		similarityCannabi == 1 ||
-		similarityImpair == 1 ||
-		similarityShoot == 1 ||
-		similarityFirearm == 1 ||
-		similarityMurder == 1 ||
-		similarityCocain == 1 ||
-		similarityPossess == 1 ||
-		similarityBreakEnter == 1
+	// Check for matches
+	for _, term := range drugTerms {
+		if m.Similarity(term, title) >= SimilarityThreshold {
+			return true
+		}
+	}
+
+	return false
 }

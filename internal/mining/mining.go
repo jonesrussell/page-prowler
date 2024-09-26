@@ -1,19 +1,21 @@
 package mining
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/adrg/strutil/metrics"
 	"github.com/jonesrussell/page-prowler/internal/matcher"
 )
 
-const SimilarityThreshold = 1
+const SimilarityThreshold = 0.6
 
 type Matcher struct {
 	*matcher.BaseMatcher
 }
 
-func NewMatcher() *Matcher {
-	return &Matcher{BaseMatcher: matcher.NewBaseMatcher()}
+func NewMatcher(swg *metrics.SmithWatermanGotoh) *Matcher {
+	return &Matcher{BaseMatcher: matcher.NewBaseMatcher(swg)}
 }
 
 func (m *Matcher) Match(href string) bool {
@@ -44,12 +46,27 @@ func (m *Matcher) Match(href string) bool {
 		"junior mining stocks", "gold mining", "silver mining", "copper mining",
 		"lead mining", "zinc mining", "exploration projects", "mining companies",
 		"market data", "stock quotes", "real-time news", "mining sectors",
-		"mining regions", "high-grade deposits", "mining districts",
+		"mining regions", "high-grade deposits", "mining districts", "mining news",
+	}
+
+	// Define terms that should automatically score 0
+	excludedTerms := []string{
+		"technology", "sports", "entertainment", "fashion", "music", "movies",
+	}
+
+	// Check for excluded terms
+	for _, term := range excludedTerms {
+		if strings.Contains(title, term) {
+			fmt.Printf("Excluding term '%s' found in title '%s'\n", term, title)
+			return false
+		}
 	}
 
 	// Check for matches
 	for _, term := range miningTerms {
-		if m.Similarity(term, title) >= SimilarityThreshold {
+		score := m.Similarity(term, title)
+		fmt.Printf("Matching '%s' with '%s': score = %f\n", term, title, score)
+		if score >= SimilarityThreshold {
 			return true
 		}
 	}

@@ -2,10 +2,13 @@ package mining
 
 import (
 	"testing"
+
+	"github.com/adrg/strutil/metrics"
 )
 
 func TestMatcher_Match(t *testing.T) {
-	matcher := NewMatcher()
+	swg := metrics.NewSmithWatermanGotoh()
+	matcher := NewMatcher(swg)
 
 	tests := []struct {
 		href     string
