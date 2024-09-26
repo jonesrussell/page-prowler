@@ -9,6 +9,7 @@ import (
 	"github.com/gocolly/redisstorage"
 	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/dbmanager"
+	"github.com/jonesrussell/page-prowler/internal/matcher"
 	"github.com/jonesrussell/page-prowler/internal/termmatcher"
 	"github.com/jonesrussell/page-prowler/utils"
 )
@@ -30,7 +31,7 @@ type CrawlManager struct {
 	Results           *Results
 	StatsManager      *StatsManager
 	Storage           *redisstorage.Storage
-	TermMatcher       *termmatcher.TermMatcher
+	TermMatcher       *termmatcher.TermMatcher // Ensure TermMatcher is included
 }
 
 var _ CrawlManagerInterface = &CrawlManager{}
@@ -50,7 +51,8 @@ func NewCrawlManager(
 		Options:           options,
 		Results:           NewResults(),
 		Storage:           storage,
-		TermMatcher:       termmatcher.NewTermMatcher(logger),
+		TermMatcher:       termmatcher.NewTermMatcher(logger, []matcher.Matcher{}), // Initialize TermMatcher with empty matcher slice
+		StatsManager:      NewStatsManager(),
 	}
 }
 
@@ -132,6 +134,7 @@ func (cm *CrawlManager) configureCollector(allowedDomains []string, maxDepth int
 			return
 		}
 
+		// Use TermMatcher to find matching terms in the URL and anchor text
 		matchingTerms := cm.TermMatcher.GetMatchingTerms(href, e.Text, cm.Options.SearchTerms)
 		if len(matchingTerms) > 0 {
 			pageData := cm.createPageData(href)

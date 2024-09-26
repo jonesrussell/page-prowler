@@ -6,6 +6,8 @@ import (
 
 	"github.com/adrg/strutil/metrics"
 	"github.com/jonesrussell/loggo"
+	"github.com/jonesrussell/page-prowler/internal/matcher"
+	// Import your specific matcher
 )
 
 type fields struct {
@@ -17,9 +19,31 @@ type args struct {
 	content string
 }
 
+// MockMatcher is a simple implementation of the matcher interface for testing
+type MockMatcher struct{}
+
+func (m *MockMatcher) Match(content string) bool {
+	// Implement mock logic for testing
+	return content == "test"
+}
+
+func TestNewTermMatcher(t *testing.T) {
+	logger := loggo.NewMockLogger()                   // Create a mock logger
+	mockMatchers := []matcher.Matcher{&MockMatcher{}} // Create a slice of matchers
+
+	// Pass both logger and matchers to NewTermMatcher
+	tm := NewTermMatcher(logger, mockMatchers)
+
+	// Add your test cases here
+	if tm == nil {
+		t.Error("Expected TermMatcher to be initialized, got nil")
+	}
+}
+
 func TestGetMatchingTerms(t *testing.T) {
 	logger := loggo.NewMockLogger()
-	tm := NewTermMatcher(logger)
+	mockMatchers := []matcher.Matcher{&MockMatcher{}}
+	tm := NewTermMatcher(logger, mockMatchers)
 
 	tests := []struct {
 		name        string
