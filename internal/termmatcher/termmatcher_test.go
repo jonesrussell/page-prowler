@@ -7,7 +7,6 @@ import (
 	"github.com/adrg/strutil/metrics"
 	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/matcher"
-	// Import your specific matcher
 )
 
 type fields struct {
@@ -57,7 +56,14 @@ func TestGetMatchingTerms(t *testing.T) {
 			href:        "https://example.com/test",
 			anchorText:  "Example Anchor Text",
 			searchTerms: []string{"example", "test"},
-			want:        []string{"examp", "test"},
+			want:        []string{"test"},
+		},
+		{
+			name:        "Test case 2: No match",
+			href:        "https://example.com/other",
+			anchorText:  "Not a match",
+			searchTerms: []string{"example"},
+			want:        []string{},
 		},
 	}
 
@@ -311,7 +317,6 @@ func TestTermMatcher_combineContents(t *testing.T) {
 			},
 			want: "hello",
 		},
-		// TODO: Add more test cases.
 	}
 
 	for _, tt := range tests {

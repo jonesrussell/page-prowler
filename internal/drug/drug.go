@@ -3,30 +3,19 @@ package drug
 import (
 	"strings"
 
-	"github.com/adrg/strutil"
-	"github.com/adrg/strutil/metrics"
-	"github.com/bbalet/stopwords"
-	"github.com/caneroj1/stemmer"
+	"github.com/jonesrussell/page-prowler/internal/matcher"
 )
 
-type Matcher struct { // Renamed from DrugMatcher to Matcher
-	swg *metrics.SmithWatermanGotoh
+type Matcher struct {
+	*matcher.BaseMatcher // Embed BaseMatcher
 }
 
-func NewMatcher() *Matcher { // Updated constructor name
-	swg := metrics.NewSmithWatermanGotoh()
-	swg.CaseSensitive = false
-	swg.GapPenalty = -0.1
-	swg.Substitution = metrics.MatchMismatch{
-		Match:    1,
-		Mismatch: -0.5,
-	}
-
-	return &Matcher{swg: swg}
+func NewMatcher() *Matcher {
+	return &Matcher{BaseMatcher: matcher.NewBaseMatcher()}
 }
 
-func (m *Matcher) Match(href string) bool { // Updated receiver name
-	// We only want the title part of the URL
+func (m *Matcher) Match(href string) bool {
+	// Extract the title part of the URL
 	sliced := strings.Split(href, "/")
 	title := sliced[len(sliced)-1]
 
@@ -38,39 +27,25 @@ func (m *Matcher) Match(href string) bool { // Updated receiver name
 		title = sliced[len(sliced)-2]
 	}
 
-	// Remove hyphens from title
-	sliced = strings.Split(title, "-")
-	title = strings.Join(sliced, " ")
-
-	// Remove stopwords
-	title = stopwords.CleanString(title, "en", false)
-
-	// Trim whitespace
-	title = strings.TrimSpace(title)
-
-	// Stem the remaining words
-	sliced = strings.Split(title, " ")
-	sliced = stemmer.StemMultiple(sliced)
-
-	// Convert slice back to string
-	title = strings.Join(sliced, " ")
+	// Use BaseMatcher's ProcessContent method
+	title = m.ProcessContent(title)
 
 	if title == "" {
 		return false
 	}
 
 	// Calculate similarities
-	similarityDrug := strutil.Similarity("DRUG", title, m.swg)
-	similaritySmokeJoint := strutil.Similarity("SMOKE JOINT", title, m.swg)
-	similarityGrowop := strutil.Similarity("GROW OP", title, m.swg)
-	similarityCannabi := strutil.Similarity("CANNABI", title, m.swg)
-	similarityImpair := strutil.Similarity("IMPAIR", title, m.swg)
-	similarityShoot := strutil.Similarity("SHOOT", title, m.swg)
-	similarityFirearm := strutil.Similarity("FIREARM", title, m.swg)
-	similarityMurder := strutil.Similarity("MURDER", title, m.swg)
-	similarityCocain := strutil.Similarity("COCAIN", title, m.swg)
-	similarityPossess := strutil.Similarity("POSSESS", title, m.swg)
-	similarityBreakEnter := strutil.Similarity("BREAK ENTER", title, m.swg)
+	similarityDrug := m.Similarity("DRUG", title)
+	similaritySmokeJoint := m.Similarity("SMOKE JOINT", title)
+	similarityGrowop := m.Similarity("GROW OP", title)
+	similarityCannabi := m.Similarity("CANNABI", title)
+	similarityImpair := m.Similarity("IMPAIR", title)
+	similarityShoot := m.Similarity("SHOOT", title)
+	similarityFirearm := m.Similarity("FIREARM", title)
+	similarityMurder := m.Similarity("MURDER", title)
+	similarityCocain := m.Similarity("COCAIN", title)
+	similarityPossess := m.Similarity("POSSESS", title)
+	similarityBreakEnter := m.Similarity("BREAK ENTER", title)
 
 	return similarityDrug == 1 ||
 		similaritySmokeJoint == 1 ||
