@@ -41,6 +41,10 @@ func (m *Matcher) Match(href string) bool {
 		"mining", "gold", "silver", "copper", "coal", "ore", "excavation", "drilling",
 		"exploration", "mineral", "quarry", "sustainability", "environmental impact",
 		"resource", "extraction", "geology", "mineral rights", "mine safety",
+		"junior mining stocks", "gold mining", "silver mining", "copper mining",
+		"lead mining", "zinc mining", "exploration projects", "mining companies",
+		"market data", "stock quotes", "real-time news", "mining sectors",
+		"mining regions", "high-grade deposits", "mining districts",
 	}
 
 	// Check for matches
