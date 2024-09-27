@@ -55,7 +55,7 @@ func runCrawlCmd(
 	// Check if Logger is nil
 	if logger == nil {
 		fmt.Println("Error: Logger is nil")
-		return errors.New("Logger is nil")
+		return errors.New("logger is nil")
 	}
 
 	options, err := getCrawlOptions()

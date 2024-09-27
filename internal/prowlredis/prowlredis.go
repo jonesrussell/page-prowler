@@ -3,6 +3,7 @@ package prowlredis
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -17,6 +18,7 @@ type Options struct {
 // ClientInterface represents the interface for interacting with the Redis datastore.
 type ClientInterface interface {
 	Ping(ctx context.Context) error
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
 	SAdd(ctx context.Context, key string, members ...interface{}) error
 	Del(ctx context.Context, keys ...string) error
 	SMembers(ctx context.Context, key string) ([]string, error)
@@ -32,6 +34,12 @@ type Client struct {
 // ClientRedis is a wrapper around the go-redis Client that implements the ClientInterface.
 type ClientRedis struct {
 	*redis.Client
+}
+
+// Set implements ClientInterface.
+// Subtle: this method shadows the method (*Client).Set of ClientRedis.Client.
+func (c *ClientRedis) Set(_ context.Context, _ string, _ interface{}, _ time.Duration) error {
+	panic("unimplemented")
 }
 
 func (c *ClientRedis) Close() error {

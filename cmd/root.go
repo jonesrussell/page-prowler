@@ -5,8 +5,6 @@ import (
 
 	"github.com/jonesrussell/page-prowler/news"
 
-	"github.com/jonesrussell/loggo"
-
 	"github.com/jonesrussell/page-prowler/crawler"
 	"github.com/spf13/cobra"
 )
@@ -55,13 +53,4 @@ func NewRootCmd(manager *crawler.CrawlManager, newsService news.Service) *cobra.
 	rootCmd.AddCommand(serveCmd)
 
 	return rootCmd
-}
-
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute(rootCmd *cobra.Command, logger loggo.LoggerInterface) {
-	err := rootCmd.Execute()
-	if err != nil {
-		logger.Error("root command execute failed", err)
-	}
 }

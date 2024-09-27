@@ -125,7 +125,7 @@ func (tm *TermMatcher) findMatchingTerms(content string, searchTerms []string) [
 	return matchingTerms
 }
 
-// New CompareTerms method
+// CompareTerms  method
 func (tm *TermMatcher) CompareTerms(term1, term2 string) float64 {
 	return strutil.Similarity(term1, term2, tm.swg)
 }

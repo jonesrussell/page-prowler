@@ -4,10 +4,6 @@ type MockStatsManager struct {
 	// Add fields to store the state of the MockStatsManager if needed
 }
 
-func NewMockStatsManager() *MockStatsManager {
-	return &MockStatsManager{}
-}
-
 // Implement the methods of StatsManager with the behavior you want in your tests.
 // For example, if you have a method called IncrementTotalLinks, you could implement it like this:
 

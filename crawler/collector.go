@@ -61,7 +61,7 @@ func (cw *CollectorWrapper) GetCollector() *colly.Collector {
 	return cw.collector
 }
 
-// Enhanced Visit method with logging and timing
+// Visit method with logging and timing
 func (cw *CollectorWrapper) Visit(URL string) error {
 	// Check if the URL matches any of the disallowed URL filters
 	for _, re := range cw.DisallowedURLFilters {

@@ -82,7 +82,12 @@ func generateSite(siteName string, newsService news.Service) error {
 	if err != nil {
 		return fmt.Errorf("failed to create file: %v", err)
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			fmt.Printf("failed to close file: %v", err)
+		}
+	}(file)
 
 	// Execute the template and write to the file
 	tmpl, err := template.ParseFiles(

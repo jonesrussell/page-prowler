@@ -13,13 +13,6 @@ type Stats struct {
 	mu              sync.Mutex
 }
 
-// NewStats creates and returns a new Stats instance with all counters set to zero.
-func NewStats() *Stats {
-	return &Stats{
-		Links: make([]string, 0, 1000), // Pre-allocate memory for  1000 links
-	}
-}
-
 // IncrementTotalLinks increases the TotalLinks counter by one.
 func (s *Stats) IncrementTotalLinks() {
 	s.mu.Lock()

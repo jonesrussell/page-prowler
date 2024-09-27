@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/adrg/strutil/metrics"
+	"github.com/golang/mock/gomock"
 	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/matcher"
 )
@@ -31,7 +32,7 @@ func (mm *MockMatcher) Match(content string, pattern string) (bool, error) { // 
 }
 
 func TestNewTermMatcher(t *testing.T) {
-	logger := loggo.NewMockLogger() // Create a mock logger
+	logger := loggo.NewMockLogger(gomock.NewController(t)) // Create a mock logger
 	mockMatcher := &MockMatcher{}
 	mockMatchers := []matcher.Matcher{mockMatcher} // Create a slice of matchers
 
@@ -45,7 +46,7 @@ func TestNewTermMatcher(t *testing.T) {
 }
 
 func TestGetMatchingTerms(t *testing.T) {
-	logger := loggo.NewMockLogger()
+	logger := loggo.NewMockLogger(gomock.NewController(t))
 
 	tests := []struct {
 		name         string
@@ -84,7 +85,7 @@ func TestGetMatchingTerms(t *testing.T) {
 }
 
 func TestTermMatcher_stemContent(t *testing.T) {
-	logger := loggo.NewMockLogger()
+	logger := loggo.NewMockLogger(gomock.NewController(t))
 	swg := metrics.NewSmithWatermanGotoh()
 
 	tests := []struct {
@@ -131,7 +132,7 @@ func TestTermMatcher_stemContent(t *testing.T) {
 }
 
 func TestTermMatcher_convertToLowercase(t *testing.T) {
-	logger := loggo.NewMockLogger()
+	logger := loggo.NewMockLogger(gomock.NewController(t))
 	swg := metrics.NewSmithWatermanGotoh()
 
 	tests := []struct {
@@ -178,7 +179,7 @@ func TestTermMatcher_convertToLowercase(t *testing.T) {
 }
 
 func TestTermMatcher_compareAndAppendTerm(t *testing.T) {
-	logger := loggo.NewMockLogger()
+	logger := loggo.NewMockLogger(gomock.NewController(t))
 	swg := metrics.NewSmithWatermanGotoh()
 
 	type args struct {
@@ -232,7 +233,7 @@ func TestTermMatcher_compareAndAppendTerm(t *testing.T) {
 }
 
 func TestTermMatcher_CompareTerms(t *testing.T) {
-	logger := loggo.NewMockLogger()
+	logger := loggo.NewMockLogger(gomock.NewController(t))
 	swg := metrics.NewSmithWatermanGotoh()
 
 	type args struct {
@@ -286,7 +287,7 @@ func TestTermMatcher_CompareTerms(t *testing.T) {
 }
 
 func TestTermMatcher_combineContents(t *testing.T) {
-	logger := loggo.NewMockLogger()
+	logger := loggo.NewMockLogger(gomock.NewController(t))
 	swg := metrics.NewSmithWatermanGotoh()
 
 	type args struct {

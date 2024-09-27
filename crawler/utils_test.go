@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/dbmanager"
 	"github.com/jonesrussell/page-prowler/internal/matcher"
@@ -26,10 +27,9 @@ func (m *MockMatcher) Match(content string, pattern string) (bool, error) {
 }
 
 func TestNewTermMatcher(t *testing.T) {
-	logger := loggo.NewMockLogger()                   // Create a mock logger
-	mockMatchers := []matcher.Matcher{&MockMatcher{}} // Create a slice of matchers
+	logger := loggo.NewMockLogger(gomock.NewController(t))
+	mockMatchers := []matcher.Matcher{&MockMatcher{}}
 
-	// Pass both logger and matchers to NewTermMatcher
 	tm := termmatcher.NewTermMatcher(logger, mockMatchers)
 
 	// Add your test cases here
@@ -39,11 +39,16 @@ func TestNewTermMatcher(t *testing.T) {
 }
 
 func TestHandleMatchingTerms(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	// Create a mock logger
-	logger := loggo.NewMockLogger()
+	logger := loggo.NewMockLogger(ctrl)
+	logger.EXPECT().Debug(gomock.Any()).AnyTimes()
 
 	// Create a mock DBManager
 	dbManager := dbmanager.NewMockDBManager()
+
 	// Create an actual TermMatcher with a mock matcher
 	mockMatcher := &MockMatcher{}
 	termMatcher := termmatcher.NewTermMatcher(logger, []matcher.Matcher{mockMatcher})
@@ -53,16 +58,13 @@ func TestHandleMatchingTerms(t *testing.T) {
 	cm.initializeStatsManager()
 
 	// Define the input parameters
-	options := &CrawlOptions{}
+	options := &CrawlOptions{CrawlSiteID: "test_crawl"}
 	currentURL := "https://www.example.com/the-cat-has-been-abducted"
 	pageData := models.PageData{URL: currentURL}
 	matchingTerms := []string{"abduct"}
 
 	// Call the function
 	err := cm.handleMatchingTerms(options, currentURL, pageData, matchingTerms)
-
-	// Print the actual PageData
-	t.Logf("Actual PageData: %+v\n", pageData)
 
 	// Assert that there was no error
 	assert.NoError(t, err)
@@ -76,12 +78,11 @@ func TestHandleMatchingTerms(t *testing.T) {
 
 	// Assert that the result was saved to Redis
 	ctx := context.Background()
-	key := options.CrawlSiteID
-	savedResults, err := dbManager.GetResultsFromRedis(ctx, key)
+	savedResults, err := dbManager.GetResultsFromRedis(ctx, options.CrawlSiteID)
 
-	// Print the actual results saved to Redis
-	t.Logf("Actual results saved to Redis: %+v\n", savedResults)
-
+	// Additional assertions
 	assert.NoError(t, err)
-	assert.Contains(t, savedResults, expectedPageData) // Use the expected PageData
+	assert.Contains(t, savedResults, expectedPageData)
+	assert.Equal(t, 1, len(savedResults), "Expected one result to be saved")
+	assert.Equal(t, expectedPageData, savedResults[0], "Saved result does not match expected data")
 }

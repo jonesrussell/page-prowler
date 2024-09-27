@@ -12,7 +12,7 @@ import (
 func (cm *CrawlManager) getHref(e *colly.HTMLElement) (string, error) {
 	href := e.Request.AbsoluteURL(e.Attr("href"))
 	if href == "" {
-		return "", errors.New("Found anchor element with no href attribute")
+		return "", errors.New("found anchor element with no href attribute")
 	}
 	return href, nil
 }

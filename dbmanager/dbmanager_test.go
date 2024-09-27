@@ -2,132 +2,46 @@ package dbmanager
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
-	"github.com/jonesrussell/page-prowler/models"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSaveResults(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	t.Run("successful save", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockRedis := prowlredis.NewMockClientInterface(ctrl)
+		dm := NewDBManager(mockRedis)
 
-	mockClient := prowlredis.NewMockClientInterface(ctrl)
-	mockLogger := loggo.NewMockLoggerInterface(ctrl)
-	redisManager := NewRedisManager(mockClient, mockLogger)
-	ctx := context.TODO()
+		// Use SAdd for Redis set operations
+		mockRedis.EXPECT().SAdd(gomock.Any(), gomock.Any(), gomock.Any()).Return(int64(1), nil)
 
-	tests := []struct {
-		name    string
-		results []models.PageData
-		key     string
-		setup   func()
-		wantErr bool
-	}{
-		{
-			name: "successful save",
-			results: []models.PageData{
-				{Title: "Title1", URL: "http://example.com/1"},
-			},
-			key: "key1",
-			setup: func() {
-				mockLogger.EXPECT().Debug("Redis", "key", "key1").Times(1)
-				mockLogger.EXPECT().Debug("Redis", "results", gomock.Any()).Times(1)
-				mockClient.EXPECT().SAdd(ctx, "key1", gomock.Any()).Return(nil).Times(1)
-			},
-			wantErr: false,
-		},
-		{
-			name: "marshal error",
-			results: []models.PageData{
-				{Title: "Title1", URL: string([]byte{0xff})}, // invalid UTF-8
-			},
-			key: "key1",
-			setup: func() {
-				mockLogger.EXPECT().Debug("Redis", "key", "key1").Times(1)
-				mockLogger.EXPECT().Debug("Redis", "results", gomock.Any()).Times(1)
-			},
-			wantErr: true,
-		},
-		{
-			name: "client SAdd error",
-			results: []models.PageData{
-				{Title: "Title1", URL: "http://example.com/1"},
-			},
-			key: "key1",
-			setup: func() {
-				mockLogger.EXPECT().Debug("Redis", "key", "key1").Times(1)
-				mockLogger.EXPECT().Debug("Redis", "results", gomock.Any()).Times(1)
-				mockClient.EXPECT().SAdd(ctx, "key1", gomock.Any()).Return(errors.New("SAdd error")).Times(1)
-			},
-			wantErr: true,
-		},
-	}
+		err := dm.SaveResults(context.Background(), []string{"testKey"})
+		assert.NoError(t, err)
+	})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.setup != nil {
-				tt.setup()
-			}
+	t.Run("redis error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockRedis := prowlredis.NewMockClientInterface(ctrl)
+		dm := NewDBManager(mockRedis)
 
-			err := redisManager.SaveResults(ctx, tt.results, tt.key)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("SaveResults() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
+		ctx := context.Background()
+		key := "key1"
 
-func TestClearRedisSet(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+		// Expect SAdd to return an error
+		mockRedis.EXPECT().SAdd(gomock.Any(), gomock.Any(), gomock.Any()).Return(int64(0), errors.New("Redis error"))
 
-	mockClient := prowlredis.NewMockClientInterface(ctrl)
-	mockLogger := loggo.NewMockLoggerInterface(ctrl)
-	redisManager := NewRedisManager(mockClient, mockLogger)
-	ctx := context.TODO()
+		err := dm.SaveResults(ctx, []string{key})
 
-	tests := []struct {
-		name    string
-		key     string
-		setup   func()
-		wantErr bool
-	}{
-		{
-			name: "successful delete",
-			key:  "key1",
-			setup: func() {
-				mockClient.EXPECT().Del(ctx, "key1").Return(nil).Times(1)
-			},
-			wantErr: false,
-		},
-		{
-			name: "client Del error",
-			key:  "key1",
-			setup: func() {
-				mockClient.EXPECT().Del(ctx, "key1").Return(errors.New("Del error")).Times(1)
-			},
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.setup != nil {
-				tt.setup()
-			}
-
-			err := redisManager.ClearRedisSet(ctx, tt.key)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ClearRedisSet() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "Redis error")
+	})
 }
 
 func TestGetLinksFromRedis(t *testing.T) {

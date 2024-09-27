@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
@@ -60,4 +61,20 @@ func (rm *RedisManager) GetLinksFromRedis(ctx context.Context, key string) ([]st
 
 func (rm *RedisManager) RedisOptions() prowlredis.Options {
 	return *rm.client.Options()
+}
+
+type DBManager struct {
+	redisClient prowlredis.ClientInterface
+}
+
+func NewDBManager(redisClient prowlredis.ClientInterface) *DBManager {
+	return &DBManager{
+		redisClient: redisClient,
+	}
+}
+
+func (dm *DBManager) SaveResults(ctx context.Context, results []string) error {
+	// Implement the logic to save results
+	// For example:
+	return dm.redisClient.Set(ctx, "results", strings.Join(results, ","), 0)
 }

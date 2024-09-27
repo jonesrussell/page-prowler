@@ -35,11 +35,10 @@ func InitializeManager(
 		Output: file,
 	}
 
-	// Define your allowed URLs
-	URLFilters := []*regexp.Regexp{
-		// www.cp24.com
-		// regexp.MustCompile(`news`),
-	}
+	var (
+		// URLFilters Define your allowed URLs
+		URLFilters []*regexp.Regexp
+	)
 
 	// Create a new Colly collector
 	collector := colly.NewCollector(

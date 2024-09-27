@@ -13,13 +13,13 @@ type CrawlOptions struct {
 	StartURL              string
 }
 
-// Method to set options
+// SetOptions Method to set options
 func (cm *CrawlManager) SetOptions(options *CrawlOptions) error {
 	cm.Options = options
 	return nil
 }
 
-// Method to get options
+// GetOptions Method to get options
 func (cm *CrawlManager) GetOptions() *CrawlOptions {
 	return cm.Options
 }

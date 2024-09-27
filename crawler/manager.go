@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/go-redis/redis"
+
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/queue"
 	"github.com/gocolly/redisstorage"
@@ -94,7 +96,12 @@ func (cm *CrawlManager) Crawl() error {
 	}
 
 	// close redis client
-	defer cm.Storage.Client.Close()
+	defer func(Client *redis.Client) {
+		err := Client.Close()
+		if err != nil {
+			fmt.Printf("failed to close redis client: %v", err)
+		}
+	}(cm.Storage.Client)
 
 	cm.Logger.Info("[Crawl] Crawling completed.")
 
