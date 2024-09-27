@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/jonesrussell/loggo"
 	"github.com/jonesrussell/page-prowler/internal/prowlredis"
@@ -65,16 +64,28 @@ func (rm *RedisManager) RedisOptions() prowlredis.Options {
 
 type DBManager struct {
 	redisClient prowlredis.ClientInterface
+	logger      loggo.LoggerInterface
 }
 
-func NewDBManager(redisClient prowlredis.ClientInterface) *DBManager {
+func NewDBManager(redisClient prowlredis.ClientInterface, logger loggo.LoggerInterface) *DBManager {
 	return &DBManager{
 		redisClient: redisClient,
+		logger:      logger,
 	}
 }
 
-func (dm *DBManager) SaveResults(ctx context.Context, results []string) error {
-	// Implement the logic to save results
-	// For example:
-	return dm.redisClient.Set(ctx, "results", strings.Join(results, ","), 0)
+func (dm *DBManager) SaveResults(ctx context.Context, results []models.PageData, key string) error {
+	for _, result := range results {
+		data, err := json.Marshal(result)
+		if err != nil {
+			return fmt.Errorf("error marshaling PageData: %w", err)
+		}
+		str := string(data)
+
+		if err := dm.redisClient.SAdd(ctx, key, str); err != nil {
+			return fmt.Errorf("error adding data to Redis: %w", err)
+		}
+	}
+
+	return nil
 }

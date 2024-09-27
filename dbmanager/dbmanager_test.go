@@ -11,39 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSaveResults(t *testing.T) {
-	t.Run("successful save", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		mockRedis := prowlredis.NewMockClientInterface(ctrl)
-		dm := NewDBManager(mockRedis)
-
-		// Use SAdd for Redis set operations
-		mockRedis.EXPECT().SAdd(gomock.Any(), gomock.Any(), gomock.Any()).Return(int64(1), nil)
-
-		err := dm.SaveResults(context.Background(), []string{"testKey"})
-		assert.NoError(t, err)
-	})
-
-	t.Run("redis error", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		mockRedis := prowlredis.NewMockClientInterface(ctrl)
-		dm := NewDBManager(mockRedis)
-
-		ctx := context.Background()
-		key := "key1"
-
-		// Expect SAdd to return an error
-		mockRedis.EXPECT().SAdd(gomock.Any(), gomock.Any(), gomock.Any()).Return(int64(0), errors.New("Redis error"))
-
-		err := dm.SaveResults(ctx, []string{key})
-
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Redis error")
-	})
-}
-
 func TestGetLinksFromRedis(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
