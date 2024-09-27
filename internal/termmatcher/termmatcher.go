@@ -36,7 +36,7 @@ func NewTermMatcher(logger loggo.LoggerInterface, matchers []matcher.Matcher) *T
 	return &TermMatcher{
 		logger:   logger,
 		swg:      swg,
-		matchers: matchers, // Initialize with provided matchers
+		matchers: matchers,
 	}
 }
 

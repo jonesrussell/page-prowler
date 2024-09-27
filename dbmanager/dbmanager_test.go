@@ -64,6 +64,7 @@ func TestGetLinksFromRedis(t *testing.T) {
 			name: "successful get",
 			key:  "key1",
 			setup: func() {
+				mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 				mockClient.EXPECT().SMembers(ctx, "key1").Return([]string{"link1", "link2"}, nil).Times(1)
 			},
 			want:    []string{"link1", "link2"},
