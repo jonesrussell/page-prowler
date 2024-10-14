@@ -30,7 +30,7 @@ require (
 	github.com/gocolly/redisstorage v0.0.0-20190812112800-1745c5e6d0ba
 	github.com/golang/mock v1.6.0
 	github.com/hibiken/asynq v0.24.1
-	github.com/jonesrussell/loggo v0.1.3
+	github.com/jonesrussell/loggo v0.2.0
 	github.com/redis/go-redis/v9 v9.6.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
@@ -65,6 +65,7 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
