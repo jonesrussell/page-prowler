@@ -1,31 +1,54 @@
 {
-	"name": "Go & Redis",
+	"name": "Go Page Prowler",
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "app",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 	"features": {
-		"ghcr.io/guiyomh/features/golangci-lint:0": {},
-		"ghcr.io/guiyomh/features/gomarkdoc:0": {},
-		"ghcr.io/guiyomh/features/goreleaser:0": {},
-		"ghcr.io/guiyomh/features/gotestsum:0": {},
-		"ghcr.io/devcontainers-contrib/features/elasticsearch-asdf:2": {},
+		"ghcr.io/eitsupi/devcontainer-features/go-task:1": {
+			"version": "latest"
+		},
+		"ghcr.io/devcontainers/features/common-utils:2": {
+			"installZsh": true,
+			"configureZshAsDefaultShell": true,
+			"installOhMyZsh": true,
+			"installOhMyZshConfig": true,
+			"upgradePackages": true,
+			"username": "vscode",
+			"userUid": "automatic",
+			"userGid": "automatic"
+		},
+		"ghcr.io/devcontainers/features/node:1": {
+			"nodeGypDependencies": true,
+			"installYarnUsingApt": true,
+			"version": "lts",
+			"pnpmVersion": "latest",
+			"nvmVersion": "latest"
+		},
+		"ghcr.io/devcontainers/features/github-cli:1": {
+			"installDirectlyFromGitHubRelease": true,
+			"version": "latest"
+		},
+		"ghcr.io/joshuanianji/devcontainer-features/github-cli-persistence:1": {},
 		"ghcr.io/nils-geistmann/devcontainers-features/zsh:0": {},
 		"ghcr.io/stuartleeks/dev-container-features/shell-history:0": {}
 	},
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"phind.phind",
+				"golang.Go",
+				"jinliming2.vscode-go-template",
+				"GitHub.vscode-github-actions",
+				"humao.rest-client",
+				"mtxr.sqltools-driver-mysql",
+				"mtxr.sqltools",
+				"eamodio.gitlens",
 				"GitHub.vscode-pull-request-github",
-				"nhoizey.gremlins",
-				"task.vscode-task",
-				"premparihar.gotestexplorer",
 				"ms-azuretools.vscode-docker"
 			]
 		}
 	},
 	"mounts": [
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssl,target=/ssl,type=bind"
+		"type=bind,source=/home/${localEnv:USER}/.ssh,target=/home/vscode/.ssh,readonly"
 	],
 	"forwardPorts": [
 		6379
