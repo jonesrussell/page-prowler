@@ -1,126 +1,162 @@
-Based on the provided code snippets, I'll create an architecture review and summary in markdown format. I'll create this as `docs/ARCHITECTURE.md`:
-
-```markdown:docs/ARCHITECTURE.md
-# Page Prowler - Architecture Overview
+# Page Prowler - Architecture Review
 
 ## Project Overview
-Page Prowler appears to be a web crawling application built with a microservices architecture using Go and JavaScript/TypeScript. The project uses modern development practices and tools including Docker, Kubernetes, and Redis for distributed task processing.
+Page Prowler is a web crawling application built in Go that finds and extracts links from websites based on specified search terms. It features both a CLI interface and a REST API, with distributed task processing capabilities.
 
 ## Technology Stack
 
-### Backend
-- Go (Primary backend language)
+### Core Technologies
+- Go (Primary language)
 - Redis (Task queue and caching)
-- MongoDB (Data storage)
 - Docker (Containerization)
-- Kubernetes (Orchestration)
+- OpenAPI/Swagger (API documentation)
 
-### Frontend
-- TypeScript/JavaScript
-- HTML/CSS
-- Modern frontend tooling (evidenced by linting configurations)
+### Key Dependencies
+- Colly (Web crawling)
+- Asynq (Task queue)
+- Cobra (CLI framework)
+- Go-Redis (Redis client)
 
 ## Architecture Components
 
 ### 1. Core Services
-- Web Crawler Service (Go)
-- Task Queue Management (Redis)
-- Data Storage Layer (MongoDB)
+The application is structured around several key components:
 
-### 2. Infrastructure
-- Docker containerization
-- Kubernetes orchestration
-- GitHub Actions for CI/CD
+#### Web Crawler Service
+- Uses Colly framework for web crawling
+- Implements depth-limited crawling
+- Supports concurrent crawling operations
+- Custom term matching algorithm
 
-### 3. Development Tools
-- Code Quality Tools
-  - Qodana for static analysis
-  - TypeScript type checking
-  - Go linting
-- Testing Framework
-  - Unit testing support for both Go and JavaScript
+#### Task Queue System
+- Asynq for distributed task processing
+- Redis-backed queue storage
+- Supports async processing of crawl jobs
+
+#### API Layer
+- RESTful API with OpenAPI 3.0 specification
+- Endpoints for crawl management and status
+- Health check endpoints
+
+### 2. CLI Interface
+References:
+```markdown:README.md
+startLine: 5
+endLine: 16
+```
+
+### 3. Matching System
+References:
+```markdown:MATCHING.md
+startLine: 8
+endLine: 28
+```
 
 ## Code Organization
 
-The project follows a microservices architecture with clear separation of concerns:
-
 ```
 project/
-├── backend/        # Go services
-├── frontend/       # TypeScript/JavaScript frontend
-├── k8s/           # Kubernetes configurations
-├── docker/        # Docker configurations
-└── docs/          # Documentation
+├── cmd/           # Command-line interface implementations
+├── internal/      # Private application code
+├── pkg/          # Public libraries
+├── api/          # API definitions and handlers
+├── static/       # Static assets and templates
+├── docs/         # Documentation
+└── docker/       # Docker configurations
 ```
 
 ## Key Features
-1. Distributed web crawling
-2. Task queue management
-3. Data persistence
-4. Containerized deployment
-5. Automated testing and quality checks
+
+1. **Flexible Crawling**
+   - Configurable crawl depth
+   - Search term matching
+   - URL filtering
+   - Concurrent crawling
+
+2. **Distributed Processing**
+   - Redis-backed task queue
+   - Scalable worker processes
+   - Fault-tolerant job processing
+
+3. **Multiple Interfaces**
+   - CLI for direct usage
+   - REST API for service integration
+   - Worker mode for processing
 
 ## Security Considerations
-- Redis authentication required
-- Environment-based configuration
-- Dependency vulnerability scanning
-- Code quality enforcement
+
+References:
+```markdown:SECURITY.md
+startLine: 3
+endLine: 11
+```
 
 ## Development Practices
-1. Code Quality
-   - Static analysis with Qodana
-   - Type safety with TypeScript
-   - Linting for both Go and JavaScript
-   - Automated testing
 
-2. DevOps
-   - Containerized development environment
-   - Kubernetes deployment support
-   - CI/CD with GitHub Actions
+### 1. Code Quality
+References:
+```yaml:.golangci.yml
+startLine: 16
+endLine: 25
+```
 
-3. Documentation
-   - Code documentation requirements
-   - API specifications
-   - Markdown documentation
+### 2. Testing
+- Mockery for interface mocking
+- Unit testing support
+- Integration test capabilities
+
+### 3. Build Process
+References:
+```Dockerfile
+startLine: 1
+endLine: 21
+```
 
 ## Configuration Management
-The application uses environment variables for configuration:
+The application uses environment variables and configuration files for settings:
+
 ```bash
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_AUTH=yourpassword
 ```
 
+## Deployment
+
+### Docker Support
+- Multi-stage build process
+- Alpine-based production image
+- Configurable through environment variables
+
+### Scaling Considerations
+1. Horizontal scaling of workers
+2. Redis cluster support
+3. Container orchestration ready
+
 ## Recommendations
 
-### Short Term Improvements
-1. Enhance test coverage
-2. Address unused exported functions (e.g., `EnqueueCrawlTask`)
-3. Implement comprehensive error handling
-4. Add API documentation
+### Short-term Improvements
+1. Enhanced error handling
+2. Metrics collection
+3. Rate limiting implementation
+4. Caching optimization
 
-### Long Term Improvements
-1. Implement monitoring and observability
-2. Add performance metrics collection
-3. Enhance scalability patterns
-4. Implement rate limiting
-5. Add caching strategies
+### Long-term Improvements
+1. Monitoring system integration
+2. Advanced crawling patterns
+3. Machine learning for term matching
+4. Multi-language support
 
 ## Dependencies Management
-- Go modules for backend dependencies
-- NPM/Yarn for frontend dependencies
-- Docker for container management
-- Kubernetes for orchestration
-
-## Deployment Architecture
-The application is designed for cloud-native deployment with:
-1. Containerized services
-2. Kubernetes orchestration
-3. Scalable microservices
-4. Distributed task processing
-
-## Conclusion
-Page Prowler demonstrates a modern, well-structured application with good separation of concerns and cloud-native architecture. The use of strong typing, automated testing, and comprehensive linting suggests a focus on code quality and maintainability.
+References:
+```go.mod
+startLine: 7
+endLine: 23
 ```
 
-This architecture document provides a high-level overview of the project's structure, components, and best practices. It can be expanded as the project evolves.
+## License
+The project is licensed under MIT License, allowing for free use and modification.
+
+## Conclusion
+Page Prowler demonstrates a well-structured Go application with good separation of concerns and modern architectural patterns. The combination of CLI and API interfaces, along with distributed task processing, makes it suitable for both standalone use and integration into larger systems.
+```
