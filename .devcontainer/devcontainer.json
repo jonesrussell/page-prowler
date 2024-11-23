@@ -52,5 +52,6 @@
 	],
 	"forwardPorts": [
 		6379
-	]
+	],
+	"initializeCommand": "go version"
 }
